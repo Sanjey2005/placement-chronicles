@@ -6,9 +6,12 @@ const pdf = require('pdf-parse');
 
 export async function POST(request: NextRequest) {
     try {
+        console.log('📤 PDF Upload started');
+
         // Get the uploaded file from the request
         const formData = await request.formData();
         const file = formData.get('file') as File;
+        console.log('📄 File received:', file?.name, file?.type, file?.size);
 
         if (!file) {
             return NextResponse.json(
@@ -25,13 +28,18 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        console.log('✅ File validation passed');
+
         // Convert file to buffer
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
+        console.log('📦 Buffer created, size:', buffer.length);
 
         // Extract text from PDF
+        console.log('🔍 Starting PDF text extraction...');
         const pdfData = await pdf(buffer);
         const extractedText = pdfData.text;
+        console.log('📝 Text extracted, length:', extractedText?.length);
 
         if (!extractedText || extractedText.trim().length === 0) {
             return NextResponse.json(
@@ -79,8 +87,11 @@ Return the data in the following JSON format:
 If any field is not found, use null for optional fields or reasonable defaults.
     `.trim();
 
+
         // Extract structured data using Gemini
+        console.log('🤖 Starting Gemini extraction...');
         const extractedData = await extractWithGemini(extractedText, extractionPrompt);
+        console.log('✅ Gemini extraction complete:', JSON.stringify(extractedData, null, 2));
 
         // Return the extracted data
         return NextResponse.json({
@@ -89,21 +100,30 @@ If any field is not found, use null for optional fields or reasonable defaults.
             rawText: extractedText.substring(0, 500) + '...', // First 500 chars for reference
         });
 
+
     } catch (error) {
         console.error('Error processing PDF:', error);
+
+        // Detailed error logging
+        if (error instanceof Error) {
+            console.error('Error name:', error.name);
+            console.error('Error message:', error.message);
+            console.error('Error stack:', error.stack);
+        }
+
         return NextResponse.json(
             {
                 error: 'Failed to process PDF',
-                details: error instanceof Error ? error.message : 'Unknown error'
+                details: error instanceof Error ? error.message : 'Unknown error',
+                type: error instanceof Error ? error.name : 'UnknownError'
             },
             { status: 500 }
         );
     }
 }
 
-// Configure the route to handle file uploads
-export const config = {
-    api: {
-        bodyParser: false,
-    },
-};
+// App Router configuration for handling large file uploads
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // 60 seconds timeout
+
