@@ -90,8 +90,34 @@ If any field is not found, use null for optional fields or reasonable defaults.
 
         // Extract structured data using Gemini
         console.log('🤖 Starting Gemini extraction...');
-        const extractedData = await extractWithGemini(extractedText, extractionPrompt);
-        console.log('✅ Gemini extraction complete:', JSON.stringify(extractedData, null, 2));
+        let extractedData;
+
+        try {
+            extractedData = await extractWithGemini(extractedText, extractionPrompt);
+            console.log('✅ Gemini extraction complete:', JSON.stringify(extractedData, null, 2));
+        } catch (geminiError) {
+            console.error('⚠️ Gemini extraction failed, using fallback template:', geminiError);
+
+            // Fallback: Return a template for manual entry
+            extractedData = {
+                company: '',
+                role: '',
+                ctc: 0,
+                year: new Date().getFullYear(),
+                rounds: [
+                    {
+                        roundNumber: 1,
+                        roundType: 'Technical Round',
+                        questions: ['Please fill in the questions manually'],
+                        description: null,
+                        duration: null
+                    }
+                ],
+                tags: [],
+                _note: 'AI extraction failed. Please fill in the details manually from the extracted text below.',
+                _extractedText: extractedText.substring(0, 1000) // First 1000 chars for reference
+            };
+        }
 
         // Return the extracted data
         return NextResponse.json({
@@ -99,6 +125,7 @@ If any field is not found, use null for optional fields or reasonable defaults.
             data: extractedData,
             rawText: extractedText.substring(0, 500) + '...', // First 500 chars for reference
         });
+
 
 
     } catch (error) {

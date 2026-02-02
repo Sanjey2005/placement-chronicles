@@ -26,20 +26,39 @@ export function getGeminiModel() {
  * @returns Parsed JSON response
  */
 export async function extractWithGemini(text: string, prompt: string) {
-    const model = getGeminiModel();
-
-    const fullPrompt = `${prompt}\n\nText to analyze:\n${text}\n\nRespond ONLY with valid JSON, no additional text.`;
-
-    const result = await model.generateContent(fullPrompt);
-    const response = await result.response;
-    const responseText = response.text();
-
-    // Parse and return JSON
     try {
-        return JSON.parse(responseText);
+        const model = getGeminiModel();
+
+        const fullPrompt = `${prompt}\n\nText to analyze:\n${text}\n\nRespond ONLY with valid JSON, no additional text.`;
+
+        console.log('🔄 Calling Gemini API...');
+        const result = await model.generateContent(fullPrompt);
+        const response = await result.response;
+        let responseText = response.text();
+        console.log('📥 Gemini raw response:', responseText.substring(0, 200));
+
+        // Clean up response - remove markdown code blocks if present
+        responseText = responseText.trim();
+        if (responseText.startsWith('```json')) {
+            responseText = responseText.replace(/```json\n?/g, '').replace(/```\n?$/g, '');
+        } else if (responseText.startsWith('```')) {
+            responseText = responseText.replace(/```\n?/g, '');
+        }
+
+        // Parse and return JSON
+        try {
+            const parsed = JSON.parse(responseText.trim());
+            console.log('✅ Successfully parsed JSON');
+            return parsed;
+        } catch (parseError) {
+            console.error('❌ Failed to parse Gemini response as JSON');
+            console.error('Response text:', responseText);
+            console.error('Parse error:', parseError);
+            throw new Error(`Invalid JSON response from Gemini: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+        }
     } catch (error) {
-        console.error('Failed to parse Gemini response as JSON:', responseText);
-        throw new Error('Invalid JSON response from Gemini');
+        console.error('❌ Gemini API error:', error);
+        throw error;
     }
 }
 
