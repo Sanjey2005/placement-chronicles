@@ -74,7 +74,16 @@ export default function UploadTab() {
             setProgress(100);
 
             if (!response.ok) {
-                throw new Error('Upload failed');
+                console.error('Upload failed with status:', response.status);
+                const errorText = await response.text();
+                console.error('Error response body:', errorText);
+
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    throw new Error(errorJson.error || `Upload failed: ${response.status}`);
+                } catch (e) {
+                    throw new Error(`Upload failed with status ${response.status}: ${errorText.substring(0, 100)}`);
+                }
             }
 
             const result = await response.json();
