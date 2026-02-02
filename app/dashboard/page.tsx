@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import StarField from '@/components/StarField';
 import GlassCard from '@/components/GlassCard';
 import UploadTab from '@/components/dashboard/UploadTab';
@@ -12,6 +13,14 @@ type Tab = 'upload' | 'chat';
 
 export default function DashboardPage() {
     const [activeTab, setActiveTab] = useState<Tab>('upload');
+    const router = useRouter();
+
+    const handleLogout = () => {
+        // Clear auth cookie
+        document.cookie = 'auth-token=; path=/; max-age=0';
+        // Redirect to login
+        router.push('/login');
+    };
 
     return (
         <div className="min-h-screen">
@@ -38,8 +47,8 @@ export default function DashboardPage() {
                         <button
                             onClick={() => setActiveTab('upload')}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'upload'
-                                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
-                                    : 'text-white/80 hover:bg-white/10 hover:text-white'
+                                ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                                : 'text-white/80 hover:bg-white/10 hover:text-white'
                                 }`}
                         >
                             <Upload className="h-5 w-5" />
@@ -49,8 +58,8 @@ export default function DashboardPage() {
                         <button
                             onClick={() => setActiveTab('chat')}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === 'chat'
-                                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
-                                    : 'text-white/80 hover:bg-white/10 hover:text-white'
+                                ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                                : 'text-white/80 hover:bg-white/10 hover:text-white'
                                 }`}
                         >
                             <MessageSquare className="h-5 w-5" />
@@ -58,12 +67,13 @@ export default function DashboardPage() {
                         </button>
                     </nav>
 
-                    <Link href="/login">
-                        <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-all">
-                            <LogOut className="h-5 w-5" />
-                            <span>Sign Out</span>
-                        </button>
-                    </Link>
+                    <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-all"
+                    >
+                        <LogOut className="h-5 w-5" />
+                        <span>Sign Out</span>
+                    </button>
                 </GlassCard>
 
                 {/* Main Content */}

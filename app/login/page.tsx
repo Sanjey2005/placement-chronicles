@@ -23,6 +23,9 @@ export default function LoginPage() {
             const result = await login(formData);
 
             if (result.success) {
+                // Set auth cookie on successful login
+                document.cookie = `auth-token=${result.cookies?.[0] || 'authenticated'}; path=/; max-age=86400; SameSite=Lax`;
+
                 toast.success('Login successful! Redirecting...');
                 router.push('/dashboard');
             } else {
