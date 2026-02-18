@@ -22,8 +22,11 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // ── Admin Bypass: Hardcoded admin credentials ───────────────
-        if (rollno === 'sanjey$12' && password === 'password') {
+        // ── Admin Bypass: Environment variables ───────────────
+        const adminUser = process.env.ADMIN_USERNAME;
+        const adminPass = process.env.ADMIN_PASSWORD;
+
+        if (adminUser && adminPass && rollno === adminUser && password === adminPass) {
             return NextResponse.json({
                 success: true,
                 message: 'Admin login successful',

@@ -18,6 +18,8 @@ Expand the **Environment Variables** section and add:
 | `MONGODB_URI` | Your MongoDB connection string (ensure Network Access allows `0.0.0.0/0`) |
 | `GROQ_API_KEY` | Key for AI moderation |
 | `GEMINI_API_KEY` | Key for PDF parsing |
+| `ADMIN_USERNAME` | Username for admin access |
+| `ADMIN_PASSWORD` | Password for admin access |
 | `UPSTASH_REDIS_REST_URL` | Redis URL for rate limiting |
 | `UPSTASH_REDIS_REST_TOKEN` | Redis Token for rate limiting |
 | `NEXT_PUBLIC_BASE_URL` | *(Optional)* Set to your Vercel URL (e.g. `https://your-app.vercel.app`) after deployment |
