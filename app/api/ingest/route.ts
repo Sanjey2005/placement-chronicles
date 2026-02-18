@@ -1,156 +1,220 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { extractWithGemini } from '@/lib/gemini';
+import Groq from 'groq-sdk';
 
-// @ts-ignore - pdf-parse is a CommonJS module
-const pdf = require('pdf-parse');
+// Initialize Groq client
+const groq = new Groq({
+    apiKey: process.env.GROQ_API_KEY,
+});
+
+const systemPrompt = `You are an expert Data Extraction AI. Convert the raw interview experience text into strict JSON.
+Follow these rules for categorizing rounds:
+
+### 1. ROUND TYPES & SCHEMA
+- **If "Online Test" / "Aptitude" / "MCQ" / "Coding Test":**
+  Return: { "type": "test", "roundNumber": #, "topics": "List topics (DSA, OS, etc)", "studySources": "Extract URLs or book names if mentioned, otherwise empty string" }
+
+- **If "Hackathon" / "Coding Contest" / "Case Study":**
+  Return: { "type": "hackathon", "roundNumber": #, "problemStatement": "Describe the challenge", "strategy": "Describe their approach/experience" }
+
+- **If "Interview" / "GD" / "HR" / "Technical Round" / "Managerial Round":**
+  Return: { 
+    "type": "interview", 
+    "roundNumber": #,
+    "interviewType": "technical" | "hr" | "managerial" | "mixed",
+    "duration": "e.g. 45 mins",
+    "questions": [ { "question": "Text", "answerTip": "" } ],
+    "notes": "Any extra context or narrative that isn't a direct question"
+  }
+
+### 2. EXTRACTION RULES
+- **Narrative to Field Mapping:**
+  - If a student writes "The hackathon was about optimizing routes...", map to 'problemStatement'.
+  - If they write "I focused on dynamic programming...", map to 'strategy'.
+  - If they write "The test covered DBMS and CN", map to 'topics'.
+- **Question Logic:**
+  - Only populate "questions" array for "interview" type rounds.
+  - Do NOT create empty or placeholder questions like "Question 1" or "".
+  - If a round is described narratively, put the narrative in "notes" instead.
+
+### 3. OUTPUT JSON STRUCTURE
+{
+  "name": "student's full name",
+  "company": "company name",
+  "role": "job title/position",
+  "ctc": <number in LPA, use 0 if not mentioned>,
+  "batch": "graduation year e.g. 2026",
+  "courseBranch": "e.g. BTech CSE, MSc Data Science, MBA Finance",
+  "internshipDuration": "e.g. 2 months, 6 months, leave empty if not an internship",
+  "eligibilityCriteria": "CGPA/percentage requirements, branches allowed",
+  "rounds": [ ...mixed types from above... ],
+  "overallExperience": "the overall experience narrative",
+  "tipsForJuniors": "tips mentioned for juniors",
+  "skills": ["relevant", "skills", "tags"]
+}
+
+Return ONLY valid JSON, no markdown code blocks, no explanation.`;
 
 export async function POST(request: NextRequest) {
     try {
-        console.log('📤 PDF Upload started');
+        console.log('📤 PDF Upload started (Groq Text Extraction Mode)');
 
-        // Get the uploaded file from the request
         const formData = await request.formData();
         const file = formData.get('file') as File;
-        console.log('📄 File received:', file?.name, file?.type, file?.size);
 
         if (!file) {
-            return NextResponse.json(
-                { error: 'No file uploaded' },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
         }
 
-        // Validate file type
+        console.log('📄 File received:', file.name, file.type, file.size);
+
         if (file.type !== 'application/pdf') {
-            return NextResponse.json(
-                { error: 'Only PDF files are supported' },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: 'Only PDF files are supported' }, { status: 400 });
         }
 
-        console.log('✅ File validation passed');
-
-        // Convert file to buffer
+        // ── Step 1: Extract text from PDF ───────────────────────────
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        console.log('📦 Buffer created, size:', buffer.length);
 
-        // Extract text from PDF
-        console.log('🔍 Starting PDF text extraction...');
-        const pdfData = await pdf(buffer);
-        const extractedText = pdfData.text;
-        console.log('📝 Text extracted, length:', extractedText?.length);
-
-        if (!extractedText || extractedText.trim().length === 0) {
-            return NextResponse.json(
-                { error: 'No text could be extracted from the PDF' },
-                { status: 400 }
-            );
-        }
-
-        // Define the extraction prompt for Gemini
-        const extractionPrompt = `
-You are an expert at extracting structured interview experience data from text.
-
-Extract the following information from the interview experience document:
-1. Company name
-2. Role/Position
-3. CTC (Compensation) - extract the number only in lakhs
-4. Student ID (if mentioned)
-5. Year of placement (if mentioned)
-6. Interview rounds - for each round extract:
-   - Round number
-   - Round type (e.g., Technical, HR, Aptitude, Coding, etc.)
-   - Questions asked (as an array)
-   - Description (if any)
-   - Duration (if mentioned)
-
-Return the data in the following JSON format:
-{
-  "studentId": "string or null",
-  "company": "string",
-  "role": "string",
-  "ctc": number,
-  "year": number or null,
-  "rounds": [
-    {
-      "roundNumber": number,
-      "roundType": "string",
-      "questions": ["string"],
-      "description": "string or null",
-      "duration": "string or null"
-    }
-  ],
-  "tags": ["string"] // relevant tags like technology stack, skills, etc.
-}
-
-If any field is not found, use null for optional fields or reasonable defaults.
-    `.trim();
-
-
-        // Extract structured data using Gemini
-        console.log('🤖 Starting Gemini extraction...');
-        let extractedData;
-
+        let pdfText = '';
         try {
-            extractedData = await extractWithGemini(extractedText, extractionPrompt);
-            console.log('✅ Gemini extraction complete:', JSON.stringify(extractedData, null, 2));
-        } catch (geminiError) {
-            console.error('⚠️ Gemini extraction failed, using fallback template:', geminiError);
-
-            // Fallback: Return a template for manual entry
-            extractedData = {
-                company: '',
-                role: '',
-                ctc: 0,
-                year: new Date().getFullYear(),
-                rounds: [
-                    {
-                        roundNumber: 1,
-                        roundType: 'Technical Round',
-                        questions: ['Please fill in the questions manually'],
-                        description: null,
-                        duration: null
-                    }
-                ],
-                tags: [],
-                _note: 'AI extraction failed. Please fill in the details manually from the extracted text below.',
-                _extractedText: extractedText.substring(0, 1000) // First 1000 chars for reference
-            };
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const pdfParse = require('pdf-parse');
+            const pdfData = await pdfParse(buffer);
+            pdfText = pdfData.text;
+            console.log('📝 PDF text extracted, length:', pdfText.length);
+        } catch (parseError: any) {
+            console.error('❌ pdf-parse failed:', parseError.message);
+            return NextResponse.json({
+                error: 'Failed to read PDF text. Please try a different PDF.',
+                details: parseError.message,
+            }, { status: 400 });
         }
 
-        // Return the extracted data
-        return NextResponse.json({
-            success: true,
-            data: extractedData,
-            rawText: extractedText.substring(0, 500) + '...', // First 500 chars for reference
+        if (!pdfText || pdfText.trim().length < 20) {
+            return NextResponse.json({
+                error: 'PDF appears to be empty or image-only. Please upload a text-based PDF.',
+            }, { status: 400 });
+        }
+
+        // ── Step 2: Send text to Groq LLM for structured extraction ─
+        console.log('🤖 Sending to Groq (llama-3.3-70b-versatile)...');
+
+        const completion = await groq.chat.completions.create({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: `Extract data from this interview experience:\n\n${pdfText.substring(0, 8000)}` },
+            ],
+            max_tokens: 4000,
+            temperature: 0.1,
         });
 
+        const responseText = completion.choices[0]?.message?.content || '';
+        console.log('✅ Groq responded! Length:', responseText.length);
 
+        // ── Step 3: Parse JSON response ─────────────────────────────
+        let parsedData;
+        try {
+            let jsonStr = responseText;
+            if (jsonStr.includes('```json')) {
+                jsonStr = jsonStr.replace(/```json\n?/g, '').replace(/```\n?$/g, '').replace(/```/g, '');
+            } else if (jsonStr.includes('```')) {
+                jsonStr = jsonStr.replace(/```\n?/g, '');
+            }
 
-    } catch (error) {
-        console.error('Error processing PDF:', error);
-
-        // Detailed error logging
-        if (error instanceof Error) {
-            console.error('Error name:', error.name);
-            console.error('Error message:', error.message);
-            console.error('Error stack:', error.stack);
+            const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                parsedData = JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error('No JSON found in response');
+            }
+        } catch (parseError) {
+            console.error('⚠️ JSON parse error:', parseError);
+            parsedData = {};
         }
 
-        return NextResponse.json(
-            {
-                error: 'Failed to process PDF',
-                details: error instanceof Error ? error.message : 'Unknown error',
-                type: error instanceof Error ? error.name : 'UnknownError'
-            },
-            { status: 500 }
-        );
+        // ── Step 4: Normalize to form schema (discriminated union) ──
+        const normalizedData = {
+            studentName: parsedData.name || parsedData.studentName || '',
+            company: parsedData.company || '',
+            role: parsedData.role || '',
+            ctc: typeof parsedData.ctc === 'number' ? parsedData.ctc : parseFloat(parsedData.ctc) || 0,
+            batch: parsedData.batch || new Date().getFullYear().toString(),
+            courseBranch: parsedData.courseBranch || '',
+            internshipDuration: parsedData.internshipDuration || '',
+            eligibilityCriteria: parsedData.eligibilityCriteria || '',
+            rounds: Array.isArray(parsedData.rounds) ? parsedData.rounds.map((round: any, index: number) => {
+                const roundNumber = round.roundNumber || index + 1;
+
+                // Determine type from Groq output
+                const type = round.type?.toLowerCase();
+
+                if (type === 'test') {
+                    return {
+                        type: 'test' as const,
+                        roundNumber,
+                        topics: round.topics || '',
+                        studySources: round.studySources || '',
+                    };
+                }
+
+                if (type === 'hackathon') {
+                    return {
+                        type: 'hackathon' as const,
+                        roundNumber,
+                        problemStatement: round.problemStatement || '',
+                        strategy: round.strategy || round.experience || '',
+                    };
+                }
+
+                // Default: interview
+                return {
+                    type: 'interview' as const,
+                    roundNumber,
+                    interviewType: (round.interviewType || 'technical') as 'technical' | 'hr' | 'managerial' | 'mixed',
+                    questions: Array.isArray(round.questions)
+                        ? round.questions
+                            .filter((q: any) => {
+                                const text = typeof q === 'string' ? q : q?.question;
+                                return text && text.trim().length > 0;
+                            })
+                            .map((q: any) => ({
+                                question: typeof q === 'string' ? q : q.question || '',
+                                answerTip: (typeof q === 'object' ? q.answerTip || q.answer || '' : ''),
+                            }))
+                        : [],
+                    notes: round.notes || round.description || '',
+                    duration: round.duration || '',
+                };
+            }) : [],
+            finalVerdict: 'selected' as const,
+            tipsForJuniors: parsedData.tipsForJuniors || '',
+            overallExperience: parsedData.overallExperience || '',
+            tags: Array.isArray(parsedData.skills) ? parsedData.skills : [],
+            year: new Date().getFullYear(),
+        };
+
+        console.log('✅ Data extracted successfully');
+        console.log('📊 Extracted:', {
+            name: normalizedData.studentName,
+            company: normalizedData.company,
+            rounds: normalizedData.rounds.map((r: any) => `${r.type}(R${r.roundNumber})`),
+        });
+
+        return NextResponse.json({
+            success: true,
+            data: normalizedData,
+            message: 'Extracted using Groq llama-3.3-70b-versatile',
+        });
+
+    } catch (error) {
+        console.error('❌ Error:', error);
+        return NextResponse.json({
+            error: 'Failed to process PDF',
+            details: error instanceof Error ? error.message : 'Unknown error',
+        }, { status: 500 });
     }
 }
 
-// App Router configuration for handling large file uploads
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60; // 60 seconds timeout
-

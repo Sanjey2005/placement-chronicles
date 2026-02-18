@@ -23,11 +23,11 @@ export default function LoginPage() {
             const result = await login(formData);
 
             if (result.success) {
-                // Set auth cookie on successful login
-                document.cookie = `auth-token=${result.cookies?.[0] || 'authenticated'}; path=/; max-age=86400; SameSite=Lax`;
+                // Set session cookie (expires when browser closes)
+                document.cookie = `auth-token=${result.cookies?.[0] || 'authenticated'}; path=/; SameSite=Lax`;
 
                 toast.success('Login successful! Redirecting...');
-                router.push('/dashboard');
+                router.push('/');
             } else {
                 toast.error(result.error || 'Login failed');
             }
@@ -44,42 +44,42 @@ export default function LoginPage() {
 
             <GlassCard className="w-full max-w-md p-8 space-y-6">
                 <div className="text-center space-y-2">
-                    <h1 className="text-3xl font-bold text-white">Welcome Back</h1>
-                    <p className="text-white/70">Sign in to Placement Chronicles</p>
+                    <h1 className="text-3xl font-bold text-white tracking-tight">Welcome Back</h1>
+                    <p className="text-zinc-400">Sign in to Placement Chronicles</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
-                        <label htmlFor="username" className="text-sm font-medium text-white/90">
+                        <label htmlFor="username" className="text-sm font-medium text-zinc-300">
                             Roll Number
                         </label>
                         <div className="relative">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                             <Input
                                 id="username"
                                 name="username"
                                 type="text"
                                 placeholder="Enter your roll number"
                                 required
-                                className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-white/40"
+                                className="pl-10 bg-black/50 border-white/10 text-white placeholder:text-zinc-600 focus:border-purple-500/50 focus:ring-purple-500/20 transition-all"
                                 disabled={loading}
                             />
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <label htmlFor="password" className="text-sm font-medium text-white/90">
+                        <label htmlFor="password" className="text-sm font-medium text-zinc-300">
                             Password
                         </label>
                         <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                             <Input
                                 id="password"
                                 name="password"
                                 type="password"
                                 placeholder="Enter your password"
                                 required
-                                className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-white/40"
+                                className="pl-10 bg-black/50 border-white/10 text-white placeholder:text-zinc-600 focus:border-purple-500/50 focus:ring-purple-500/20 transition-all"
                                 disabled={loading}
                             />
                         </div>
@@ -87,7 +87,7 @@ export default function LoginPage() {
 
                     <Button
                         type="submit"
-                        className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-6"
+                        className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-6 shadow-lg shadow-purple-500/20"
                         disabled={loading}
                     >
                         {loading ? 'Signing in...' : 'Sign In'}
@@ -95,9 +95,9 @@ export default function LoginPage() {
                 </form>
 
                 <div className="text-center">
-                    <p className="text-sm text-white/60">
+                    <p className="text-sm text-zinc-500">
                         Don't have an account?{' '}
-                        <a href="/register" className="text-blue-400 hover:text-blue-300 transition-colors">
+                        <a href="/register" className="text-purple-400 hover:text-purple-300 transition-colors font-medium">
                             Contact Admin
                         </a>
                     </p>

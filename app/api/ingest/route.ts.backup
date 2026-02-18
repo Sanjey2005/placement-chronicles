@@ -1,0 +1,177 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function POST(request: NextRequest) {
+    try {
+        console.log('📤 PDF Upload started');
+
+        // Get the uploaded file from the request
+        const formData = await request.formData();
+        const file = formData.get('file') as File;
+        console.log('📄 File received:', file?.name, file?.type, file?.size);
+
+        if (!file) {
+            return NextResponse.json(
+                { error: 'No file uploaded' },
+                { status: 400 }
+            );
+        }
+
+        // Validate file type
+        if (file.type !== 'application/pdf') {
+            return NextResponse.json(
+                { error: 'Only PDF files are supported' },
+                { status: 400 }
+            );
+        }
+
+        console.log('✅ File validation passed');
+
+        // Convert file to buffer
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        console.log('📦 Buffer created, size:', buffer.length);
+
+        // Extract data from PDF using Gemini 1.5 Flash (Multimodal)
+        // This eliminates the need for pdfjs-dist which crashes Turbopack
+        console.log('📝 Converting PDF to Base64 for Gemini...');
+        const base64Buffer = buffer.toString('base64');
+        console.log('✅ Base64 conversion complete');
+
+        // Import Gemini from existing lib
+        const genAI = (await import('@/lib/gemini')).default;
+
+        console.log('🤖 Sending PDF to Gemini for extraction...');
+        const extractionPrompt = `Extract the following details from this placement experience PDF/document:
+
+Required fields:
+- name: Full name of the student
+- role: Job role/position
+- company: Company name
+- ctc: CTC/salary offered (as number, in lakhs per annum)
+- rounds: Array of interview rounds with descriptions
+- date: Placement/offer date (ISO format YYYY-MM-DD)
+- location: Job location
+- experience: Overall placement experience description
+
+Return ONLY valid JSON with these exact keys. If a field is not found, use null.`;
+
+        // gemini-2.0-flash is confirmed accessible for this API key
+        const modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+        let result;
+        let modelUsed = '';
+
+        for (const modelName of modelsToTry) {
+            try {
+                console.log(`🤖 Trying model: ${modelName}...`);
+                const model = genAI.getGenerativeModel({ model: modelName });
+                result = await model.generateContent([
+                    {
+                        inlineData: {
+                            data: base64Buffer,
+                            mimeType: 'application/pdf'
+                        }
+                    },
+                    extractionPrompt
+                ]);
+                modelUsed = modelName;
+                console.log(`✅ Success with model: ${modelName}`);
+                break; // Exit loop on success
+            } catch (modelError: any) {
+                console.warn(`⚠️ Failed with ${modelName}: ${modelError.message}`);
+                // Continue to next model
+            }
+        }
+
+        if (!result) {
+            throw new Error('All Gemini models failed to process the PDF. Please check your API usage and permissions.');
+        }
+
+        const response = await result.response;
+        let extractedData = response.text();
+        console.log('📥 Gemini response:', extractedData.substring(0, 200));
+
+        // Clean up markdown code blocks if present
+        extractedData = extractedData.trim();
+        if (extractedData.startsWith('```json')) {
+            extractedData = extractedData.replace(/```json\n?/g, '').replace(/```\n?$/g, '');
+        } else if (extractedData.startsWith('```')) {
+            extractedData = extractedData.replace(/```\n?/g, '');
+        }
+
+        let parsedData;
+        try {
+            parsedData = JSON.parse(extractedData.trim());
+            console.log('✅ Successfully extracted data from PDF via Gemini');
+        } catch (parseError) {
+            console.error('❌ Failed to parse Gemini response as JSON');
+            console.error('Response text:', extractedData);
+            return NextResponse.json(
+                { error: 'Failed to parse PDF data from Gemini' },
+                { status: 500 }
+            );
+        }
+
+        if (!parsedData) {
+            return NextResponse.json(
+                { error: 'No data could be extracted from the PDF' },
+                { status: 400 }
+            );
+        }
+
+        // Normalize the data from Gemini to match our schema
+        const normalizedData = {
+            studentName: parsedData.name || '',
+            company: parsedData.company || 'Not specified',
+            role: parsedData.role || 'Not specified',
+            ctc: typeof parsedData.ctc === 'number' ? parsedData.ctc : parseFloat(parsedData.ctc || '0'),
+            batch: new Date().getFullYear().toString(),
+            eligibilityCriteria: 'Not specified',
+            rounds: Array.isArray(parsedData.rounds) ? parsedData.rounds.map((round: any, index: number) => ({
+                type: 'interview' as const,
+                roundNumber: index + 1,
+                interviewType: 'technical' as const,
+                experience: typeof round === 'string' ? round : round.description || round.experience || '',
+                questions: round.questions || [],
+                description: typeof round === 'string' ? round : round.description || round.experience || '',
+            })) : [],
+            finalVerdict: 'selected' as const,
+            tipsForJuniors: '',
+            overallExperience: parsedData.experience || '',
+            tags: [],
+            year: new Date().getFullYear(),
+        };
+
+        console.log('✅ Data normalized successfully');
+
+        // Return the extracted and normalized data
+        return NextResponse.json({
+            success: true,
+            data: normalizedData,
+            message: 'PDF processed successfully via Gemini multimodal API'
+        });
+
+    } catch (error) {
+        console.error('❌ Error processing PDF:', error);
+
+        // Detailed error logging
+        if (error instanceof Error) {
+            console.error('Error name:', error.name);
+            console.error('Error message:', error.message);
+            console.error('Error stack:', error.stack);
+        }
+
+        return NextResponse.json(
+            {
+                error: 'Failed to process PDF',
+                details: error instanceof Error ? error.message : 'Unknown error',
+                type: error instanceof Error ? error.name : 'UnknownError'
+            },
+            { status: 500 }
+        );
+    }
+}
+
+// App Router configuration for handling large file uploads
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // 60 seconds timeout

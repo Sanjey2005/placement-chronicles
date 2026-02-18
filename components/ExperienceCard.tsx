@@ -1,25 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import GlassCard from './GlassCard';
-import { Building2, Briefcase, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-
-interface Round {
-    roundNumber: number;
-    roundType: string;
-    questions: string[];
-    description?: string | null;
-    duration?: string | null;
-}
+import { Building2, Briefcase, IndianRupee, ArrowUpRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import ExperienceModal from './ExperienceModal';
 
 interface ExperienceCardProps {
     company: string;
     role: string;
     ctc: number;
-    rounds?: Round[];
+    rounds?: any[];
     tags?: string[];
     year?: number;
+    batch?: string;
+    finalVerdict?: 'selected' | 'rejected' | 'waitlisted' | 'ongoing';
+    studentName?: string;
+    eligibilityCriteria?: string;
+    tipsForJuniors?: string;
+    overallExperience?: string;
 }
 
 export default function ExperienceCard({
@@ -29,122 +27,130 @@ export default function ExperienceCard({
     rounds = [],
     tags = [],
     year,
+    batch,
+    finalVerdict,
+    studentName,
+    eligibilityCriteria,
+    tipsForJuniors,
+    overallExperience,
 }: ExperienceCardProps) {
-    const [expanded, setExpanded] = useState(false);
+    const [modalOpen, setModalOpen] = useState(false);
+
+    const verdictConfig: Record<string, { label: string; cls: string }> = {
+        selected: { label: '✓ Selected', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
+        rejected: { label: '✗ Not Selected', cls: 'bg-red-500/15 text-red-400 border-red-500/25' },
+        waitlisted: { label: '⏳ Waitlisted', cls: 'bg-amber-500/15 text-amber-400 border-amber-500/25' },
+        ongoing: { label: '🔄 Ongoing', cls: 'bg-sky-500/15 text-sky-400 border-sky-500/25' },
+    };
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-        >
-            <GlassCard
-                className="p-6 hover relative group overflow-hidden"
+        <>
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                onClick={() => setModalOpen(true)}
+                className="cursor-pointer group"
             >
-                {/* Animated gradient border on hover */}
-                <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 blur-xl opacity-50" />
-                </div>
+                <div className="relative rounded-xl bg-slate-950/60 backdrop-blur-xl border border-white/[0.08] p-6 transition-all duration-300 hover:border-violet-500/30 hover:bg-slate-900/60 hover:shadow-[0_0_40px_-10px_rgba(139,92,246,0.15)]">
+                    {/* Top accent line */}
+                    <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-violet-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                <div className="relative z-10">
+                    {/* Arrow indicator */}
+                    <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-1 -translate-y-1 group-hover:translate-x-0 group-hover:translate-y-0">
+                        <ArrowUpRight className="h-4 w-4 text-violet-400" />
+                    </div>
+
                     {/* Header */}
-                    <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                            <h3 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
-                                <Building2 className="h-6 w-6 text-blue-400" />
-                                {company}
+                    <div className="flex items-start justify-between mb-3 gap-3">
+                        <div className="flex-1 min-w-0">
+                            <h3 className="text-xl font-bold text-white mb-1 flex items-center gap-2 truncate">
+                                <Building2 className="h-5 w-5 text-blue-400 shrink-0" />
+                                <span className="truncate">{company}</span>
                             </h3>
-                            <p className="text-white/80 flex items-center gap-2">
-                                <Briefcase className="h-4 w-4" />
-                                {role}
+                            <p className="text-sm text-white/60 flex items-center gap-2 truncate">
+                                <Briefcase className="h-3.5 w-3.5 shrink-0" />
+                                <span className="truncate">{role}</span>
                             </p>
+                            {studentName && (
+                                <p className="text-xs text-white/40 mt-1 ml-[22px]">
+                                    by {studentName}
+                                </p>
+                            )}
                         </div>
-                        <div className="text-right">
-                            <div className="flex items-center gap-1 text-green-400 font-semibold text-xl">
-                                <DollarSign className="h-5 w-5" />
+                        <div className="text-right shrink-0">
+                            <div className="flex items-center gap-0.5 text-emerald-400 font-bold text-lg">
+                                <IndianRupee className="h-4 w-4" />
                                 {ctc} LPA
                             </div>
-                            {year && <p className="text-sm text-white/60">{year}</p>}
                         </div>
+                    </div>
+
+                    {/* Meta row */}
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                        {batch && (
+                            <span className="px-2 py-0.5 text-[11px] font-medium rounded bg-blue-500/15 text-blue-300 border border-blue-500/20">
+                                {batch}
+                            </span>
+                        )}
+                        {finalVerdict && (
+                            <span className={`px-2 py-0.5 text-[11px] font-semibold rounded border ${verdictConfig[finalVerdict]?.cls || ''}`}>
+                                {verdictConfig[finalVerdict]?.label || finalVerdict}
+                            </span>
+                        )}
+                        {year && (
+                            <span className="text-[11px] text-white/40 ml-auto">{year}</span>
+                        )}
                     </div>
 
                     {/* Tags */}
                     {tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-4">
-                            {tags.map((tag, idx) => (
+                        <div className="flex flex-wrap gap-1.5 mb-3">
+                            {tags.slice(0, 5).map((tag, idx) => (
                                 <span
                                     key={idx}
-                                    className="px-3 py-1 text-xs font-medium rounded-full bg-white/10 text-white/90 border border-white/20"
+                                    className="px-2.5 py-0.5 text-[11px] font-medium rounded-full bg-white/[0.05] text-white/70 border border-white/[0.08]"
                                 >
                                     {tag}
                                 </span>
                             ))}
+                            {tags.length > 5 && (
+                                <span className="px-2.5 py-0.5 text-[11px] text-white/40">
+                                    +{tags.length - 5} more
+                                </span>
+                            )}
                         </div>
                     )}
 
-                    {/* Round Count */}
-                    <div className="flex items-center justify-between">
-                        <p className="text-sm text-white/70">
-                            {rounds.length} interview round{rounds.length !== 1 ? 's' : ''}
+                    {/* Footer */}
+                    <div className="flex items-center justify-between pt-3 border-t border-white/[0.06]">
+                        <p className="text-xs text-white/40">
+                            {rounds.length} round{rounds.length !== 1 ? 's' : ''}
                         </p>
-                        <button
-                            onClick={() => setExpanded(!expanded)}
-                            className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                        >
-                            {expanded ? (
-                                <>
-                                    Hide Details <ChevronUp className="h-4 w-4" />
-                                </>
-                            ) : (
-                                <>
-                                    View Details <ChevronDown className="h-4 w-4" />
-                                </>
-                            )}
-                        </button>
+                        <span className="text-xs text-violet-400/80 group-hover:text-violet-400 transition-colors">
+                            View Details →
+                        </span>
                     </div>
-
-                    {/* Expanded Details */}
-                    <AnimatePresence>
-                        {expanded && (
-                            <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.3 }}
-                                className="overflow-hidden"
-                            >
-                                <div className="mt-4 pt-4 border-t border-white/20 space-y-4">
-                                    {rounds.map((round, idx) => (
-                                        <div key={idx} className="space-y-2">
-                                            <h4 className="font-semibold text-white flex items-center gap-2">
-                                                <span className="bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs px-2 py-1 rounded">
-                                                    Round {round.roundNumber}
-                                                </span>
-                                                {round.roundType}
-                                            </h4>
-                                            {round.description && (
-                                                <p className="text-sm text-white/70 italic">{round.description}</p>
-                                            )}
-                                            {round.duration && (
-                                                <p className="text-xs text-white/60">Duration: {round.duration}</p>
-                                            )}
-                                            {round.questions.length > 0 && (
-                                                <ul className="space-y-1 ml-4">
-                                                    {round.questions.map((question, qIdx) => (
-                                                        <li key={qIdx} className="text-sm text-white/80 list-disc">
-                                                            {question}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
                 </div>
-            </GlassCard>
-        </motion.div>
+            </motion.div>
+
+            {/* Detail Modal */}
+            <ExperienceModal
+                isOpen={modalOpen}
+                onClose={() => setModalOpen(false)}
+                company={company}
+                role={role}
+                ctc={ctc}
+                rounds={rounds}
+                tags={tags}
+                year={year}
+                batch={batch}
+                finalVerdict={finalVerdict}
+                studentName={studentName}
+                eligibilityCriteria={eligibilityCriteria}
+                tipsForJuniors={tipsForJuniors}
+                overallExperience={overallExperience}
+            />
+        </>
     );
 }

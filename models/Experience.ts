@@ -1,57 +1,88 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
-// Interface for a single interview round
-export interface IRound {
+// ============================================================================
+// NEW: Round Types (Discriminated Union Support)
+// ============================================================================
+
+// Online Test Round
+export interface IOnlineTestRound {
+    type: 'test';
     roundNumber: number;
-    roundType: string; // e.g., "Technical", "HR", "Aptitude", "Coding"
+    topics: string;
+    studySources?: string;
+}
+
+// Hackathon Round
+export interface IHackathonRound {
+    type: 'hackathon';
+    roundNumber: number;
+    problemStatement: string;
+    strategy: string;
+}
+
+// Interview Round
+export interface IInterviewRound {
+    type: 'interview';
+    roundNumber: number;
+    interviewType?: 'technical' | 'hr' | 'managerial' | 'mixed';
+    questions: Array<{
+        question: string;
+        answerTip: string;
+    }>;
+    notes?: string;
+    duration?: string;
+}
+
+// Legacy Round (for backward compatibility)
+export interface ILegacyRound {
+    roundNumber: number;
+    roundType: string;
     questions: string[];
     description?: string;
     duration?: string;
 }
 
-// Interface for the Experience document
+// Union type for all rounds
+export type IRound = IOnlineTestRound | IHackathonRound | IInterviewRound | ILegacyRound;
+
+// ============================================================================
+// Experience Document Interface
+// ============================================================================
 export interface IExperience extends Document {
     studentId: string;
+    studentName?: string;
     company: string;
     role: string;
-    ctc: number; // Compensation in lakhs or as appropriate
+    ctc: number;
+    batch?: string;
+    courseBranch?: string;
+    internshipDuration?: string;
+    eligibilityCriteria?: string; // NEW: e.g., "CGPA > 7.5"
     rounds: IRound[];
-    embedding?: number[]; // Vector embedding for semantic search
-    tags?: string[]; // Optional tags for categorization
-    year?: number; // Year of placement
+    finalVerdict?: 'selected' | 'rejected' | 'waitlisted' | 'ongoing'; // NEW
+    tipsForJuniors?: string; // NEW
+    overallExperience?: string; // NEW
+    embedding?: number[];
+    tags?: string[];
+    year?: number;
     createdAt: Date;
     updatedAt: Date;
 }
 
-// Schema for interview rounds
-const RoundSchema = new Schema<IRound>({
-    roundNumber: {
-        type: Number,
-        required: true,
-    },
-    roundType: {
-        type: String,
-        required: true,
-    },
-    questions: {
-        type: [String],
-        default: [],
-    },
-    description: {
-        type: String,
-    },
-    duration: {
-        type: String,
-    },
-});
+// ============================================================================
+// Mongoose Schema
+// ============================================================================
 
-// Schema for Experience
+// Using Mixed type for flexible round structure (supports discriminated unions)
 const ExperienceSchema = new Schema<IExperience>(
     {
         studentId: {
             type: String,
             required: true,
             index: true,
+        },
+        studentName: {
+            type: String,
         },
         company: {
             type: String,
@@ -66,9 +97,31 @@ const ExperienceSchema = new Schema<IExperience>(
             type: Number,
             required: true,
         },
+        batch: {
+            type: String,
+        },
+        courseBranch: {
+            type: String,
+        },
+        internshipDuration: {
+            type: String,
+        },
+        eligibilityCriteria: {
+            type: String,
+        },
         rounds: {
-            type: [RoundSchema],
+            type: Schema.Types.Mixed,
             default: [],
+        },
+        finalVerdict: {
+            type: String,
+            enum: ['selected', 'rejected', 'waitlisted', 'ongoing'],
+        },
+        tipsForJuniors: {
+            type: String,
+        },
+        overallExperience: {
+            type: String,
         },
         embedding: {
             type: [Number],
@@ -84,15 +137,21 @@ const ExperienceSchema = new Schema<IExperience>(
         },
     },
     {
-        timestamps: true, // Automatically adds createdAt and updatedAt
+        timestamps: true,
     }
 );
 
-// Create indexes for better query performance
+// ============================================================================
+// Indexes
+// ============================================================================
 ExperienceSchema.index({ company: 1, role: 1 });
 ExperienceSchema.index({ studentId: 1, company: 1 });
+ExperienceSchema.index({ batch: 1 });
+ExperienceSchema.index({ finalVerdict: 1 });
 
-// Prevent model recompilation in development
+// ============================================================================
+// Model Export
+// ============================================================================
 const Experience: Model<IExperience> =
     mongoose.models.Experience ||
     mongoose.model<IExperience>('Experience', ExperienceSchema);

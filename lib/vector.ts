@@ -1,43 +1,83 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+/**
+ * Vector utilities using Hugging Face Inference API.
+ * Model: sentence-transformers/all-MiniLM-L6-v2 (384 dimensions)
+ * Uses HUGGINGFACE_API_KEY from .env.local
+ */
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-
-if (!GEMINI_API_KEY) {
-    throw new Error(
-        'Please define the GEMINI_API_KEY environment variable inside .env.local'
-    );
-}
-
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const HF_API_KEY = process.env.HUGGINGFACE_API_KEY || '';
+const HF_EMBEDDING_URL =
+    'https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2';
 
 /**
- * Generate vector embedding for text using Google's embedding-001 model
- * @param text - The text to generate embedding for
- * @returns Vector embedding as number array
+ * Generate vector embedding using Hugging Face Inference API
  */
 export async function getEmbedding(text: string): Promise<number[]> {
-    try {
-        const model = genAI.getGenerativeModel({ model: 'embedding-001' });
-
-        const result = await model.embedContent(text);
-        const embedding = result.embedding;
-
-        return embedding.values;
-    } catch (error) {
-        console.error('Error generating embedding:', error);
-        throw new Error('Failed to generate embedding');
+    if (!HF_API_KEY) {
+        console.warn('⚠️ HUGGINGFACE_API_KEY not set, skipping embedding');
+        return [];
     }
+
+    const maxRetries = 3;
+    let delay = 3000;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const response = await fetch(HF_EMBEDDING_URL, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${HF_API_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    inputs: text.substring(0, 512),
+                    options: { wait_for_model: true },
+                }),
+                signal: AbortSignal.timeout(30000),
+            });
+
+            if (response.status === 503) {
+                console.log(`⏳ HF model loading (attempt ${attempt}/${maxRetries}), waiting ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2;
+                continue;
+            }
+
+            if (!response.ok) {
+                const errorText = await response.text().catch(() => '');
+                throw new Error(`HF API ${response.status}: ${errorText.substring(0, 200)}`);
+            }
+
+            const result = await response.json();
+
+            // HF returns the embedding directly as an array of numbers
+            const vector = Array.isArray(result[0]) ? result[0] : result;
+
+            if (!Array.isArray(vector) || vector.length === 0) {
+                throw new Error('Invalid embedding response format');
+            }
+
+            console.log(`✅ Embedding generated (${vector.length}d)`);
+            return vector;
+        } catch (error: any) {
+            if (attempt === maxRetries) {
+                console.error('❌ Embedding failed after retries:', error.message);
+                throw error;
+            }
+            console.log(`⚠️ Attempt ${attempt} failed: ${error.message}, retrying...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay *= 2;
+        }
+    }
+
+    throw new Error('Failed to generate embedding after retries');
 }
 
 /**
  * Calculate cosine similarity between two vectors
- * @param vecA - First vector
- * @param vecB - Second vector
- * @returns Similarity score between -1 and 1
  */
 export function cosineSimilarity(vecA: number[], vecB: number[]): number {
-    if (vecA.length !== vecB.length) {
-        throw new Error('Vectors must have the same length');
+    if (vecA.length !== vecB.length || vecA.length === 0) {
+        return 0;
     }
 
     let dotProduct = 0;
@@ -55,8 +95,6 @@ export function cosineSimilarity(vecA: number[], vecB: number[]): number {
 
 /**
  * Generate a text summary from experience data for embedding
- * @param data - Experience data object
- * @returns Text summary
  */
 export function generateExperienceSummary(data: {
     company: string;
@@ -71,15 +109,12 @@ export function generateExperienceSummary(data: {
 }): string {
     const parts: string[] = [];
 
-    // Add company and role
     parts.push(`Interview experience at ${data.company} for ${data.role} position.`);
 
-    // Add CTC if available
     if (data.ctc) {
         parts.push(`CTC: ${data.ctc} LPA.`);
     }
 
-    // Add rounds information
     if (data.rounds && data.rounds.length > 0) {
         parts.push(`Interview process consisted of ${data.rounds.length} rounds:`);
 
@@ -97,7 +132,6 @@ export function generateExperienceSummary(data: {
         });
     }
 
-    // Add tags if available
     if (data.tags && data.tags.length > 0) {
         parts.push(`Skills/Topics: ${data.tags.join(', ')}`);
     }

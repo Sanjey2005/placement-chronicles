@@ -16,7 +16,7 @@ const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
  * This is the recommended model for fast, efficient text generation
  */
 export function getGeminiModel() {
-    return genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    return genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 }
 
 /**

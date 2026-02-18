@@ -1,20 +1,5 @@
 'use server';
 
-import axios from 'axios';
-
-const SCRAPER_URL = process.env.SCRAPER_URL || '';
-
-if (!SCRAPER_URL) {
-    throw new Error(
-        'Please define the SCRAPER_URL environment variable inside .env.local'
-    );
-}
-
-interface LoginCredentials {
-    username: string;
-    password: string;
-}
-
 interface LoginResponse {
     success: boolean;
     cookies?: string[];
@@ -24,9 +9,9 @@ interface LoginResponse {
 }
 
 /**
- * Server action to authenticate user via the scraper microservice
- * @param formData - Form data containing username and password
- * @returns Login response with cookies and dashboard URL
+ * Server action to authenticate user via direct HTTP login to PSG eCampus.
+ * Calls the internal /api/auth/login route which performs HTTP-level auth
+ * (no Selenium, no external scraper).
  */
 export async function login(formData: FormData): Promise<LoginResponse> {
     try {
@@ -40,61 +25,34 @@ export async function login(formData: FormData): Promise<LoginResponse> {
             };
         }
 
-        const credentials: LoginCredentials = {
-            username,
-            password,
-        };
+        let baseUrl = 'http://localhost:3000';
+        if (process.env.NEXT_PUBLIC_BASE_URL) {
+            baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+        } else if (process.env.VERCEL_URL) {
+            baseUrl = `https://${process.env.VERCEL_URL}`;
+        }
 
-        // Call the scraper microservice
-        const response = await axios.post<LoginResponse>(
-            `${SCRAPER_URL}/login`,
-            credentials,
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                timeout: 30000, // 30 second timeout
-            }
-        );
+        const response = await fetch(`${baseUrl}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rollno: username, password }),
+        });
 
-        if (response.data.success) {
+        const data = await response.json();
+
+        if (data.success) {
             return {
                 success: true,
-                cookies: response.data.cookies,
-                dashboardUrl: response.data.dashboardUrl,
                 message: 'Login successful',
             };
         } else {
             return {
                 success: false,
-                error: response.data.error || 'Login failed',
+                error: data.error || 'Login failed',
             };
         }
     } catch (error) {
         console.error('Login error:', error);
-
-        if (axios.isAxiosError(error)) {
-            if (error.code === 'ECONNREFUSED') {
-                return {
-                    success: false,
-                    error: 'Unable to connect to authentication service',
-                };
-            }
-
-            if (error.response) {
-                return {
-                    success: false,
-                    error: error.response.data?.error || 'Authentication failed',
-                };
-            }
-
-            if (error.request) {
-                return {
-                    success: false,
-                    error: 'No response from authentication service',
-                };
-            }
-        }
 
         return {
             success: false,
@@ -105,9 +63,6 @@ export async function login(formData: FormData): Promise<LoginResponse> {
 
 /**
  * Alternative login function that accepts credentials directly
- * @param username - User's username
- * @param password - User's password
- * @returns Login response
  */
 export async function loginWithCredentials(
     username: string,

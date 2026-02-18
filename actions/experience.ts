@@ -56,8 +56,13 @@ export async function createExperience(
             tags: data.tags,
         });
 
-        // Step 2: Generate vector embedding from summary
-        const embedding = await getEmbedding(summary);
+        // Step 2: Generate vector embedding (non-blocking — save even if this fails)
+        let embedding: number[] | null = null;
+        try {
+            embedding = await getEmbedding(summary);
+        } catch (embeddingError) {
+            console.warn('⚠️ Embedding generation failed, saving without vector:', embeddingError);
+        }
 
         // Step 3: Create and save the experience document
         const experience = new Experience({
@@ -66,7 +71,7 @@ export async function createExperience(
             role: data.role,
             ctc: data.ctc,
             rounds: data.rounds || [],
-            embedding: embedding,
+            ...(embedding && { embedding }),
             tags: data.tags || [],
             year: data.year,
         });
@@ -78,7 +83,10 @@ export async function createExperience(
 
         return {
             success: true,
-            data: savedExperience.toObject(),
+            data: {
+                ...savedExperience.toObject(),
+                _id: savedExperience._id.toString()
+            } as any,
         };
     } catch (error) {
         console.error('Error creating experience:', error);
@@ -101,14 +109,28 @@ export async function getAllExperiences(): Promise<{
     try {
         await dbConnect();
 
+        // Optimize query by selecting only necessary fields and limiting results
         const experiences = await Experience.find({})
+            .select('studentId studentName company role ctc batch eligibilityCriteria rounds finalVerdict tipsForJuniors overallExperience tags year createdAt')
             .sort({ createdAt: -1 })
-            .limit(100)
-            .lean();
+            .limit(50) // Reduced from 100 for faster loading
+            .lean()
+            .exec();
+
+        // Serialize _id and handle serialization for client components
+        const serializedExperiences = experiences.map(exp => ({
+            ...exp,
+            _id: (exp._id as any).toString(),
+            studentId: exp.studentId || '',
+            company: exp.company || '',
+            role: exp.role || '',
+            ctc: exp.ctc || 0,
+            batch: exp.batch || '',
+        }));
 
         return {
             success: true,
-            data: experiences as IExperience[],
+            data: serializedExperiences as unknown as IExperience[],
         };
     } catch (error) {
         console.error('Error fetching experiences:', error);
@@ -136,9 +158,15 @@ export async function getExperiencesByCompany(company: string): Promise<{
             .sort({ createdAt: -1 })
             .lean();
 
+        // Serialize data
+        const serializedExperiences = experiences.map(exp => ({
+            ...exp,
+            _id: (exp._id as any).toString(),
+        }));
+
         return {
             success: true,
-            data: experiences as IExperience[],
+            data: serializedExperiences as unknown as IExperience[],
         };
     } catch (error) {
         console.error('Error fetching experiences by company:', error);
