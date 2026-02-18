@@ -136,6 +136,8 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
         }
     };
 
+    const [isStepChanging, setIsStepChanging] = useState(false);
+
     // Step navigation with explicit validation
     const nextStep = async () => {
         // Determine which fields belong to the current step
@@ -162,7 +164,11 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
 
         if (isValid) {
             console.log('✅ Validation passed, moving to next step');
+
+            // Add safety delay to prevent double-clicks triggering submit on next step
+            setIsStepChanging(true);
             setCurrentStep(currentStep + 1);
+            setTimeout(() => setIsStepChanging(false), 500);
         } else {
             // Visual feedback
             toast.error('Please fill required fields');
@@ -192,6 +198,17 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
         } catch (error) {
             toast.error('Failed to submit experience');
             console.error('Submit error:', error);
+        }
+    };
+
+    // Prevent Enter key from submitting on non-final steps
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && currentStep < 3) {
+            // Allow Enter in textareas
+            if ((e.target as HTMLElement).tagName.toLowerCase() === 'textarea') {
+                return;
+            }
+            e.preventDefault();
         }
     };
 
@@ -303,7 +320,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                     </div>
 
                     {/* Form Container - Glass Morphic Panel */}
-                    <form onSubmit={handleSubmit(onFormSubmit)}>
+                    <form onSubmit={handleSubmit(onFormSubmit)} onKeyDown={handleKeyDown}>
                         <div className="backdrop-blur-3xl bg-zinc-900/40 border border-white/10 shadow-2xl shadow-purple-500/10 rounded-3xl p-10 ring-1 ring-white/5">
                             <AnimatePresence mode="wait">
                                 <motion.div
@@ -346,7 +363,8 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                                 ) : (
                                     <button
                                         type="submit"
-                                        disabled={isSubmitting}
+                                        disabled={isSubmitting || isStepChanging}
+
                                         className={`flex items-center gap-2 px-8 py-3 bg-white text-black font-semibold rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.3)] ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-zinc-200 hover:shadow-[0_0_30px_rgba(255,255,255,0.5)]'
                                             }`}
                                     >
