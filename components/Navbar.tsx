@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { Plus, MessageSquare, LogOut, Home } from 'lucide-react';
 
@@ -26,8 +27,15 @@ export default function Navbar() {
         <header className="relative z-10 border-b border-white/10 bg-black/20 backdrop-blur-sm">
             <div className="max-w-7xl mx-auto px-6 py-4">
                 <div className="flex items-center justify-between">
-                    <Link href="/">
-                        <h1 className="text-3xl font-bold text-white hover:text-white/90 transition-colors cursor-pointer">
+                    <Link href="/" className="flex items-center gap-3 group">
+                        <Image
+                            src="/logo.png"
+                            alt="Placement Chronicles"
+                            width={40}
+                            height={40}
+                            className="rounded-lg shadow-lg shadow-purple-500/20 group-hover:shadow-purple-500/40 transition-shadow"
+                        />
+                        <h1 className="text-2xl sm:text-3xl font-bold text-white group-hover:text-white/90 transition-colors">
                             Placement Chronicles
                         </h1>
                     </Link>

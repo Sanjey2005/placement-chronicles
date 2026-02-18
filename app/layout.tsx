@@ -16,6 +16,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Placement Chronicles - Real Interview Experiences",
   description: "Share and explore placement interview experiences from students",
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
+  openGraph: {
+    title: 'Placement Chronicles',
+    description: 'Share and explore real placement interview experiences',
+    images: ['/logo.png'],
+  },
 };
 
 export default function RootLayout({
