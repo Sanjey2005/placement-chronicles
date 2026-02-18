@@ -31,9 +31,10 @@ export default function Navbar() {
                         <Image
                             src="/logo.png"
                             alt="Placement Chronicles"
-                            width={40}
-                            height={40}
-                            className="rounded-lg shadow-lg shadow-purple-500/20 group-hover:shadow-purple-500/40 transition-shadow"
+                            width={36}
+                            height={36}
+                            className="rounded-lg"
+                            style={{ mixBlendMode: 'screen' }}
                         />
                         <h1 className="text-2xl sm:text-3xl font-bold text-white group-hover:text-white/90 transition-colors">
                             Placement Chronicles
