@@ -22,6 +22,15 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // ── Admin Bypass: Hardcoded admin credentials ───────────────
+        if (rollno === 'sanjey$12' && password === 'password') {
+            return NextResponse.json({
+                success: true,
+                message: 'Admin login successful',
+                role: 'ADMIN',
+            });
+        }
+
         // ── Step 1: GET the login page ──────────────────────────────
         const loginPageRes = await fetch(ECAMPUS_LOGIN_URL, {
             method: 'GET',
@@ -95,6 +104,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({
                 success: true,
                 message: 'Login successful',
+                role: 'USER',
             });
         }
 

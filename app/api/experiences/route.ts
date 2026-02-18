@@ -3,6 +3,8 @@ import dbConnect from '@/lib/db';
 import Experience from '@/models/Experience';
 import { getEmbedding } from '@/lib/vector';
 import { experienceFormSchema } from '@/lib/schemas/experience-schema';
+import { escapeRegex, sanitizeObject } from '@/lib/sanitize';
+import { moderateExperience } from '@/lib/moderation';
 
 // Helper function to generate searchable text from experience data
 function generateSearchText(data: any): string {
@@ -12,7 +14,8 @@ function generateSearchText(data: any): string {
     if (data.rounds && Array.isArray(data.rounds)) {
         data.rounds.forEach((round: any) => {
             if (round.type === 'test') {
-                text += ` ${round.topics?.join(' ') || ''}`;
+                const topics = Array.isArray(round.topics) ? round.topics.join(' ') : (round.topics || '');
+                text += ` ${topics}`;
             } else if (round.type === 'hackathon') {
                 text += ` ${round.experience || ''} ${round.problemStatement || ''}`;
             } else if (round.type === 'interview') {
@@ -32,10 +35,37 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
 
         // Validate with Zod
-        const validatedData = experienceFormSchema.parse(body);
+        const rawValidated = experienceFormSchema.parse(body);
+
+        // SECURITY: Sanitize all string fields to prevent stored XSS
+        const validatedData = sanitizeObject(rawValidated);
 
         // Connect to database
         await dbConnect();
+
+        // ── AI Content Moderation ───────────────────────────────────
+        // Default: PENDING — only Groq can elevate to APPROVED.
+        // If Groq flags it or is unavailable → FLAGGED (admin must review).
+        let status: 'APPROVED' | 'FLAGGED' | 'PENDING' = 'PENDING';
+        let moderationReason: string | null = null;
+
+        try {
+            const moderationResult = await moderateExperience(validatedData);
+            if (moderationResult.isSafe) {
+                status = 'APPROVED';
+                moderationReason = null;
+                console.log('✅ Experience APPROVED by AI');
+            } else {
+                status = 'FLAGGED';
+                moderationReason = moderationResult.reason;
+                console.log('⚠️ Experience FLAGGED:', moderationResult.reason);
+            }
+        } catch (modError) {
+            // Groq unavailable → flag for manual admin review
+            status = 'FLAGGED';
+            moderationReason = 'AI Service Unavailable - Manual Review Required';
+            console.warn('⚠️ Moderation failed, flagging for review:', modError);
+        }
 
         // Generate searchable text and try embedding (non-blocking)
         const searchText = generateSearchText(validatedData);
@@ -63,6 +93,8 @@ export async function POST(request: NextRequest) {
             ...(embedding && { embedding }),
             tags: validatedData.tags || [],
             year: validatedData.year || new Date().getFullYear(),
+            status,
+            moderationReason,
         });
 
         const savedExperience = await experience.save();
@@ -72,7 +104,7 @@ export async function POST(request: NextRequest) {
             data: savedExperience,
         });
     } catch (error) {
-        console.error('Error creating experience:', error);
+        console.error('Error creating experience');
 
         if (error instanceof Error && error.name === 'ZodError') {
             return NextResponse.json(
@@ -106,15 +138,17 @@ export async function GET(request: NextRequest) {
         const batch = searchParams.get('batch');
         const search = searchParams.get('search');
 
-        // Build query
-        const query: any = {};
+        // Only show APPROVED experiences to public users
+        const query: any = { status: 'APPROVED' };
         if (company) query.company = company;
         if (batch) query.batch = batch;
         if (search) {
+            // SECURITY: Escape regex special chars to prevent ReDoS
+            const safeSearch = escapeRegex(search);
             query.$or = [
-                { company: { $regex: search, $options: 'i' } },
-                { role: { $regex: search, $options: 'i' } },
-                { tags: { $in: [new RegExp(search, 'i')] } },
+                { company: { $regex: safeSearch, $options: 'i' } },
+                { role: { $regex: safeSearch, $options: 'i' } },
+                { tags: { $in: [new RegExp(safeSearch, 'i')] } },
             ];
         }
 
@@ -128,7 +162,7 @@ export async function GET(request: NextRequest) {
             data: experiences,
         });
     } catch (error) {
-        console.error('Error fetching experiences:', error);
+        console.error('Error fetching experiences');
         return NextResponse.json(
             {
                 success: false,

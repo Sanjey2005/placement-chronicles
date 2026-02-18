@@ -35,7 +35,7 @@ export async function extractWithGemini(text: string, prompt: string) {
         const result = await model.generateContent(fullPrompt);
         const response = await result.response;
         let responseText = response.text();
-        console.log('📥 Gemini raw response:', responseText.substring(0, 200));
+        console.log('📥 Gemini response received, length:', responseText.length);
 
         // Clean up response - remove markdown code blocks if present
         responseText = responseText.trim();
@@ -52,12 +52,11 @@ export async function extractWithGemini(text: string, prompt: string) {
             return parsed;
         } catch (parseError) {
             console.error('❌ Failed to parse Gemini response as JSON');
-            console.error('Response text:', responseText);
             console.error('Parse error:', parseError);
             throw new Error(`Invalid JSON response from Gemini: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
         }
     } catch (error) {
-        console.error('❌ Gemini API error:', error);
+        console.error('❌ Gemini API error occurred');
         throw error;
     }
 }

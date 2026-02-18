@@ -6,6 +6,7 @@ interface LoginResponse {
     dashboardUrl?: string;
     message?: string;
     error?: string;
+    role?: 'ADMIN' | 'USER';
 }
 
 /**
@@ -44,6 +45,7 @@ export async function login(formData: FormData): Promise<LoginResponse> {
             return {
                 success: true,
                 message: 'Login successful',
+                role: data.role || 'USER',
             };
         } else {
             return {

@@ -1,6 +1,18 @@
 import { NextResponse } from 'next/server';
 
+/**
+ * /api/test-models — Debug endpoint. RESTRICTED to development mode only.
+ * In production, this returns 403 to prevent API key leakage and quota abuse.
+ */
 export async function GET() {
+    // SECURITY: Only allow in development
+    if (process.env.NODE_ENV !== 'development') {
+        return NextResponse.json(
+            { error: 'This endpoint is disabled in production' },
+            { status: 403 }
+        );
+    }
+
     const results: any = {};
 
     try {
@@ -32,10 +44,8 @@ export async function GET() {
             }
         }
 
-        return NextResponse.json({
-            apiKeyPrefix: process.env.GEMINI_API_KEY?.substring(0, 12) + '...',
-            results
-        });
+        // SECURITY: Never expose API key prefixes
+        return NextResponse.json({ results });
     } catch (e: any) {
         return NextResponse.json({ error: e.message }, { status: 500 });
     }

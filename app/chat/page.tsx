@@ -6,6 +6,8 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface Message {
     role: 'user' | 'assistant';
@@ -197,7 +199,7 @@ export default function ChatPage() {
                                 </div>
                                 <div>
                                     <h1 className="text-2xl font-bold text-white">AI Assistant</h1>
-                                    <p className="text-sm text-white/60">Powered by Gemini Pro & RAG</p>
+                                    <p className="text-sm text-white/60">Powered by Gemini Pro &amp; RAG</p>
                                 </div>
                             </div>
                         </div>
@@ -264,15 +266,21 @@ export default function ChatPage() {
                                                     : 'bg-zinc-800/50 text-zinc-100 rounded-tr-xl rounded-bl-xl'
                                                     }`}
                                             >
-                                                <p className="whitespace-pre-wrap leading-relaxed">
-                                                    {message.content || (
-                                                        <span className="flex gap-1">
-                                                            <span className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                                            <span className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                                            <span className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                                                        </span>
-                                                    )}
-                                                </p>
+                                                {message.content ? (
+                                                    message.role === 'assistant' ? (
+                                                        <div className="prose prose-invert prose-sm max-w-none prose-headings:text-white prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2 prose-p:text-zinc-200 prose-p:leading-relaxed prose-li:text-zinc-200 prose-strong:text-white prose-code:text-purple-300 prose-code:bg-white/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-black/40 prose-pre:border prose-pre:border-white/10 prose-a:text-purple-400 prose-a:underline">
+                                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                                                    )
+                                                ) : (
+                                                    <span className="flex gap-1">
+                                                        <span className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                                        <span className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                                        <span className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                                    </span>
+                                                )}
 
                                                 {message.sources && message.sources.length > 0 && (
                                                     <div className="mt-3 pt-3 border-t border-white/20">

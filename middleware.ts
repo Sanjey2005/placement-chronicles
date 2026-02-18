@@ -8,7 +8,11 @@ const publicRoutes = ['/login', '/api/auth'];
 const protectedRoutes = ['/share-experience', '/chat'];
 
 // Protected API routes
-const protectedApiRoutes = ['/api/chat'];
+const protectedApiRoutes = ['/api/chat', '/api/ingest', '/api/experiences'];
+
+// Admin-only routes
+const adminRoutes = ['/admin'];
+const adminApiRoutes = ['/api/admin'];
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
@@ -22,8 +26,28 @@ export function middleware(request: NextRequest) {
     // Check if it's a protected API route
     const isProtectedApiRoute = protectedApiRoutes.some(route => pathname.startsWith(route));
 
+    // Check if it's an admin route
+    const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route));
+    const isAdminApiRoute = adminApiRoutes.some(route => pathname.startsWith(route));
+
     // Get the auth token from cookies
     const authToken = request.cookies.get('auth-token')?.value;
+
+    // Admin route checks — must have admin cookie value
+    if (isAdminRoute || isAdminApiRoute) {
+        if (authToken !== 'admin') {
+            if (isAdminApiRoute) {
+                return NextResponse.json(
+                    { success: false, error: 'Admin access required' },
+                    { status: 403 }
+                );
+            }
+            // Redirect non-admin to home page
+            const homeUrl = new URL('/', request.url);
+            return NextResponse.redirect(homeUrl);
+        }
+        return NextResponse.next();
+    }
 
     // If trying to access a protected route without auth token
     if ((isProtectedRoute || isProtectedApiRoute || !isPublicRoute) && !authToken) {
@@ -34,9 +58,10 @@ export function middleware(request: NextRequest) {
 
     // If already logged in and trying to access login page
     if (pathname === '/login' && authToken) {
-        // Redirect to home
-        const homeUrl = new URL('/', request.url);
-        return NextResponse.redirect(homeUrl);
+        // Redirect to home (or admin if admin)
+        const redirectUrl = authToken === 'admin' ? '/admin' : '/';
+        const targetUrl = new URL(redirectUrl, request.url);
+        return NextResponse.redirect(targetUrl);
     }
 
     return NextResponse.next();
@@ -55,3 +80,4 @@ export const config = {
         '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
     ],
 };
+

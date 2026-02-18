@@ -231,9 +231,9 @@ export default function ExperienceModal({
                                                 )}
 
                                                 {/* Topics (online test) */}
-                                                {round.topics && round.topics.length > 0 && (
+                                                {round.topics && (typeof round.topics === 'string' ? round.topics.length > 0 : round.topics.length > 0) && (
                                                     <div className="flex flex-wrap gap-1.5 ml-9 mb-2">
-                                                        {round.topics.map((topic: string, tIdx: number) => (
+                                                        {(Array.isArray(round.topics) ? round.topics : round.topics.split(/[,;]+/).map((s: string) => s.trim()).filter(Boolean)).map((topic: string, tIdx: number) => (
                                                             <span key={tIdx} className="px-2 py-0.5 text-xs rounded bg-blue-500/10 text-blue-300 border border-blue-500/20">
                                                                 {topic}
                                                             </span>

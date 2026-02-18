@@ -23,11 +23,13 @@ export default function LoginPage() {
             const result = await login(formData);
 
             if (result.success) {
-                // Set session cookie (expires when browser closes)
-                document.cookie = `auth-token=${result.cookies?.[0] || 'authenticated'}; path=/; SameSite=Lax`;
+                // Set session cookie with role info
+                const isAdmin = result.role === 'ADMIN';
+                const cookieValue = isAdmin ? 'admin' : 'authenticated';
+                document.cookie = `auth-token=${cookieValue}; path=/; SameSite=Lax`;
 
-                toast.success('Login successful! Redirecting...');
-                router.push('/');
+                toast.success(isAdmin ? 'Admin login successful! Redirecting...' : 'Login successful! Redirecting...');
+                router.push(isAdmin ? '/admin' : '/');
             } else {
                 toast.error(result.error || 'Login failed');
             }

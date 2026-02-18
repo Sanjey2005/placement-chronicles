@@ -110,7 +110,7 @@ export async function getAllExperiences(): Promise<{
         await dbConnect();
 
         // Optimize query by selecting only necessary fields and limiting results
-        const experiences = await Experience.find({})
+        const experiences = await Experience.find({ status: 'APPROVED' })
             .select('studentId studentName company role ctc batch eligibilityCriteria rounds finalVerdict tipsForJuniors overallExperience tags year createdAt')
             .sort({ createdAt: -1 })
             .limit(50) // Reduced from 100 for faster loading
@@ -154,7 +154,7 @@ export async function getExperiencesByCompany(company: string): Promise<{
     try {
         await dbConnect();
 
-        const experiences = await Experience.find({ company })
+        const experiences = await Experience.find({ company, status: 'APPROVED' })
             .sort({ createdAt: -1 })
             .lean();
 

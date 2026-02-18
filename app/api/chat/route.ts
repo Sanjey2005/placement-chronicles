@@ -4,6 +4,7 @@ import dbConnect from '@/lib/db';
 import Experience from '@/models/Experience';
 import { getEmbedding, cosineSimilarity } from '@/lib/vector';
 import { chatRateLimiter } from '@/lib/redis';
+import { stripHtmlTags } from '@/lib/sanitize';
 
 // Initialize Groq client
 const groq = new Groq({
@@ -36,6 +37,9 @@ export async function POST(request: NextRequest) {
                 { status: 400 }
             );
         }
+
+        // SECURITY: Sanitize user message to prevent XSS/injection
+        userMessage = stripHtmlTags(userMessage);
 
         // Rate limiting
         if (chatRateLimiter) {
@@ -181,7 +185,7 @@ INSTRUCTIONS:
 
                     controller.close();
                 } catch (error) {
-                    console.error('Streaming error:', error);
+                    console.error('Streaming error occurred');
                     controller.error(error);
                 }
             },
@@ -196,7 +200,7 @@ INSTRUCTIONS:
             },
         });
     } catch (error) {
-        console.error('Error in chat API:', error);
+        console.error('Chat API error occurred');
         return NextResponse.json(
             {
                 error: 'Failed to process chat message',
@@ -207,16 +211,4 @@ INSTRUCTIONS:
     }
 }
 
-// Handle OPTIONS for CORS
-export async function OPTIONS() {
-    return NextResponse.json(
-        {},
-        {
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type',
-            },
-        }
-    );
-}
+// CORS is handled by Next.js middleware — no wildcard Access-Control-Allow-Origin

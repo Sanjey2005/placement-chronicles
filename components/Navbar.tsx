@@ -4,16 +4,19 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
-import { Plus, MessageSquare, LogOut, Home } from 'lucide-react';
+import { Plus, MessageSquare, LogOut, Home, Shield } from 'lucide-react';
 
 export default function Navbar() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
     const router = useRouter();
     const pathname = usePathname();
 
     // Check authentication only on client side to avoid hydration mismatch
     useEffect(() => {
-        setIsAuthenticated(document.cookie.includes('auth-token'));
+        const cookie = document.cookie;
+        setIsAuthenticated(cookie.includes('auth-token'));
+        setIsAdmin(cookie.includes('auth-token=admin'));
     }, []);
 
     const handleLogout = () => {
@@ -47,6 +50,16 @@ export default function Navbar() {
                                 <button className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 rounded-lg text-white transition-all">
                                     <Home className="h-4 w-4" />
                                     <span className="hidden sm:inline">Home</span>
+                                </button>
+                            </Link>
+                        )}
+
+                        {/* Admin button - only show for admins */}
+                        {isAdmin && pathname !== '/admin' && (
+                            <Link href="/admin">
+                                <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 backdrop-blur-md border border-amber-500/30 rounded-lg text-amber-200 font-semibold transition-all">
+                                    <Shield className="h-4 w-4" />
+                                    <span className="hidden sm:inline">Admin</span>
                                 </button>
                             </Link>
                         )}
@@ -85,3 +98,4 @@ export default function Navbar() {
         </header>
     );
 }
+

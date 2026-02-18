@@ -62,6 +62,8 @@ export interface IExperience extends Document {
     finalVerdict?: 'selected' | 'rejected' | 'waitlisted' | 'ongoing'; // NEW
     tipsForJuniors?: string; // NEW
     overallExperience?: string; // NEW
+    status: 'PENDING' | 'APPROVED' | 'FLAGGED' | 'REJECTED';
+    moderationReason?: string;
     embedding?: number[];
     tags?: string[];
     year?: number;
@@ -134,6 +136,16 @@ const ExperienceSchema = new Schema<IExperience>(
         year: {
             type: Number,
             index: true,
+        },
+        status: {
+            type: String,
+            enum: ['PENDING', 'APPROVED', 'FLAGGED', 'REJECTED'],
+            default: 'PENDING',
+            index: true,
+        },
+        moderationReason: {
+            type: String,
+            default: null,
         },
     },
     {
