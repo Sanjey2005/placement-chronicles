@@ -98,10 +98,7 @@ export default function LoginPage() {
 
                 <div className="text-center">
                     <p className="text-sm text-zinc-500">
-                        Don't have an account?{' '}
-                        <a href="/register" className="text-purple-400 hover:text-purple-300 transition-colors font-medium">
-                            Contact Admin
-                        </a>
+                        <span className="font-semibold text-zinc-400">Note:</span> Use your eCampus credentials
                     </p>
                 </div>
             </GlassCard>
