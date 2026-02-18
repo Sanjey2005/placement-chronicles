@@ -6,10 +6,10 @@ import { Points, PointMaterial } from '@react-three/drei';
 import * as random from 'maath/random';
 
 function Stars() {
-    const ref = useRef<any>();
+    const ref = useRef<any>(null);
 
     // Generate random positions for 5000 stars in a sphere
-    const sphere = random.inSphere(new Float32Array(5000 * 3), { radius: 1.5 });
+    const sphere = random.inSphere(new Float32Array(5000 * 3), { radius: 1.5 }) as Float32Array;
 
     useFrame((state, delta) => {
         if (ref.current) {

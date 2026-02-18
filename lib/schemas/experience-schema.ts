@@ -11,7 +11,7 @@ export const basicInfoSchema = z.object({
     courseBranch: z.string().min(2, 'Course & Branch is required (e.g., BTech CSE)'),
     eligibilityCriteria: z.string().min(10, 'Please provide eligibility criteria (min 10 characters)'),
     ctc: z.number().min(0, 'CTC must be a positive number'),
-    internshipDuration: z.string().optional().default(''),
+    internshipDuration: z.string().default(''),
 });
 
 // ============================================================================
@@ -23,7 +23,7 @@ export const onlineTestRoundSchema = z.object({
     type: z.literal('test'),
     roundNumber: z.number().min(1),
     topics: z.string().min(1, 'Topics are required (e.g. DSA, OS, DBMS)'),
-    studySources: z.string().optional().default(''),
+    studySources: z.string().default(''),
 });
 
 // Hackathon Round — problemStatement & strategy
@@ -42,11 +42,11 @@ export const interviewRoundSchema = z.object({
     questions: z.array(
         z.object({
             question: z.string().min(3, 'Question must be at least 3 characters'),
-            answerTip: z.string().optional().default(''),
+            answerTip: z.string().default(''),
         })
     ).optional().default([]),
-    notes: z.string().optional().default(''),
-    duration: z.string().optional().default(''),
+    notes: z.string().default(''),
+    duration: z.string().default(''),
 });
 
 // Discriminated Union for all round types
@@ -67,7 +67,7 @@ export const roundBuilderSchema = z.object({
 export const conclusionSchema = z.object({
     finalVerdict: z.enum(['selected', 'rejected', 'waitlisted', 'ongoing']),
     tipsForJuniors: z.string().min(20, 'Please share some tips for juniors (min 20 characters)'),
-    overallExperience: z.string().optional(), // Overall reflection
+    overallExperience: z.string().default(''),
 });
 
 // ============================================================================

@@ -31,7 +31,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
     const [isUploading, setIsUploading] = useState(false);
 
     const form = useForm<ExperienceFormData>({
-        resolver: zodResolver(experienceFormSchema),
+        resolver: zodResolver(experienceFormSchema) as any,
         defaultValues: initialData || {
             studentName: '',
             company: '',
