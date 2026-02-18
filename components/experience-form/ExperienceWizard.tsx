@@ -123,8 +123,8 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                     year: apiData.year || new Date().getFullYear(),
                 });
 
-                toast.success('PDF data extracted! Please review and edit as needed.');
-                setCurrentStep(2); // Jump to rounds step to review
+                toast.success('PDF data extracted! Please review the pre-filled information.');
+                // Stay on current step so user can review Basic Info first
             } else {
                 toast.error(result.error || 'Failed to extract data from PDF');
             }
