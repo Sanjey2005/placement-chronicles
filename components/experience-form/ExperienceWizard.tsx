@@ -14,6 +14,7 @@ import GlassCard from '@/components/GlassCard';
 import BasicInfoStep from './steps/BasicInfoStep';
 import RoundBuilderStep from './steps/RoundBuilderStep';
 import ConclusionStep from './steps/ConclusionStep';
+import DisclaimerModal from './DisclaimerModal';
 
 const STEPS = [
     { id: 1, name: 'Basic Info', description: 'Company & Role Details' },
@@ -29,6 +30,9 @@ interface ExperienceWizardProps {
 export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWizardProps) {
     const [currentStep, setCurrentStep] = useState(1);
     const [isUploading, setIsUploading] = useState(false);
+    const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
+    const [pendingData, setPendingData] = useState<ExperienceFormData | null>(null);
+    const [isFinalSubmitting, setIsFinalSubmitting] = useState(false);
 
     const form = useForm<ExperienceFormData>({
         resolver: zodResolver(experienceFormSchema) as any,
@@ -230,14 +234,27 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
     };
 
     const onFormSubmit = async (data: ExperienceFormData) => {
+        setPendingData(data);
+        setIsDisclaimerOpen(true);
+    };
+
+    const handleFinalConfirmation = async () => {
+        if (!pendingData) return;
+
+        setIsFinalSubmitting(true);
         try {
-            await onSubmit(data);
+            await onSubmit(pendingData);
             toast.success('Experience shared successfully!');
             reset();
             setCurrentStep(1);
+            setPendingData(null);
+            setIsDisclaimerOpen(false);
         } catch (error) {
             toast.error('Failed to submit experience');
             console.error('Submit error:', error);
+            // We keep the modal open so they can try again or check what went wrong
+        } finally {
+            setIsFinalSubmitting(false);
         }
     };
 
@@ -426,6 +443,17 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                                 ))}
                             </ul>
                         </div>
+                    )}
+
+                    {/* Disclaimer Modal */}
+                    {pendingData && (
+                        <DisclaimerModal
+                            isOpen={isDisclaimerOpen}
+                            onClose={() => setIsDisclaimerOpen(false)}
+                            onConfirm={handleFinalConfirmation}
+                            data={pendingData}
+                            isSubmitting={isFinalSubmitting}
+                        />
                     )}
                 </div>
             </div>
