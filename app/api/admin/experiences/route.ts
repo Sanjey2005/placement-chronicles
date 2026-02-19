@@ -20,7 +20,6 @@ export async function GET(request: NextRequest) {
 
         const [experiences, total] = await Promise.all([
             Experience.find(query)
-                .select('studentId studentName company role ctc batch status moderationReason createdAt')
                 .sort({ createdAt: -1 })
                 .skip((page - 1) * limit)
                 .limit(limit)

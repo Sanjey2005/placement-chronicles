@@ -112,8 +112,8 @@ export function ReviewModal({ experience, isOpen, onClose, onApprove, onReject, 
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col bg-slate-950 text-white border-white/10 p-0 overflow-hidden">
-                <DialogHeader className="px-6 py-4 border-b border-white/10 bg-slate-900">
+            <DialogContent className="!max-w-[75vw] w-[75vw] h-[90vh] flex flex-col bg-slate-950 text-white border-white/10 p-0 overflow-hidden">
+                <DialogHeader className="px-6 py-4 border-b border-white/10 bg-slate-900 shrink-0">
                     <DialogTitle className="flex items-center gap-2 text-xl">
                         <ShieldAlertIcon status={experience.status} />
                         Review Experience
@@ -123,20 +123,20 @@ export function ReviewModal({ experience, isOpen, onClose, onApprove, onReject, 
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex-1 overflow-hidden flex flex-col">
+                <div className="flex-1 overflow-hidden flex flex-col min-h-0">
                     {/* Moderation Alert (Fixed at top if flagged) */}
                     {experience.moderationReason && (
-                        <div className="px-6 py-3 bg-red-500/10 border-b border-red-500/10 flex gap-3 items-start shrink-0">
+                        <div className="px-6 py-4 bg-red-500/10 border-b border-red-500/10 flex gap-3 items-start shrink-0">
                             <AlertTriangle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
-                            <div>
+                            <div className="flex-1">
                                 <h4 className="font-semibold text-red-400 text-sm">Flagged Reason</h4>
-                                <p className="text-white/90 text-sm mt-1">{experience.moderationReason}</p>
+                                <p className="text-white/90 text-sm mt-1 whitespace-pre-wrap">{experience.moderationReason}</p>
                             </div>
                         </div>
                     )}
 
-                    <ScrollArea className="flex-1">
-                        <div className="p-6 space-y-8">
+                    <ScrollArea className="flex-1 h-full w-full">
+                        <div className="p-6 space-y-8 pb-20">
                             {/* ── Header Info ── */}
                             <div className="flex flex-col md:flex-row gap-6 justify-between items-start">
                                 <div className="space-y-2">
@@ -158,6 +158,16 @@ export function ReviewModal({ experience, isOpen, onClose, onApprove, onReject, 
                                                 {verdictConfig[experience.finalVerdict]?.label || experience.finalVerdict}
                                             </span>
                                         )}
+                                        {experience.placementType && (
+                                            <span className="px-2 py-1 bg-purple-500/10 text-purple-300 border border-purple-500/20 rounded">
+                                                {experience.placementType.replace('_', ' ')}
+                                            </span>
+                                        )}
+                                        {experience.roleType && (
+                                            <span className="px-2 py-1 bg-pink-500/10 text-pink-300 border border-pink-500/20 rounded">
+                                                {experience.roleType.replace('_', ' ')}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -168,7 +178,12 @@ export function ReviewModal({ experience, isOpen, onClose, onApprove, onReject, 
                                     <h3 className="text-xs font-semibold text-white/40 uppercase flex items-center gap-2"><GraduationCap className="h-3.5 w-3.5" /> Eligibility</h3>
                                     <div className="grid grid-cols-2 gap-4 text-sm">
                                         <div><span className="text-white/50 block text-xs">Min CGPA</span>{experience.minCGPA || '—'}</div>
-                                        <div><span className="text-white/50 block text-xs">Backlogs</span>{experience.historyOfBacklogs || '—'}</div>
+                                        <div><span className="text-white/50 block text-xs">History of Backlogs</span>
+                                            <span className={experience.historyOfBacklogs === 'Yes' ? 'text-red-400' : 'text-white/80'}>{experience.historyOfBacklogs || '—'}</span>
+                                        </div>
+                                        <div><span className="text-white/50 block text-xs">Standing Backlogs</span>
+                                            <span className={experience.standingBacklogs === 'Yes' ? 'text-red-400' : 'text-white/80'}>{experience.standingBacklogs || '—'}</span>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
@@ -199,6 +214,7 @@ export function ReviewModal({ experience, isOpen, onClose, onApprove, onReject, 
                                                 </div>
                                                 <div className="pl-1 pt-2 space-y-2">
                                                     {round.description && <div className="text-sm border-l-2 border-white/10 pl-3"><h5 className="text-xs text-white/40 uppercase mb-0.5">Description</h5><ExpandableText text={round.description} /></div>}
+                                                    {round.experience && <div className="text-sm border-l-2 border-white/10 pl-3"><h5 className="text-xs text-white/40 uppercase mb-0.5">Experience & Tasks</h5><ExpandableText text={round.experience} /></div>}
                                                     {round.questions && round.questions.length > 0 && (
                                                         <div className="mt-2">
                                                             <h5 className="text-xs text-white/40 uppercase mb-1.5">Questions</h5>
@@ -256,17 +272,19 @@ export function ReviewModal({ experience, isOpen, onClose, onApprove, onReject, 
                     </ScrollArea>
                 </div>
 
-                <DialogFooter className="px-6 py-4 border-t border-white/10 bg-slate-900 gap-2 sm:gap-0">
-                    <Button variant="outline" onClick={onClose} disabled={isLoading} className="border-white/10 hover:bg-white/10 hover:text-white">
-                        Cancel
-                    </Button>
-                    <div className="flex gap-2 w-full sm:w-auto justify-end">
-                        <Button variant="destructive" onClick={() => onReject(experience._id)} disabled={isLoading} className="bg-rose-500 hover:bg-rose-600 gap-2">
-                            <XCircle className="h-4 w-4" /> Reject / Delete
+                <DialogFooter className="px-6 py-4 border-t border-white/10 bg-slate-900">
+                    <div className="flex w-full items-center justify-between">
+                        <Button variant="outline" onClick={onClose} disabled={isLoading} className="border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white">
+                            Cancel
                         </Button>
-                        <Button onClick={() => onApprove(experience._id)} disabled={isLoading} className="bg-emerald-500 hover:bg-emerald-600 text-white gap-2">
-                            <CheckCircle2 className="h-4 w-4" /> Approve Experience
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button variant="destructive" onClick={() => onReject(experience._id)} disabled={isLoading} className="bg-rose-500 hover:bg-rose-600 gap-2">
+                                <XCircle className="h-4 w-4" /> Reject / Delete
+                            </Button>
+                            <Button onClick={() => onApprove(experience._id)} disabled={isLoading} className="bg-emerald-500 hover:bg-emerald-600 text-white gap-2">
+                                <CheckCircle2 className="h-4 w-4" /> Approve Experience
+                            </Button>
+                        </div>
                     </div>
                 </DialogFooter>
             </DialogContent>
