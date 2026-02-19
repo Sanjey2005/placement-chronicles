@@ -5,6 +5,7 @@ export interface IAdminLog extends Document {
     adminId: string;      // Admin identifier
     targetId: string;     // Experience ID that was acted upon
     details?: string;     // Additional context (e.g., company name, student)
+    rollNumber?: string;  // Roll number of the person who performed the action (if pertinent)
     timestamp: Date;
 }
 
@@ -24,6 +25,9 @@ const AdminLogSchema = new Schema<IAdminLog>(
             required: true,
         },
         details: {
+            type: String,
+        },
+        rollNumber: {
             type: String,
         },
         timestamp: {

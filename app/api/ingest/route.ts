@@ -51,7 +51,9 @@ Follow these rules for categorizing rounds:
   "batch": "graduation year e.g. 2026",
   "courseBranch": "e.g. BTech CSE, MSc Data Science, MBA Finance",
   "internshipDuration": "e.g. 2 months, 6 months, leave empty if not an internship",
-  "eligibilityCriteria": "CGPA/percentage requirements, branches allowed",
+  "minCGPA": <number e.g. 7.5, 0 if not mentioned>,
+  "historyOfBacklogs": "Yes" | "No" (default "No" if not mentioned),
+  "standingBacklogs": "Yes" | "No" (default "No" if not mentioned),
   "rounds": [ ...mixed types from above... ],
   "overallExperience": "the overall experience narrative",
   "tipsForJuniors": "tips mentioned for juniors",
@@ -160,7 +162,9 @@ export async function POST(request: NextRequest) {
             batch: parsedData.batch || new Date().getFullYear().toString(),
             courseBranch: parsedData.courseBranch || '',
             internshipDuration: parsedData.internshipDuration || '',
-            eligibilityCriteria: parsedData.eligibilityCriteria || '',
+            minCGPA: typeof parsedData.minCGPA === 'number' ? parsedData.minCGPA : parseFloat(parsedData.minCGPA) || 0,
+            historyOfBacklogs: (parsedData.historyOfBacklogs === 'Yes' || parsedData.historyOfBacklogs === true) ? 'Yes' : 'No',
+            standingBacklogs: (parsedData.standingBacklogs === 'Yes' || parsedData.standingBacklogs === true) ? 'Yes' : 'No',
             rounds: Array.isArray(parsedData.rounds) ? parsedData.rounds.map((round: any, index: number) => {
                 const roundNumber = round.roundNumber || index + 1;
 

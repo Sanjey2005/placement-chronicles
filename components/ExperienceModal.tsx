@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { X, Building2, Briefcase, IndianRupee, GraduationCap, Clock, MessageSquare, Lightbulb, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -15,9 +16,13 @@ interface ExperienceModalProps {
     batch?: string;
     finalVerdict?: 'selected' | 'rejected' | 'waitlisted' | 'ongoing';
     studentName?: string;
-    eligibilityCriteria?: string;
+    minCGPA?: number;
     tipsForJuniors?: string;
     overallExperience?: string;
+    placementType?: string;
+    roleType?: string;
+    historyOfBacklogs?: string;
+    standingBacklogs?: string;
 }
 
 function getRoundIcon(type: string) {
@@ -46,6 +51,33 @@ function getRoundLabel(round: any): string {
     return round.roundType || round.interviewType || round.type || 'Round';
 }
 
+const ExpandableText = ({ text, limit = 150 }: { text: string; limit?: number }) => {
+    const [expanded, setExpanded] = useState(false);
+
+    if (!text) return null;
+
+    if (text.length <= limit) {
+        return <p className="text-sm text-white/70 leading-relaxed">{text}</p>;
+    }
+
+    return (
+        <div className="relative">
+            <p className={`text-sm text-white/70 leading-relaxed ${!expanded ? 'line-clamp-3' : ''}`}>
+                {text}
+            </p>
+            {!expanded && (
+                <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-slate-900/90 to-transparent pointer-events-none" />
+            )}
+            <button
+                onClick={() => setExpanded(!expanded)}
+                className="mt-1 text-xs text-violet-400 hover:text-violet-300 font-medium flex items-center gap-1 transition-colors"
+            >
+                {expanded ? 'Show Less' : 'Show More'}
+            </button>
+        </div>
+    );
+};
+
 export default function ExperienceModal({
     isOpen,
     onClose,
@@ -58,9 +90,13 @@ export default function ExperienceModal({
     batch,
     finalVerdict,
     studentName,
-    eligibilityCriteria,
+    minCGPA,
     tipsForJuniors,
     overallExperience,
+    placementType,
+    roleType,
+    historyOfBacklogs,
+    standingBacklogs,
 }: ExperienceModalProps) {
     if (!isOpen) return null;
 
@@ -148,19 +184,62 @@ export default function ExperienceModal({
                                             {verdictConfig[finalVerdict].label}
                                         </span>
                                     )}
+                                    {placementType && (
+                                        <span className="px-3 py-1 text-xs font-medium rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/25">
+                                            🏢 {placementType.replace('_', ' ')}
+                                        </span>
+                                    )}
+                                    {roleType && (
+                                        <span className="px-3 py-1 text-xs font-medium rounded-full bg-pink-500/15 text-pink-300 border border-pink-500/25">
+                                            💼 {roleType.replace('_', ' ')}
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex flex-wrap gap-2 mt-2 ml-10">
+                                    {(historyOfBacklogs === 'Yes') && (
+                                        <span className="px-3 py-1 text-xs font-medium rounded-full bg-red-500/10 text-red-300 border border-red-500/20">
+                                            History of Backlogs: {historyOfBacklogs}
+                                        </span>
+                                    )}
+                                    {(standingBacklogs === 'Yes') && (
+                                        <span className="px-3 py-1 text-xs font-medium rounded-full bg-orange-500/10 text-orange-300 border border-orange-500/20">
+                                            Standing Backlogs: {standingBacklogs}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
                             {/* ── Eligibility ── */}
-                            {eligibilityCriteria && (
-                                <div className="mb-6 p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                                    <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-2 flex items-center gap-2">
-                                        <GraduationCap className="h-4 w-4" />
-                                        Eligibility Criteria
-                                    </h3>
-                                    <p className="text-white/80 text-sm">{eligibilityCriteria}</p>
+                            <div className="mb-6 p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                    <GraduationCap className="h-4 w-4" />
+                                    Eligibility Criteria
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {minCGPA !== undefined && (
+                                        <div className="flex flex-col">
+                                            <span className="text-xs text-white/40 uppercase">Minimum CGPA</span>
+                                            <span className="text-white font-medium">{minCGPA}</span>
+                                        </div>
+                                    )}
+                                    {historyOfBacklogs && (
+                                        <div className="flex flex-col">
+                                            <span className="text-xs text-white/40 uppercase">History of Backlogs</span>
+                                            <span className={`font-medium ${historyOfBacklogs === 'Yes' ? 'text-red-400' : 'text-emerald-400'}`}>
+                                                {historyOfBacklogs}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {standingBacklogs && (
+                                        <div className="flex flex-col">
+                                            <span className="text-xs text-white/40 uppercase">Standing Backlogs</span>
+                                            <span className={`font-medium ${standingBacklogs === 'Yes' ? 'text-red-400' : 'text-emerald-400'}`}>
+                                                {standingBacklogs}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
-                            )}
+                            </div>
 
                             {/* ── Tags ── */}
                             {tags.length > 0 && (
@@ -187,71 +266,125 @@ export default function ExperienceModal({
                                         {rounds.map((round, idx) => (
                                             <div
                                                 key={idx}
-                                                className="relative p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] transition-colors"
+                                                className="relative p-5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] transition-colors"
                                             >
                                                 {/* Round header */}
-                                                <div className="flex items-center gap-3 mb-2">
-                                                    <span className="text-lg">{getRoundIcon(getRoundLabel(round))}</span>
+                                                <div className="flex items-center gap-3 mb-4">
+                                                    <span className="text-2xl">{getRoundIcon(getRoundLabel(round))}</span>
                                                     <div>
-                                                        <span className="text-xs font-bold text-violet-400 uppercase tracking-wider">
+                                                        <span className="text-xs font-bold text-violet-400 uppercase tracking-wider block mb-0.5">
                                                             Round {round.roundNumber || idx + 1}
                                                         </span>
-                                                        <h4 className="text-white font-semibold text-sm capitalize">
+                                                        <h4 className="text-white font-semibold text-base capitalize">
                                                             {getRoundLabel(round)}
                                                         </h4>
                                                     </div>
                                                     {round.duration && (
-                                                        <span className="ml-auto text-xs text-white/40 flex items-center gap-1">
+                                                        <span className="ml-auto text-xs text-white/40 flex items-center gap-1 bg-white/5 px-2 py-1 rounded-md border border-white/5">
                                                             <Clock className="h-3 w-3" />
                                                             {round.duration}
                                                         </span>
                                                     )}
                                                 </div>
 
-                                                {/* Description */}
-                                                {round.description && (
-                                                    <p className="text-sm text-white/60 leading-relaxed mb-2 ml-9">
-                                                        {round.description}
-                                                    </p>
-                                                )}
+                                                <div className="space-y-4 pl-1">
+                                                    {/* Description */}
+                                                    {round.description && (
+                                                        <div>
+                                                            <h5 className="text-xs font-semibold text-white/40 uppercase mb-1.5">Description</h5>
+                                                            <ExpandableText text={round.description} />
+                                                        </div>
+                                                    )}
 
-                                                {/* Experience (hackathon) */}
-                                                {round.experience && (
-                                                    <p className="text-sm text-white/60 leading-relaxed mb-2 ml-9">
-                                                        {round.experience}
-                                                    </p>
-                                                )}
+                                                    {/* Experience */}
+                                                    {round.experience && (
+                                                        <div>
+                                                            <h5 className="text-xs font-semibold text-white/40 uppercase mb-1.5">Experience & Tasks</h5>
+                                                            <ExpandableText text={round.experience} />
+                                                        </div>
+                                                    )}
 
-                                                {/* Problem Statement (hackathon) */}
-                                                {round.problemStatement && (
-                                                    <div className="ml-9 mb-2 p-3 rounded-lg bg-violet-500/5 border border-violet-500/10">
-                                                        <p className="text-xs text-violet-300 font-medium mb-1">Problem Statement</p>
-                                                        <p className="text-sm text-white/70">{round.problemStatement}</p>
-                                                    </div>
-                                                )}
+                                                    {/* Problem Statement */}
+                                                    {round.problemStatement && (
+                                                        <div className="p-3 rounded-lg bg-violet-500/5 border border-violet-500/10">
+                                                            <h5 className="text-xs font-medium text-violet-300 mb-1">Problem Statement</h5>
+                                                            <ExpandableText text={round.problemStatement} />
+                                                        </div>
+                                                    )}
 
-                                                {/* Topics (online test) */}
-                                                {round.topics && (typeof round.topics === 'string' ? round.topics.length > 0 : round.topics.length > 0) && (
-                                                    <div className="flex flex-wrap gap-1.5 ml-9 mb-2">
-                                                        {(Array.isArray(round.topics) ? round.topics : round.topics.split(/[,;]+/).map((s: string) => s.trim()).filter(Boolean)).map((topic: string, tIdx: number) => (
-                                                            <span key={tIdx} className="px-2 py-0.5 text-xs rounded bg-blue-500/10 text-blue-300 border border-blue-500/20">
-                                                                {topic}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                )}
+                                                    {/* Strategy (New) */}
+                                                    {round.strategy && (
+                                                        <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
+                                                            <h5 className="text-xs font-medium text-emerald-300 mb-1 flex items-center gap-1">
+                                                                <Lightbulb className="h-3 w-3" /> Strategy Used
+                                                            </h5>
+                                                            <ExpandableText text={round.strategy} />
+                                                        </div>
+                                                    )}
 
-                                                {/* Questions */}
-                                                {round.questions && round.questions.length > 0 && (
-                                                    <ul className="space-y-1.5 ml-9">
-                                                        {round.questions.map((q: any, qIdx: number) => (
-                                                            <li key={qIdx} className="text-sm text-white/70 flex items-start gap-2">
-                                                                <span className="text-violet-400 mt-0.5 shrink-0">▸</span>
-                                                                <span>{typeof q === 'string' ? q : q.question}</span>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                )}
+                                                    {/* Study Sources (New) */}
+                                                    {round.studySources && round.studySources.length > 0 && (
+                                                        <div>
+                                                            <h5 className="text-xs font-semibold text-white/40 uppercase mb-2">Study Sources</h5>
+                                                            <ul className="space-y-1">
+                                                                {round.studySources.map((source: string, sIdx: number) => (
+                                                                    <li key={sIdx} className="text-sm text-blue-400 hover:text-blue-300 underline underline-offset-2">
+                                                                        <a href={source} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
+                                                                            🔗 {source}
+                                                                        </a>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Topics */}
+                                                    {round.topics && (typeof round.topics === 'string' ? round.topics.length > 0 : round.topics.length > 0) && (
+                                                        <div>
+                                                            <h5 className="text-xs font-semibold text-white/40 uppercase mb-2">Topics Covered</h5>
+                                                            <div className="flex flex-wrap gap-1.5">
+                                                                {(Array.isArray(round.topics) ? round.topics : round.topics.split(/[,;]+/).map((s: string) => s.trim()).filter(Boolean)).map((topic: string, tIdx: number) => (
+                                                                    <span key={tIdx} className="px-2.5 py-1 text-xs font-medium rounded-md bg-white/5 text-white/70 border border-white/10">
+                                                                        {topic}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Questions */}
+                                                    {round.questions && round.questions.length > 0 && (
+                                                        <div>
+                                                            <h5 className="text-xs font-semibold text-white/40 uppercase mb-2">Questions Asked</h5>
+                                                            <div className="space-y-3">
+                                                                {round.questions.map((q: any, qIdx: number) => (
+                                                                    <div key={qIdx} className="bg-white/[0.02] p-3 rounded-lg border border-white/[0.04]">
+                                                                        <p className="text-sm text-white/80 font-medium mb-1">
+                                                                            <span className="text-violet-400 mr-2">Q{qIdx + 1}.</span>
+                                                                            {typeof q === 'string' ? q : q.question}
+                                                                        </p>
+                                                                        {/* Answer/Tip for Question */}
+                                                                        {typeof q !== 'string' && q.answerTip && (
+                                                                            <div className="mt-2 pl-6 text-sm text-white/50 italic border-l-2 border-white/10">
+                                                                                💡 {q.answerTip}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Round Notes/Tips (New) */}
+                                                    {round.notes && (
+                                                        <div className="p-3 rounded-lg bg-orange-500/5 border border-orange-500/10">
+                                                            <h5 className="text-xs font-medium text-orange-300 mb-1 flex items-center gap-1">
+                                                                <Lightbulb className="h-3 w-3" /> Round Tips & Notes
+                                                            </h5>
+                                                            <ExpandableText text={round.notes} />
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -265,7 +398,7 @@ export default function ExperienceModal({
                                         <Star className="h-4 w-4" />
                                         Overall Experience
                                     </h3>
-                                    <p className="text-sm text-white/70 leading-relaxed">{overallExperience}</p>
+                                    <ExpandableText text={overallExperience} />
                                 </div>
                             )}
 
@@ -276,7 +409,7 @@ export default function ExperienceModal({
                                         <Lightbulb className="h-4 w-4" />
                                         Tips for Juniors
                                     </h3>
-                                    <p className="text-sm text-white/70 leading-relaxed">{tipsForJuniors}</p>
+                                    <ExpandableText text={tipsForJuniors} />
                                 </div>
                             )}
                         </div>

@@ -45,6 +45,7 @@ interface AdminLogEntry {
     adminId: string;
     targetId: string;
     details?: string;
+    rollNumber?: string;
     timestamp: string;
 }
 
@@ -120,6 +121,8 @@ function StatCard({
     );
 }
 
+import { ReviewModal } from '@/components/admin/ReviewModal';
+
 // ─── Main Admin Dashboard ───────────────────────────────────────────────────
 export default function AdminDashboard() {
     const [stats, setStats] = useState<Stats>({ total: 0, pending: 0, flagged: 0, approved: 0, rejected: 0 });
@@ -129,6 +132,7 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'table' | 'logs'>('table');
+    const [reviewExperience, setReviewExperience] = useState<Experience | null>(null);
 
     // ── Data Fetching ───────────────────────────────────────────────────
     const fetchStats = useCallback(async () => {
@@ -270,8 +274,8 @@ export default function AdminDashboard() {
                         <button
                             onClick={() => setActiveTab('table')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'table'
-                                    ? 'bg-purple-500/20 border border-purple-500/30 text-purple-300'
-                                    : 'bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10'
+                                ? 'bg-purple-500/20 border border-purple-500/30 text-purple-300'
+                                : 'bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10'
                                 }`}
                         >
                             <Filter className="h-4 w-4" />
@@ -280,8 +284,8 @@ export default function AdminDashboard() {
                         <button
                             onClick={() => setActiveTab('logs')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'logs'
-                                    ? 'bg-purple-500/20 border border-purple-500/30 text-purple-300'
-                                    : 'bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10'
+                                ? 'bg-purple-500/20 border border-purple-500/30 text-purple-300'
+                                : 'bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10'
                                 }`}
                         >
                             <Activity className="h-4 w-4" />
@@ -303,8 +307,8 @@ export default function AdminDashboard() {
                                         key={f.value}
                                         onClick={() => setFilter(f.value)}
                                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${filter === f.value
-                                                ? 'bg-white/15 text-white border border-white/20'
-                                                : 'bg-white/5 text-white/50 border border-white/5 hover:bg-white/10 hover:text-white/80'
+                                            ? 'bg-white/15 text-white border border-white/20'
+                                            : 'bg-white/5 text-white/50 border border-white/5 hover:bg-white/10 hover:text-white/80'
                                             }`}
                                     >
                                         {f.label} ({f.count})
@@ -357,7 +361,16 @@ export default function AdminDashboard() {
                                                     </td>
                                                     <td className="px-4 py-3 text-right">
                                                         <div className="flex items-center justify-end gap-1.5">
-                                                            {exp.status !== 'APPROVED' && (
+                                                            {exp.status === 'FLAGGED' && (
+                                                                <button
+                                                                    onClick={() => setReviewExperience(exp)}
+                                                                    className="px-2.5 py-1 text-xs font-medium bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded-md transition-all flex items-center gap-1"
+                                                                >
+                                                                    <Shield className="h-3 w-3" />
+                                                                    Review
+                                                                </button>
+                                                            )}
+                                                            {exp.status !== 'APPROVED' && exp.status !== 'FLAGGED' && (
                                                                 <button
                                                                     onClick={() => handleAction(exp._id, 'APPROVE')}
                                                                     disabled={actionLoading === exp._id}
@@ -366,7 +379,7 @@ export default function AdminDashboard() {
                                                                     Approve
                                                                 </button>
                                                             )}
-                                                            {exp.status !== 'REJECTED' && (
+                                                            {exp.status !== 'REJECTED' && exp.status !== 'FLAGGED' && (
                                                                 <button
                                                                     onClick={() => handleAction(exp._id, 'REJECT')}
                                                                     disabled={actionLoading === exp._id}
@@ -413,12 +426,12 @@ export default function AdminDashboard() {
                                     logs.map((log) => (
                                         <div key={log._id} className="px-4 py-3 flex items-start gap-3 hover:bg-white/5 transition-colors">
                                             <div className={`mt-0.5 p-1.5 rounded-lg ${log.action === 'APPROVE'
-                                                    ? 'bg-emerald-500/20 text-emerald-300'
-                                                    : log.action === 'REJECT'
-                                                        ? 'bg-rose-500/20 text-rose-300'
-                                                        : log.action === 'DELETE'
-                                                            ? 'bg-red-500/20 text-red-300'
-                                                            : 'bg-white/10 text-white/60'
+                                                ? 'bg-emerald-500/20 text-emerald-300'
+                                                : log.action === 'REJECT'
+                                                    ? 'bg-rose-500/20 text-rose-300'
+                                                    : log.action === 'DELETE'
+                                                        ? 'bg-red-500/20 text-red-300'
+                                                        : 'bg-white/10 text-white/60'
                                                 }`}>
                                                 {log.action === 'APPROVE' && <CheckCircle2 className="h-3.5 w-3.5" />}
                                                 {log.action === 'REJECT' && <XCircle className="h-3.5 w-3.5" />}
@@ -430,16 +443,21 @@ export default function AdminDashboard() {
                                                     <span className="font-medium text-white">{log.adminId}</span>
                                                     {' '}
                                                     <span className={`font-semibold ${log.action === 'APPROVE' ? 'text-emerald-400' :
-                                                            log.action === 'REJECT' ? 'text-rose-400' :
-                                                                log.action === 'DELETE' ? 'text-red-400' : 'text-white/60'
+                                                        log.action === 'REJECT' ? 'text-rose-400' :
+                                                            log.action === 'DELETE' ? 'text-red-400' : 'text-white/60'
                                                         }`}>
                                                         {log.action.toLowerCase()}d
                                                     </span>
                                                     {' '}an experience
                                                 </p>
-                                                {log.details && (
-                                                    <p className="text-xs text-white/40 mt-0.5 truncate">{log.details}</p>
-                                                )}
+                                                <p className="text-xs text-white/50 mt-0.5 truncate">
+                                                    {log.details}
+                                                    {log.rollNumber && (
+                                                        <span className="ml-2 text-white/30 font-mono">
+                                                            (Student ID: {log.rollNumber})
+                                                        </span>
+                                                    )}
+                                                </p>
                                             </div>
                                             <span className="text-xs text-white/30 whitespace-nowrap">
                                                 {new Date(log.timestamp).toLocaleString('en-IN', {
@@ -456,6 +474,21 @@ export default function AdminDashboard() {
                         </motion.div>
                     )}
                 </div>
+
+                <ReviewModal
+                    experience={reviewExperience}
+                    isOpen={!!reviewExperience}
+                    onClose={() => setReviewExperience(null)}
+                    isLoading={!!actionLoading}
+                    onApprove={(id) => {
+                        handleAction(id, 'APPROVE');
+                        setReviewExperience(null);
+                    }}
+                    onReject={(id) => {
+                        handleAction(id, 'REJECT');
+                        setReviewExperience(null);
+                    }}
+                />
             </div>
         </>
     );

@@ -10,6 +10,17 @@ interface CreateExperienceData {
     company: string;
     role: string;
     ctc: number;
+    placementType: 'ON_CAMPUS' | 'OFF_CAMPUS';
+    roleType: 'FULL_TIME' | 'INTERNSHIP' | 'SUMMER_INTERNSHIP';
+    verdict: 'ACCEPTED' | 'REJECTED';
+    historyOfBacklogs: string;
+    standingBacklogs: string;
+    batch?: string;
+    courseBranch?: string;
+    minCGPA?: number;
+    tipsForJuniors?: string;
+    overallExperience?: string;
+    finalVerdict?: 'selected' | 'rejected' | 'waitlisted' | 'ongoing';
     rounds?: Array<{
         roundNumber: number;
         roundType: string;
@@ -70,6 +81,17 @@ export async function createExperience(
             company: data.company,
             role: data.role,
             ctc: data.ctc,
+            placementType: data.placementType,
+            roleType: data.roleType,
+            verdict: data.verdict,
+            historyOfBacklogs: data.historyOfBacklogs,
+            standingBacklogs: data.standingBacklogs,
+            batch: data.batch,
+            courseBranch: data.courseBranch,
+            minCGPA: data.minCGPA,
+            tipsForJuniors: data.tipsForJuniors,
+            overallExperience: data.overallExperience,
+            finalVerdict: data.finalVerdict,
             rounds: data.rounds || [],
             ...(embedding && { embedding }),
             tags: data.tags || [],
@@ -111,7 +133,7 @@ export async function getAllExperiences(): Promise<{
 
         // Optimize query by selecting only necessary fields and limiting results
         const experiences = await Experience.find({ status: 'APPROVED' })
-            .select('studentId studentName company role ctc batch eligibilityCriteria rounds finalVerdict tipsForJuniors overallExperience tags year createdAt')
+            .select('studentId studentName company role ctc placementType roleType verdict historyOfBacklogs standingBacklogs batch courseBranch minCGPA rounds finalVerdict tipsForJuniors overallExperience tags year createdAt')
             .sort({ createdAt: -1 })
             .limit(50) // Reduced from 100 for faster loading
             .lean()
@@ -125,7 +147,14 @@ export async function getAllExperiences(): Promise<{
             company: exp.company || '',
             role: exp.role || '',
             ctc: exp.ctc || 0,
+            placementType: exp.placementType || 'ON_CAMPUS',
+            roleType: exp.roleType || 'FULL_TIME',
+            verdict: exp.verdict || 'ACCEPTED',
+            historyOfBacklogs: exp.historyOfBacklogs || 'No',
+            standingBacklogs: exp.standingBacklogs || 'No',
             batch: exp.batch || '',
+            minCGPA: exp.minCGPA || 0,
+            courseBranch: exp.courseBranch || '',
         }));
 
         return {

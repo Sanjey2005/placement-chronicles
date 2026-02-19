@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -37,7 +37,9 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
             company: '',
             role: '',
             batch: '',
-            eligibilityCriteria: '',
+            minCGPA: 0,
+            historyOfBacklogs: 'No',
+            standingBacklogs: 'No',
             ctc: 0,
             rounds: [],
             finalVerdict: 'ongoing',
@@ -49,6 +51,37 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
     });
 
     const { handleSubmit, formState: { errors, isSubmitting }, reset } = form;
+
+    // Load draft from localStorage on mount
+    useEffect(() => {
+        // Only load if no initialData provided (e.g., from PDF or edit mode)
+        if (!initialData) {
+            const savedDraft = localStorage.getItem('experience-form-draft');
+            if (savedDraft) {
+                try {
+                    const parsedDraft = JSON.parse(savedDraft);
+                    // Check if draft is essentially empty or has meaningful data
+                    if (Object.keys(parsedDraft).length > 0) {
+                        console.log('📦 Loading saved draft:', parsedDraft);
+                        reset(parsedDraft);
+                        toast.info('Restored your saved progress');
+                    }
+                } catch (e) {
+                    console.error('Failed to parse draft', e);
+                }
+            }
+        }
+    }, [initialData, reset]);
+
+    // Save to localStorage on change
+    useEffect(() => {
+        const subscription = form.watch((value) => {
+            if (Object.keys(value).length > 0) {
+                localStorage.setItem('experience-form-draft', JSON.stringify(value));
+            }
+        });
+        return () => subscription.unsubscribe();
+    }, [form.watch]);
 
     // Handle PDF Upload
     const handlePDFUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,14 +139,16 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                     })
                     : [];
 
-                reset({
+                const newData = {
                     studentName: apiData.studentName || '',
                     company: apiData.company || '',
                     role: apiData.role || '',
                     batch: apiData.batch || new Date().getFullYear().toString(),
                     courseBranch: apiData.courseBranch || '',
                     internshipDuration: apiData.internshipDuration || '',
-                    eligibilityCriteria: apiData.eligibilityCriteria || '',
+                    minCGPA: apiData.minCGPA || 0,
+                    historyOfBacklogs: apiData.historyOfBacklogs || 'No',
+                    standingBacklogs: apiData.standingBacklogs || 'No',
                     ctc: apiData.ctc || 0,
                     rounds: normalizedRounds,
                     finalVerdict: apiData.finalVerdict || 'selected',
@@ -121,7 +156,12 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                     overallExperience: apiData.overallExperience || '',
                     tags: apiData.tags || [],
                     year: apiData.year || new Date().getFullYear(),
-                });
+                };
+
+                reset(newData);
+
+                // Force save to local storage immediately
+                localStorage.setItem('experience-form-draft', JSON.stringify(newData));
 
                 toast.success('PDF data extracted! Please review the pre-filled information.');
                 // Stay on current step so user can review Basic Info first
@@ -144,7 +184,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
         let fieldsToValidate: (keyof ExperienceFormData)[] = [];
 
         if (currentStep === 1) {
-            fieldsToValidate = ['studentName', 'company', 'role', 'batch', 'eligibilityCriteria', 'ctc'];
+            fieldsToValidate = ['studentName', 'company', 'role', 'batch', 'minCGPA', 'historyOfBacklogs', 'standingBacklogs', 'ctc'];
         } else if (currentStep === 2) {
             fieldsToValidate = ['rounds'];
         } else if (currentStep === 3) {

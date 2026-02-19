@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { IExperience } from '@/models/Experience';
 import ExperienceCard from './ExperienceCard';
 import { motion } from 'framer-motion';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface FeedGridProps {
     experiences: any[];
@@ -16,6 +17,8 @@ export default function FeedGrid({ experiences, companies, batches }: FeedGridPr
     const [filters, setFilters] = useState({
         companies: [] as string[],
         batches: [] as string[],
+        verdicts: [] as string[],
+        types: [] as string[],
         search: '',
     });
 
@@ -59,6 +62,14 @@ export default function FeedGrid({ experiences, companies, batches }: FeedGridPr
             result = result.filter(exp => exp.batch && updated.batches.includes(exp.batch));
         }
 
+        if (updated.verdicts.length > 0) {
+            result = result.filter(exp => exp.verdict && updated.verdicts.includes(exp.verdict));
+        }
+
+        if (updated.types.length > 0) {
+            result = result.filter(exp => exp.roleType && updated.types.includes(exp.roleType));
+        }
+
         if (updated.search) {
             const searchLower = updated.search.toLowerCase();
             result = result.filter(exp =>
@@ -72,7 +83,7 @@ export default function FeedGrid({ experiences, companies, batches }: FeedGridPr
     };
 
     const clearFilters = () => {
-        setFilters({ companies: [], batches: [], search: '' });
+        setFilters({ companies: [], batches: [], verdicts: [], types: [], search: '' });
         setFilteredExperiences(experiences);
     };
 
@@ -94,47 +105,93 @@ export default function FeedGrid({ experiences, companies, batches }: FeedGridPr
 
                     {/* Company Filter */}
                     <div className="min-w-[150px]">
-                        <select
-                            value={filters.companies[0] || ''}
-                            onChange={(e) => {
-                                const value = e.target.value;
-                                updateFilters({ companies: value ? [value] : [] });
+                        <Select
+                            value={filters.companies[0] || "all"}
+                            onValueChange={(value) => {
+                                updateFilters({ companies: value === "all" ? [] : [value] });
                             }}
-                            className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                            <option value="" className="bg-slate-900">All Companies</option>
-                            {companies.map(company => (
-                                <option key={company} value={company} className="bg-slate-900">
-                                    {company}
-                                </option>
-                            ))}
-                        </select>
+                            <SelectTrigger className="w-full h-10 px-4 py-2 bg-white/10 border-white/20 text-white focus:ring-blue-500">
+                                <SelectValue placeholder="All Companies" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-900 border-white/10 text-white max-h-[300px]">
+                                <SelectItem value="all" className="focus:bg-white/10 focus:text-white cursor-pointer">All Companies</SelectItem>
+                                {companies.map(company => (
+                                    <SelectItem key={company} value={company} className="focus:bg-white/10 focus:text-white cursor-pointer">
+                                        {company}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Role Type Filter */}
+                    <div className="min-w-[140px]">
+                        <Select
+                            value={filters.types[0] || "all"}
+                            onValueChange={(value) => {
+                                updateFilters({ types: value === "all" ? [] : [value] });
+                            }}
+                        >
+                            <SelectTrigger className="w-full h-10 px-4 py-2 bg-white/10 border-white/20 text-white focus:ring-blue-500">
+                                <SelectValue placeholder="All Roles" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-900 border-white/10 text-white">
+                                <SelectItem value="all" className="focus:bg-white/10 focus:text-white cursor-pointer">All Roles</SelectItem>
+                                <SelectItem value="FULL_TIME" className="focus:bg-white/10 focus:text-white cursor-pointer">Full Time</SelectItem>
+                                <SelectItem value="INTERNSHIP" className="focus:bg-white/10 focus:text-white cursor-pointer">Internship</SelectItem>
+                                <SelectItem value="SUMMER_INTERNSHIP" className="focus:bg-white/10 focus:text-white cursor-pointer">Summer Intern</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Verdict Filter */}
+                    <div className="min-w-[140px]">
+                        <Select
+                            value={filters.verdicts[0] || "all"}
+                            onValueChange={(value) => {
+                                updateFilters({ verdicts: value === "all" ? [] : [value] });
+                            }}
+                        >
+                            <SelectTrigger className="w-full h-10 px-4 py-2 bg-white/10 border-white/20 text-white focus:ring-blue-500">
+                                <SelectValue placeholder="All Verdicts" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-900 border-white/10 text-white">
+                                <SelectItem value="all" className="focus:bg-white/10 focus:text-white cursor-pointer">All Verdicts</SelectItem>
+                                <SelectItem value="ACCEPTED" className="focus:bg-white/10 focus:text-white cursor-pointer">Accepted</SelectItem>
+                                <SelectItem value="REJECTED" className="focus:bg-white/10 focus:text-white cursor-pointer">Rejected</SelectItem>
+                                <SelectItem value="WAITLISTED" className="focus:bg-white/10 focus:text-white cursor-pointer">Waitlisted</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     {/* Batch Filter */}
                     <div className="min-w-[120px]">
-                        <select
-                            value={filters.batches[0] || ''}
-                            onChange={(e) => {
-                                const value = e.target.value;
-                                updateFilters({ batches: value ? [value] : [] });
+                        <Select
+                            value={filters.batches[0] || "all"}
+                            onValueChange={(value) => {
+                                updateFilters({ batches: value === "all" ? [] : [value] });
                             }}
-                            className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                            <option value="" className="bg-slate-900">All Batches</option>
-                            {batches.map(batch => (
-                                <option key={batch} value={batch} className="bg-slate-900">
-                                    {batch}
-                                </option>
-                            ))}
-                        </select>
+                            <SelectTrigger className="w-full h-10 px-4 py-2 bg-white/10 border-white/20 text-white focus:ring-blue-500">
+                                <SelectValue placeholder="All Batches" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-900 border-white/10 text-white max-h-[300px]">
+                                <SelectItem value="all" className="focus:bg-white/10 focus:text-white cursor-pointer">All Batches</SelectItem>
+                                {batches.map(batch => (
+                                    <SelectItem key={batch} value={batch} className="focus:bg-white/10 focus:text-white cursor-pointer">
+                                        {batch}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     {/* Clear Filters */}
-                    {(filters.companies.length > 0 || filters.batches.length > 0 || filters.search) && (
+                    {(filters.companies.length > 0 || filters.batches.length > 0 || filters.verdicts.length > 0 || filters.types.length > 0 || filters.search) && (
                         <button
                             onClick={clearFilters}
-                            className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-300 rounded-lg transition-all text-sm font-semibold"
+                            className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-300 rounded-lg transition-all text-sm font-semibold whitespace-nowrap"
                         >
                             Clear Filters
                         </button>
@@ -166,9 +223,13 @@ export default function FeedGrid({ experiences, companies, batches }: FeedGridPr
                             batch={exp.batch}
                             finalVerdict={exp.finalVerdict}
                             studentName={exp.studentName}
-                            eligibilityCriteria={exp.eligibilityCriteria}
+                            minCGPA={exp.minCGPA}
+                            historyOfBacklogs={exp.historyOfBacklogs}
+                            standingBacklogs={exp.standingBacklogs}
                             tipsForJuniors={exp.tipsForJuniors}
                             overallExperience={exp.overallExperience}
+                            placementType={exp.placementType}
+                            roleType={exp.roleType}
                         />
                     </motion.div>
                 ))}

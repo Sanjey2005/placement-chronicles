@@ -95,6 +95,7 @@ export async function PATCH(request: NextRequest) {
             adminId: 'sanjey$12',
             targetId: id,
             details: `${action.toUpperCase()} experience by ${(experience as any).studentName || 'Unknown'} at ${(experience as any).company || 'Unknown'}`,
+            rollNumber: (experience as any).studentId, // Capture student roll number
         });
 
         return NextResponse.json({
@@ -141,6 +142,7 @@ export async function DELETE(request: NextRequest) {
             adminId: 'sanjey$12',
             targetId: id,
             details: `Deleted experience by ${(experience as any).studentName || 'Unknown'} at ${(experience as any).company || 'Unknown'}`,
+            rollNumber: (experience as any).studentId, // Capture student roll number
         });
 
         return NextResponse.json({ success: true });

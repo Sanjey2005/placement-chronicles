@@ -16,6 +16,9 @@ interface ExtractedData {
     role: string;
     ctc: number;
     year?: number | null;
+    minCGPA?: number;
+    historyOfBacklogs?: string;
+    standingBacklogs?: string;
     rounds?: Array<{
         roundNumber: number;
         roundType: string;
@@ -113,6 +116,11 @@ export default function UploadTab() {
                 ...extractedData,
                 studentId: extractedData.studentId || '',
                 year: extractedData.year || undefined,
+                historyOfBacklogs: extractedData.historyOfBacklogs || 'No',
+                standingBacklogs: extractedData.standingBacklogs || 'No',
+                placementType: 'ON_CAMPUS' as const, // Default
+                roleType: 'FULL_TIME' as const, // Default
+                verdict: 'ACCEPTED' as const, // Default
                 rounds: extractedData.rounds?.map(round => ({
                     ...round,
                     description: round.description || undefined,
@@ -254,7 +262,7 @@ export default function UploadTab() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-3 gap-4">
                             <div>
                                 <label className="text-sm font-medium text-white/90 mb-2 block">CTC (LPA)</label>
                                 <Input
@@ -267,6 +275,16 @@ export default function UploadTab() {
                             </div>
 
                             <div>
+                                <label className="text-sm font-medium text-white/90 mb-2 block">Min CGPA</label>
+                                <Input
+                                    type="number"
+                                    value={extractedData.minCGPA || ''}
+                                    onChange={(e) => updateField('minCGPA', parseFloat(e.target.value))}
+                                    className="bg-white/10 border-white/20 text-white"
+                                />
+                            </div>
+
+                            <div>
                                 <label className="text-sm font-medium text-white/90 mb-2 block">Year</label>
                                 <Input
                                     type="number"
@@ -274,6 +292,32 @@ export default function UploadTab() {
                                     onChange={(e) => updateField('year', parseInt(e.target.value))}
                                     className="bg-white/10 border-white/20 text-white"
                                 />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-sm font-medium text-white/90 mb-2 block">History of Backlogs</label>
+                                <select
+                                    value={extractedData.historyOfBacklogs || 'No'}
+                                    onChange={(e) => updateField('historyOfBacklogs', e.target.value)}
+                                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="No" className="bg-slate-900">No</option>
+                                    <option value="Yes" className="bg-slate-900">Yes</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-medium text-white/90 mb-2 block">Standing Backlogs</label>
+                                <select
+                                    value={extractedData.standingBacklogs || 'No'}
+                                    onChange={(e) => updateField('standingBacklogs', e.target.value)}
+                                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="No" className="bg-slate-900">No</option>
+                                    <option value="Yes" className="bg-slate-900">Yes</option>
+                                </select>
                             </div>
                         </div>
 

@@ -2,17 +2,23 @@
 
 import { UseFormReturn } from 'react-hook-form';
 import { ExperienceFormData } from '@/lib/schemas/experience-schema';
-import { Building2, Briefcase, Calendar, IndianRupee, User, FileText, GraduationCap, Clock } from 'lucide-react';
+import { Building2, Briefcase, Calendar, IndianRupee, User, FileText, GraduationCap, Clock, CheckCircle2, AlertCircle, History } from 'lucide-react';
 
 interface BasicInfoStepProps {
     form: UseFormReturn<ExperienceFormData>;
 }
 
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 export default function BasicInfoStep({ form }: BasicInfoStepProps) {
-    const { register, formState: { errors } } = form;
+    const { register, formState: { errors }, watch, setValue, trigger } = form;
 
     const currentYear = new Date().getFullYear();
-    const batchYears = Array.from({ length: 5 }, (_, i) => currentYear + i - 1);
+    const batchYears = Array.from({ length: 7 }, (_, i) => currentYear + i - 3); // Current year - 3 to + 3
+
+    const roleType = watch('roleType');
+    const isInternship = roleType === 'INTERNSHIP' || roleType === 'SUMMER_INTERNSHIP';
 
     return (
         <div className="space-y-6">
@@ -73,33 +79,150 @@ export default function BasicInfoStep({ form }: BasicInfoStepProps) {
                 </div>
             </div>
 
-            {/* Batch and CTC */}
+            {/* Academic Info: Batch and Course */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label className="flex items-center gap-2 text-white font-semibold mb-2">
+                    <Label className="flex items-center gap-2 text-white font-semibold mb-2">
                         <Calendar className="h-4 w-4" />
                         Batch Year
-                    </label>
-                    <select
-                        {...register('batch')}
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    </Label>
+                    <Select
+                        onValueChange={(value) => {
+                            setValue('batch', value);
+                            trigger('batch');
+                        }}
+                        defaultValue={watch('batch')}
                     >
-                        <option value="" className="bg-slate-900">Select Batch</option>
-                        {batchYears.map((year) => (
-                            <option key={year} value={year.toString()} className="bg-slate-900">
-                                {year}
-                            </option>
-                        ))}
-                    </select>
+                        <SelectTrigger className="w-full px-4 py-3 h-auto bg-white/10 border-white/20 text-white focus:ring-blue-500">
+                            <SelectValue placeholder="Select Batch" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-white/10 text-white">
+                            {batchYears.map((year) => (
+                                <SelectItem key={year} value={year.toString()} className="focus:bg-white/10 focus:text-white cursor-pointer">
+                                    {year}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     {errors.batch && (
                         <p className="mt-1 text-sm text-red-400">{errors.batch.message}</p>
                     )}
                 </div>
 
                 <div>
+                    <Label className="flex items-center gap-2 text-white font-semibold mb-2">
+                        <GraduationCap className="h-4 w-4" />
+                        Course & Branch
+                    </Label>
+                    <Select
+                        onValueChange={(value) => {
+                            setValue('courseBranch', value);
+                            trigger('courseBranch');
+                        }}
+                        defaultValue={watch('courseBranch')}
+                    >
+                        <SelectTrigger className="w-full px-4 py-3 h-auto bg-white/10 border-white/20 text-white focus:ring-blue-500">
+                            <SelectValue placeholder="Select Course & Branch" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-white/10 text-white h-64">
+                            <SelectItem value="B.Tech CSE" className="focus:bg-white/10 focus:text-white cursor-pointer">B.Tech CSE</SelectItem>
+                            <SelectItem value="B.Tech IT" className="focus:bg-white/10 focus:text-white cursor-pointer">B.Tech IT</SelectItem>
+                            <SelectItem value="B.Tech ECE" className="focus:bg-white/10 focus:text-white cursor-pointer">B.Tech ECE</SelectItem>
+                            <SelectItem value="B.Tech EEE" className="focus:bg-white/10 focus:text-white cursor-pointer">B.Tech EEE</SelectItem>
+                            <SelectItem value="B.Tech Mech" className="focus:bg-white/10 focus:text-white cursor-pointer">B.Tech Mech</SelectItem>
+                            <SelectItem value="M.Sc Software Systems" className="focus:bg-white/10 focus:text-white cursor-pointer">M.Sc Software Systems</SelectItem>
+                            <SelectItem value="M.Sc Theoretical Computer Science" className="focus:bg-white/10 focus:text-white cursor-pointer">M.Sc Theoretical Computer Science</SelectItem>
+                            <SelectItem value="M.Sc Data Science" className="focus:bg-white/10 focus:text-white cursor-pointer">M.Sc Data Science</SelectItem>
+                            <SelectItem value="M.Sc Cyber Security" className="focus:bg-white/10 focus:text-white cursor-pointer">M.Sc Cyber Security</SelectItem>
+                            <SelectItem value="MCA" className="focus:bg-white/10 focus:text-white cursor-pointer">MCA</SelectItem>
+                            <SelectItem value="MBA" className="focus:bg-white/10 focus:text-white cursor-pointer">MBA</SelectItem>
+                            <SelectItem value="Other" className="focus:bg-white/10 focus:text-white cursor-pointer">Other</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    {errors.courseBranch && (
+                        <p className="mt-1 text-sm text-red-400">{errors.courseBranch.message}</p>
+                    )}
+                </div>
+            </div>
+
+            {/* Job Type Info: Placement Type and Role Type */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <Label className="flex items-center gap-2 text-white font-semibold mb-2">
+                        <Building2 className="h-4 w-4" />
+                        Placement Type
+                    </Label>
+                    <Select
+                        onValueChange={(value) => {
+                            setValue('placementType', value as "ON_CAMPUS" | "OFF_CAMPUS");
+                            trigger('placementType');
+                        }}
+                        defaultValue={watch('placementType')}
+                    >
+                        <SelectTrigger className="w-full px-4 py-3 h-auto bg-white/10 border-white/20 text-white focus:ring-blue-500">
+                            <SelectValue placeholder="Select Type" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-white/10 text-white">
+                            <SelectItem value="ON_CAMPUS" className="focus:bg-white/10 focus:text-white cursor-pointer">On Campus</SelectItem>
+                            <SelectItem value="OFF_CAMPUS" className="focus:bg-white/10 focus:text-white cursor-pointer">Off Campus</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    {errors.placementType && (
+                        <p className="mt-1 text-sm text-red-400">{errors.placementType.message}</p>
+                    )}
+                </div>
+
+                <div>
+                    <Label className="flex items-center gap-2 text-white font-semibold mb-2">
+                        <Briefcase className="h-4 w-4" />
+                        Role Type
+                    </Label>
+                    <Select
+                        onValueChange={(value) => {
+                            setValue('roleType', value as "FULL_TIME" | "INTERNSHIP" | "SUMMER_INTERNSHIP");
+                            trigger('roleType');
+                        }}
+                        defaultValue={watch('roleType')}
+                    >
+                        <SelectTrigger className="w-full px-4 py-3 h-auto bg-white/10 border-white/20 text-white focus:ring-blue-500">
+                            <SelectValue placeholder="Select Role Type" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-white/10 text-white">
+                            <SelectItem value="FULL_TIME" className="focus:bg-white/10 focus:text-white cursor-pointer">Full Time</SelectItem>
+                            <SelectItem value="INTERNSHIP" className="focus:bg-white/10 focus:text-white cursor-pointer">Internship</SelectItem>
+                            <SelectItem value="SUMMER_INTERNSHIP" className="focus:bg-white/10 focus:text-white cursor-pointer">Summer Internship</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    {errors.roleType && (
+                        <p className="mt-1 text-sm text-red-400">{errors.roleType.message}</p>
+                    )}
+                </div>
+            </div>
+
+            {/* Metrics: Min CGPA and CTC */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label className="flex items-center gap-2 text-white font-semibold mb-2">
+                        <GraduationCap className="h-4 w-4" />
+                        Minimum CGPA
+                    </label>
+                    <input
+                        {...register('minCGPA', { valueAsNumber: true })}
+                        type="number"
+                        step="0.01"
+                        max="10"
+                        placeholder="7.5"
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    />
+                    {errors.minCGPA && (
+                        <p className="mt-1 text-sm text-red-400">{errors.minCGPA.message}</p>
+                    )}
+                </div>
+
+                <div>
                     <label className="flex items-center gap-2 text-white font-semibold mb-2">
                         <IndianRupee className="h-4 w-4" />
-                        CTC (in LPA)
+                        {isInternship ? 'Stipend (per month)' : 'CTC (in LPA)'}
                     </label>
                     <input
                         {...register('ctc', { valueAsNumber: true })}
@@ -114,58 +237,83 @@ export default function BasicInfoStep({ form }: BasicInfoStepProps) {
                 </div>
             </div>
 
-            {/* Course/Branch and Internship Duration */}
+            {/* Backlogs */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label className="flex items-center gap-2 text-white font-semibold mb-2">
-                        <GraduationCap className="h-4 w-4" />
-                        Course & Branch
-                    </label>
-                    <input
-                        {...register('courseBranch')}
-                        type="text"
-                        placeholder="BTech CSE, MSc Data Science, etc."
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    />
-                    {errors.courseBranch && (
-                        <p className="mt-1 text-sm text-red-400">{errors.courseBranch.message}</p>
+                    <Label className="flex items-center gap-2 text-white font-semibold mb-2">
+                        <History className="h-4 w-4" />
+                        History of Backlogs
+                    </Label>
+                    <Select
+                        onValueChange={(value) => {
+                            setValue('historyOfBacklogs', value as "Yes" | "No");
+                            trigger('historyOfBacklogs');
+                        }}
+                        defaultValue={watch('historyOfBacklogs')}
+                    >
+                        <SelectTrigger className="w-full px-4 py-3 h-auto bg-white/10 border-white/20 text-white focus:ring-blue-500">
+                            <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-white/10 text-white">
+                            <SelectItem value="Yes" className="focus:bg-white/10 focus:text-white cursor-pointer">Yes</SelectItem>
+                            <SelectItem value="No" className="focus:bg-white/10 focus:text-white cursor-pointer">No</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    {errors.historyOfBacklogs && (
+                        <p className="mt-1 text-sm text-red-400">{errors.historyOfBacklogs.message}</p>
                     )}
                 </div>
 
                 <div>
-                    <label className="flex items-center gap-2 text-white font-semibold mb-2">
-                        <Clock className="h-4 w-4" />
-                        Internship Duration
-                    </label>
-                    <input
-                        {...register('internshipDuration')}
-                        type="text"
-                        placeholder="e.g., 2 months, 6 months"
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    />
-                    {errors.internshipDuration && (
-                        <p className="mt-1 text-sm text-red-400">{errors.internshipDuration.message}</p>
+                    <Label className="flex items-center gap-2 text-white font-semibold mb-2">
+                        <AlertCircle className="h-4 w-4" />
+                        Standing Backlogs
+                    </Label>
+                    <Select
+                        onValueChange={(value) => {
+                            setValue('standingBacklogs', value as "Yes" | "No");
+                            trigger('standingBacklogs');
+                        }}
+                        defaultValue={watch('standingBacklogs')}
+                    >
+                        <SelectTrigger className="w-full px-4 py-3 h-auto bg-white/10 border-white/20 text-white focus:ring-blue-500">
+                            <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-white/10 text-white">
+                            <SelectItem value="Yes" className="focus:bg-white/10 focus:text-white cursor-pointer">Yes</SelectItem>
+                            <SelectItem value="No" className="focus:bg-white/10 focus:text-white cursor-pointer">No</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    {errors.standingBacklogs && (
+                        <p className="mt-1 text-sm text-red-400">{errors.standingBacklogs.message}</p>
                     )}
-                    <p className="mt-1 text-xs text-white/40">Leave blank if not an internship</p>
                 </div>
             </div>
 
-            {/* Eligibility Criteria */}
+            {/* Verdict (Full Width) */}
             <div>
-                <label className="flex items-center gap-2 text-white font-semibold mb-2">
-                    <FileText className="h-4 w-4" />
-                    Eligibility Criteria
-                </label>
-                <textarea
-                    {...register('eligibilityCriteria')}
-                    rows={4}
-                    placeholder="e.g., CGPA > 7.5, No active backlogs, All branches eligible"
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
-                />
-                {errors.eligibilityCriteria && (
-                    <p className="mt-1 text-sm text-red-400">{errors.eligibilityCriteria.message}</p>
+                <Label className="flex items-center gap-2 text-white font-semibold mb-2">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Verdict
+                </Label>
+                <Select
+                    onValueChange={(value) => {
+                        setValue('verdict', value as "ACCEPTED" | "REJECTED");
+                        trigger('verdict');
+                    }}
+                    defaultValue={watch('verdict')}
+                >
+                    <SelectTrigger className="w-full px-4 py-3 h-auto bg-white/10 border-white/20 text-white focus:ring-blue-500">
+                        <SelectValue placeholder="Select Verdict" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-900 border-white/10 text-white">
+                        <SelectItem value="ACCEPTED" className="focus:bg-white/10 focus:text-white cursor-pointer">Accepted</SelectItem>
+                        <SelectItem value="REJECTED" className="focus:bg-white/10 focus:text-white cursor-pointer">Rejected</SelectItem>
+                    </SelectContent>
+                </Select>
+                {errors.verdict && (
+                    <p className="mt-1 text-sm text-red-400">{errors.verdict.message}</p>
                 )}
-                <p className="mt-1 text-xs text-white/40">Include CGPA requirements, branch restrictions, backlog policies, etc.</p>
             </div>
         </div>
     );

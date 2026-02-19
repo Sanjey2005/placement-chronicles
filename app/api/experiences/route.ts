@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Experience from '@/models/Experience';
+import Company from '@/models/Company';
 import { getEmbedding } from '@/lib/vector';
 import { experienceFormSchema } from '@/lib/schemas/experience-schema';
 import { escapeRegex, sanitizeObject } from '@/lib/sanitize';
@@ -8,7 +9,7 @@ import { moderateExperience } from '@/lib/moderation';
 
 // Helper function to generate searchable text from experience data
 function generateSearchText(data: any): string {
-    let text = `${data.company} ${data.role} ${data.batch || ''} ${data.eligibilityCriteria || ''} ${data.tipsForJuniors || ''}`;
+    let text = `${data.company} ${data.role} ${data.batch || ''} ${data.minCGPA || ''} ${data.tipsForJuniors || ''}`;
 
     // Add round-specific text
     if (data.rounds && Array.isArray(data.rounds)) {
@@ -43,14 +44,23 @@ export async function POST(request: NextRequest) {
         // Connect to database
         await dbConnect();
 
-        // ── AI Content Moderation ───────────────────────────────────
+        // ── AI Content Moderation & Normalization ───────────────────
         // Default: PENDING — only Groq can elevate to APPROVED.
         // If Groq flags it or is unavailable → FLAGGED (admin must review).
         let status: 'APPROVED' | 'FLAGGED' | 'PENDING' = 'PENDING';
         let moderationReason: string | null = null;
+        let finalCompanyName = validatedData.company; // Default to user input
 
         try {
             const moderationResult = await moderateExperience(validatedData);
+
+            // 1. Handle Normalization
+            if (moderationResult.canonicalCompanyName) {
+                finalCompanyName = moderationResult.canonicalCompanyName;
+                console.log(`🏢 Normalizing company: "${validatedData.company}" -> "${finalCompanyName}"`);
+            }
+
+            // 2. Handle Safety
             if (moderationResult.isSafe) {
                 status = 'APPROVED';
                 moderationReason = null;
@@ -66,6 +76,22 @@ export async function POST(request: NextRequest) {
             moderationReason = 'AI Service Unavailable - Manual Review Required';
             console.warn('⚠️ Moderation failed, flagging for review:', modError);
         }
+
+        // ── Company Management ──────────────────────────────────────
+        // Ensure company exists in DB, create if new
+        try {
+            const existingCompany = await Company.findOne({ canonicalName: finalCompanyName });
+            if (!existingCompany) {
+                await Company.create({ canonicalName: finalCompanyName });
+                console.log(`🆕 Created new company: "${finalCompanyName}"`);
+            }
+        } catch (companyError) {
+            console.error('Failed to manage Company record:', companyError);
+            // Don't block submission, just log error
+        }
+
+        // Update data with normalized company name
+        validatedData.company = finalCompanyName;
 
         // Generate searchable text and try embedding (non-blocking)
         const searchText = generateSearchText(validatedData);
@@ -85,7 +111,9 @@ export async function POST(request: NextRequest) {
             role: validatedData.role,
             ctc: validatedData.ctc,
             batch: validatedData.batch,
-            eligibilityCriteria: validatedData.eligibilityCriteria,
+            minCGPA: validatedData.minCGPA,
+            historyOfBacklogs: validatedData.historyOfBacklogs,
+            standingBacklogs: validatedData.standingBacklogs,
             rounds: validatedData.rounds,
             finalVerdict: validatedData.finalVerdict,
             tipsForJuniors: validatedData.tipsForJuniors,

@@ -9,9 +9,13 @@ export const basicInfoSchema = z.object({
     role: z.string().min(2, 'Role is required'),
     batch: z.string().min(4, 'Please select a batch year'),
     courseBranch: z.string().min(2, 'Course & Branch is required (e.g., BTech CSE)'),
-    eligibilityCriteria: z.string().min(10, 'Please provide eligibility criteria (min 10 characters)'),
     ctc: z.number().min(0, 'CTC must be a positive number'),
-    internshipDuration: z.string().default(''),
+    minCGPA: z.number().min(0).max(10, 'CGPA must be between 0 and 10'),
+    placementType: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']).default('ON_CAMPUS'),
+    roleType: z.enum(['FULL_TIME', 'INTERNSHIP', 'SUMMER_INTERNSHIP']).default('FULL_TIME'),
+    verdict: z.enum(['ACCEPTED', 'REJECTED']).default('ACCEPTED'),
+    historyOfBacklogs: z.enum(['Yes', 'No']).default('No'),
+    standingBacklogs: z.enum(['Yes', 'No']).default('No'),
 });
 
 // ============================================================================

@@ -4,6 +4,7 @@ import { BookOpen, TrendingUp, Users } from 'lucide-react';
 import Link from 'next/link';
 import GridBackground from '@/components/GridBackground';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 
 // Dynamic page - needs DB data
 export const dynamic = 'force-dynamic';
@@ -104,11 +105,7 @@ export default async function Home() {
         </main>
 
         {/* Footer */}
-        <footer className="relative z-10 max-w-7xl mx-auto px-6 py-8 mt-12 border-t border-white/10">
-          <div className="text-center text-white/50 text-sm">
-            <p>© 2026 Placement Chronicles. Built with Next.js 15 + Framer Motion</p>
-          </div>
-        </footer>
+        <Footer />
       </div>
     </GridBackground>
   );

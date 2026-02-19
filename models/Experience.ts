@@ -46,6 +46,18 @@ export interface ILegacyRound {
 export type IRound = IOnlineTestRound | IHackathonRound | IInterviewRound | ILegacyRound;
 
 // ============================================================================
+// Enums & Types
+// ============================================================================
+
+export type PlacementType = 'ON_CAMPUS' | 'OFF_CAMPUS';
+export type RoleType = 'FULL_TIME' | 'INTERNSHIP' | 'SUMMER_INTERNSHIP';
+export type Verdict = 'ACCEPTED' | 'REJECTED';
+
+export const PLACEMENT_TYPES = ['ON_CAMPUS', 'OFF_CAMPUS'];
+export const ROLE_TYPES = ['FULL_TIME', 'INTERNSHIP', 'SUMMER_INTERNSHIP'];
+export const VERDICTS = ['ACCEPTED', 'REJECTED'];
+
+// ============================================================================
 // Experience Document Interface
 // ============================================================================
 export interface IExperience extends Document {
@@ -54,10 +66,14 @@ export interface IExperience extends Document {
     company: string;
     role: string;
     ctc: number;
+    placementType?: PlacementType;
+    roleType?: RoleType;
+    verdict?: Verdict;
+    historyOfBacklogs?: string; // 'Yes' | 'No'
+    standingBacklogs?: string; // 'Yes' | 'No'
     batch?: string;
     courseBranch?: string;
-    internshipDuration?: string;
-    eligibilityCriteria?: string; // NEW: e.g., "CGPA > 7.5"
+    minCGPA?: number;
     rounds: IRound[];
     finalVerdict?: 'selected' | 'rejected' | 'waitlisted' | 'ongoing'; // NEW
     tipsForJuniors?: string; // NEW
@@ -99,17 +115,34 @@ const ExperienceSchema = new Schema<IExperience>(
             type: Number,
             required: true,
         },
+        placementType: {
+            type: String,
+            enum: PLACEMENT_TYPES,
+        },
+        roleType: {
+            type: String,
+            enum: ROLE_TYPES,
+        },
+        verdict: {
+            type: String,
+            enum: VERDICTS,
+        },
+        historyOfBacklogs: {
+            type: String,
+            enum: ['Yes', 'No'],
+        },
+        standingBacklogs: {
+            type: String,
+            enum: ['Yes', 'No'],
+        },
         batch: {
             type: String,
         },
         courseBranch: {
             type: String,
         },
-        internshipDuration: {
-            type: String,
-        },
-        eligibilityCriteria: {
-            type: String,
+        minCGPA: {
+            type: Number,
         },
         rounds: {
             type: Schema.Types.Mixed,

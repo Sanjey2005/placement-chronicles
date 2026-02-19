@@ -15,9 +15,13 @@ interface ExperienceCardProps {
     batch?: string;
     finalVerdict?: 'selected' | 'rejected' | 'waitlisted' | 'ongoing';
     studentName?: string;
-    eligibilityCriteria?: string;
+    minCGPA?: number;
     tipsForJuniors?: string;
     overallExperience?: string;
+    placementType?: string;
+    roleType?: string;
+    historyOfBacklogs?: string;
+    standingBacklogs?: string;
 }
 
 export default function ExperienceCard({
@@ -30,9 +34,13 @@ export default function ExperienceCard({
     batch,
     finalVerdict,
     studentName,
-    eligibilityCriteria,
+    minCGPA,
     tipsForJuniors,
     overallExperience,
+    placementType,
+    roleType,
+    historyOfBacklogs,
+    standingBacklogs,
 }: ExperienceCardProps) {
     const [modalOpen, setModalOpen] = useState(false);
 
@@ -101,6 +109,21 @@ export default function ExperienceCard({
                         {year && (
                             <span className="text-[11px] text-white/40 ml-auto">{year}</span>
                         )}
+
+                    </div>
+
+                    {/* Type Badges */}
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                        {placementType && (
+                            <span className="px-2 py-0.5 text-[10px] font-medium rounded uppercase tracking-wider bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                                {placementType.replace('_', ' ')}
+                            </span>
+                        )}
+                        {roleType && (
+                            <span className="px-2 py-0.5 text-[10px] font-medium rounded uppercase tracking-wider bg-pink-500/10 text-pink-300 border border-pink-500/20">
+                                {roleType.replace('_', ' ')}
+                            </span>
+                        )}
                     </div>
 
                     {/* Tags */}
@@ -147,9 +170,13 @@ export default function ExperienceCard({
                 batch={batch}
                 finalVerdict={finalVerdict}
                 studentName={studentName}
-                eligibilityCriteria={eligibilityCriteria}
+                minCGPA={minCGPA}
                 tipsForJuniors={tipsForJuniors}
                 overallExperience={overallExperience}
+                placementType={placementType}
+                roleType={roleType}
+                historyOfBacklogs={historyOfBacklogs}
+                standingBacklogs={standingBacklogs}
             />
         </>
     );
