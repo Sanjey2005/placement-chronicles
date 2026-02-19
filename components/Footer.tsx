@@ -6,16 +6,33 @@ import { toast } from 'sonner';
 
 export default function Footer() {
     const [feedback, setFeedback] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    const handleFeedbackSubmit = (e: React.FormEvent) => {
+    const handleFeedbackSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!feedback.trim()) return;
 
-        // Simulating feedback submission for now
-        // In a real app, this would call a server action
-        console.log('Feedback submitted:', feedback);
-        toast.success('Thank you for your feedback!');
-        setFeedback('');
+        setLoading(true);
+        try {
+            const response = await fetch('/api/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: feedback }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                toast.success('Thank you for your feedback!');
+                setFeedback('');
+            } else {
+                toast.error(data.error || 'Failed to submit feedback');
+            }
+        } catch (error) {
+            toast.error('An error occurred. Please try again.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -107,11 +124,11 @@ export default function Footer() {
                             />
                             <button
                                 type="submit"
-                                disabled={!feedback.trim()}
+                                disabled={!feedback.trim() || loading}
                                 className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                <Send className="h-3.5 w-3.5" />
-                                Send Feedback
+                                <Send className={`h-3.5 w-3.5 ${loading ? 'animate-pulse' : ''}`} />
+                                {loading ? 'Sending...' : 'Send Feedback'}
                             </button>
                         </form>
                     </div>

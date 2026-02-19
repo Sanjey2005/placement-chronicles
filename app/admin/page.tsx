@@ -16,6 +16,8 @@ import {
     RefreshCw,
     Filter,
     Building2,
+    MessageSquare,
+    User,
 } from 'lucide-react';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -133,15 +135,27 @@ function StatCard({
 import { ReviewModal } from '@/components/admin/ReviewModal';
 
 // ─── Main Admin Dashboard ───────────────────────────────────────────────────
+// ... (previous interfaces)
+
+interface Feedback {
+    _id: string;
+    studentId: string;
+    message: string;
+    createdAt: string;
+}
+
+// ... (other code)
+
 export default function AdminDashboard() {
     const [stats, setStats] = useState<Stats>({ total: 0, pending: 0, flagged: 0, approved: 0, rejected: 0 });
     const [experiences, setExperiences] = useState<Experience[]>([]);
     const [logs, setLogs] = useState<AdminLogEntry[]>([]);
     const [companies, setCompanies] = useState<Company[]>([]);
+    const [feedbacks, setFeedbacks] = useState<Feedback[]>([]); // New state
     const [filter, setFilter] = useState<StatusFilter>('ALL');
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'table' | 'logs' | 'companies'>('table');
+    const [activeTab, setActiveTab] = useState<'table' | 'logs' | 'companies' | 'feedbacks'>('table'); // Updated type
     const [reviewExperience, setReviewExperience] = useState<Experience | null>(null);
 
     // ── Data Fetching ───────────────────────────────────────────────────
@@ -185,11 +199,21 @@ export default function AdminDashboard() {
         }
     }, []);
 
+    const fetchFeedbacks = useCallback(async () => {
+        try {
+            const res = await fetch('/api/admin/feedbacks');
+            const data = await res.json();
+            if (data.success) setFeedbacks(data.data);
+        } catch (err) {
+            console.error('Failed to fetch feedbacks:', err);
+        }
+    }, []);
+
     const refreshAll = useCallback(async () => {
         setLoading(true);
-        await Promise.all([fetchStats(), fetchExperiences(), fetchLogs(), fetchCompanies()]);
+        await Promise.all([fetchStats(), fetchExperiences(), fetchLogs(), fetchCompanies(), fetchFeedbacks()]);
         setLoading(false);
-    }, [fetchStats, fetchExperiences, fetchLogs, fetchCompanies]);
+    }, [fetchStats, fetchExperiences, fetchLogs, fetchCompanies, fetchFeedbacks]);
 
     useEffect(() => {
         refreshAll();
@@ -320,6 +344,16 @@ export default function AdminDashboard() {
                         >
                             <Building2 className="h-4 w-4" />
                             Companies
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('feedbacks')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'feedbacks'
+                                ? 'bg-purple-500/20 border border-purple-500/30 text-purple-300'
+                                : 'bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10'
+                                }`}
+                        >
+                            <MessageSquare className="h-4 w-4" />
+                            Feedbacks
                         </button>
                     </div>
 
@@ -511,6 +545,7 @@ export default function AdminDashboard() {
                             animate={{ opacity: 1 }}
                             className="space-y-4"
                         >
+                            {/* ... (existing companies table) ... */}
                             <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5 backdrop-blur-md">
                                 <table className="w-full">
                                     <thead>
@@ -561,6 +596,57 @@ export default function AdminDashboard() {
                                                             month: 'short',
                                                             year: 'numeric'
                                                         })}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* ── Feedbacks Tab ──────────────────────────────────────── */}
+                    {activeTab === 'feedbacks' && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="space-y-4"
+                        >
+                            <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5 backdrop-blur-md">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="border-b border-white/10">
+                                            <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">Date</th>
+                                            <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">Student ID</th>
+                                            <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">Message</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/5">
+                                        {feedbacks.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={3} className="px-4 py-12 text-center text-white/40">
+                                                    {loading ? 'Loading...' : 'No feedbacks found'}
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            feedbacks.map((feedback) => (
+                                                <tr key={feedback._id} className="hover:bg-white/5 transition-colors">
+                                                    <td className="px-4 py-3 text-sm text-white/70 whitespace-nowrap align-top w-32">
+                                                        {new Date(feedback.createdAt).toLocaleDateString('en-IN', {
+                                                            day: '2-digit',
+                                                            month: 'short',
+                                                            year: 'numeric',
+                                                        })}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-white font-medium align-top w-40">
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/10 border border-white/10 text-white/80">
+                                                            <User className="h-3 w-3" />
+                                                            {feedback.studentId}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-white/80 whitespace-pre-wrap">
+                                                        {feedback.message}
                                                     </td>
                                                 </tr>
                                             ))

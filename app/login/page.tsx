@@ -20,13 +20,21 @@ export default function LoginPage() {
 
         try {
             const formData = new FormData(e.currentTarget);
+            const username = formData.get('username') as string;
             const result = await login(formData);
 
             if (result.success) {
                 // Set session cookie with role info
                 const isAdmin = result.role === 'ADMIN';
                 const cookieValue = isAdmin ? 'admin' : 'authenticated';
+
+                // Set cookies
                 document.cookie = `auth-token=${cookieValue}; path=/; SameSite=Lax`;
+
+                // Store student ID (roll number) in cookie for feedback identification
+                if (!isAdmin && username) {
+                    document.cookie = `user-id=${username}; path=/; SameSite=Lax`;
+                }
 
                 toast.success(isAdmin ? 'Admin login successful! Redirecting...' : 'Login successful! Redirecting...');
                 router.push(isAdmin ? '/admin' : '/');

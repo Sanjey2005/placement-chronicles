@@ -20,8 +20,9 @@ export default function Navbar() {
     }, []);
 
     const handleLogout = () => {
-        // Clear auth cookie
+        // Clear auth cookie and user-id
         document.cookie = 'auth-token=; path=/; max-age=0';
+        document.cookie = 'user-id=; path=/; max-age=0';
         // Redirect to login
         router.push('/login');
     };
