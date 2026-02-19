@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -10,7 +11,24 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { AlertTriangle, CheckCircle2, XCircle, User, Building2, Calendar, FileText } from 'lucide-react';
+import {
+    AlertTriangle,
+    CheckCircle2,
+    XCircle,
+    User,
+    Building2,
+    Calendar,
+    FileText,
+    Briefcase,
+    IndianRupee,
+    GraduationCap,
+    Clock,
+    MessageSquare,
+    Lightbulb,
+    Star,
+    ChevronDown,
+    ChevronUp
+} from 'lucide-react';
 
 interface Experience {
     _id: string;
@@ -23,9 +41,17 @@ interface Experience {
     status: string;
     moderationReason?: string;
     createdAt: string;
-    // Add other fields as needed for display
     rounds?: any[];
     tipsForJuniors?: string;
+    overallExperience?: string;
+    placementType?: string;
+    roleType?: string;
+    historyOfBacklogs?: string;
+    standingBacklogs?: string;
+    minCGPA?: number;
+    tags?: string[];
+    year?: number;
+    finalVerdict?: 'selected' | 'rejected';
 }
 
 interface ReviewModalProps {
@@ -37,109 +63,218 @@ interface ReviewModalProps {
     isLoading: boolean;
 }
 
+function getRoundIcon(type: string) {
+    switch (type?.toLowerCase()) {
+        case 'test':
+        case 'online assessment':
+        case 'online test': return '📝';
+        case 'technical':
+        case 'interview': return '💻';
+        case 'hr': return '🤝';
+        case 'managerial': return '👔';
+        case 'hackathon': return '🏆';
+        case 'group discussion': return '💬';
+        default: return '📋';
+    }
+}
+
+function getRoundLabel(round: any): string {
+    return round.roundType || round.interviewType || round.type || 'Round';
+}
+
+const ExpandableText = ({ text, limit = 150 }: { text: string; limit?: number }) => {
+    const [expanded, setExpanded] = useState(false);
+    if (!text) return null;
+    if (text.length <= limit) return <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">{text}</p>;
+    return (
+        <div className="relative">
+            <p className={`text-sm text-white/70 leading-relaxed whitespace-pre-wrap ${!expanded ? 'line-clamp-3' : ''}`}>{text}</p>
+            {!expanded && <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-slate-900/40 to-transparent pointer-events-none" />}
+            <button
+                onClick={() => setExpanded(!expanded)}
+                className="mt-1 text-xs text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1 transition-colors"
+            >
+                {expanded ? 'Show Less' : 'Show More'}
+            </button>
+        </div>
+    );
+};
+
 export function ReviewModal({ experience, isOpen, onClose, onApprove, onReject, isLoading }: ReviewModalProps) {
+    const [showRaw, setShowRaw] = useState(false);
+
     if (!experience) return null;
+
+    const verdictConfig = {
+        selected: { label: '✓ Selected', color: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30' },
+        rejected: { label: '✗ Not Selected', color: 'text-red-400 bg-red-500/15 border-red-500/30' },
+    };
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col bg-slate-900 text-white border-white/10">
-                <DialogHeader>
+            <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col bg-slate-950 text-white border-white/10 p-0 overflow-hidden">
+                <DialogHeader className="px-6 py-4 border-b border-white/10 bg-slate-900">
                     <DialogTitle className="flex items-center gap-2 text-xl">
-                        <AlertTriangle className="h-5 w-5 text-amber-500" />
-                        Review Flagged Content
+                        <ShieldAlertIcon status={experience.status} />
+                        Review Experience
                     </DialogTitle>
                     <DialogDescription className="text-white/60">
-                        This experience was flagged by AI. Please review the details below.
+                        {experience.status === 'FLAGGED' ? 'This experience has been flagged by AI for review.' : 'Reviewing experience details.'}
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex-1 overflow-hidden flex flex-col gap-4 py-4">
-                    {/* Moderation Reason Alert */}
-                    <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 flex gap-3 items-start">
-                        <AlertTriangle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
-                        <div>
-                            <h4 className="font-semibold text-red-400 text-sm">Flagged Reason</h4>
-                            <p className="text-white/80 text-sm mt-1">{experience.moderationReason}</p>
+                <div className="flex-1 overflow-hidden flex flex-col">
+                    {/* Moderation Alert (Fixed at top if flagged) */}
+                    {experience.moderationReason && (
+                        <div className="px-6 py-3 bg-red-500/10 border-b border-red-500/10 flex gap-3 items-start shrink-0">
+                            <AlertTriangle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+                            <div>
+                                <h4 className="font-semibold text-red-400 text-sm">Flagged Reason</h4>
+                                <p className="text-white/90 text-sm mt-1">{experience.moderationReason}</p>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
-                    <ScrollArea className="flex-1 rounded-lg border border-white/10 bg-black/20 p-4">
-                        <div className="space-y-6">
-                            {/* Basic Info */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <h4 className="text-xs font-semibold text-white/40 uppercase mb-1">Student</h4>
-                                    <div className="flex items-center gap-2 text-sm">
-                                        <User className="h-4 w-4 text-white/60" />
-                                        {experience.studentName} ({experience.studentId})
+                    <ScrollArea className="flex-1">
+                        <div className="p-6 space-y-8">
+                            {/* ── Header Info ── */}
+                            <div className="flex flex-col md:flex-row gap-6 justify-between items-start">
+                                <div className="space-y-2">
+                                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                                        <Building2 className="h-6 w-6 text-blue-400" />
+                                        {experience.company}
+                                    </h2>
+                                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-white/70">
+                                        <span className="flex items-center gap-1.5"><Briefcase className="h-4 w-4" /> {experience.role}</span>
+                                        <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> Batch {experience.batch || 'N/A'}</span>
+                                        <span className="flex items-center gap-1.5 text-emerald-400 font-medium"><IndianRupee className="h-4 w-4" /> {experience.ctc} LPA</span>
                                     </div>
-                                </div>
-                                <div>
-                                    <h4 className="text-xs font-semibold text-white/40 uppercase mb-1">Company & Role</h4>
-                                    <div className="flex items-center gap-2 text-sm">
-                                        <Building2 className="h-4 w-4 text-white/60" />
-                                        {experience.company} - {experience.role}
-                                    </div>
-                                </div>
-                                <div>
-                                    <h4 className="text-xs font-semibold text-white/40 uppercase mb-1">Package / Stipend</h4>
-                                    <div className="text-sm font-mono text-emerald-400">
-                                        {experience.ctc}
-                                    </div>
-                                </div>
-                                <div>
-                                    <h4 className="text-xs font-semibold text-white/40 uppercase mb-1">Date</h4>
-                                    <div className="flex items-center gap-2 text-sm">
-                                        <Calendar className="h-4 w-4 text-white/60" />
-                                        {new Date(experience.createdAt).toLocaleDateString()}
+                                    <div className="flex flex-wrap gap-2 text-xs pt-1">
+                                        <span className="px-2 py-1 bg-white/5 rounded border border-white/10 text-white/60 flex items-center gap-1">
+                                            <User className="h-3 w-3" /> {experience.studentName || 'Anonymous'} ({experience.studentId})
+                                        </span>
+                                        {experience.finalVerdict && (
+                                            <span className={`px-2 py-1 rounded border ${verdictConfig[experience.finalVerdict]?.color || 'border-white/10'}`}>
+                                                {verdictConfig[experience.finalVerdict]?.label || experience.finalVerdict}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Full JSON Dump (for deep inspection) */}
-                            <div>
-                                <h4 className="text-xs font-semibold text-white/40 uppercase mb-2 flex items-center gap-2">
-                                    <FileText className="h-3 w-3" />
-                                    Raw Data
-                                </h4>
-                                <pre className="bg-black/40 p-4 rounded-lg text-xs font-mono text-white/70 overflow-x-auto whitespace-pre-wrap">
-                                    {JSON.stringify(experience, null, 2)}
-                                </pre>
+                            {/* ── Eligibility & Tags ── */}
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
+                                    <h3 className="text-xs font-semibold text-white/40 uppercase flex items-center gap-2"><GraduationCap className="h-3.5 w-3.5" /> Eligibility</h3>
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                        <div><span className="text-white/50 block text-xs">Min CGPA</span>{experience.minCGPA || '—'}</div>
+                                        <div><span className="text-white/50 block text-xs">Backlogs</span>{experience.historyOfBacklogs || '—'}</div>
+                                    </div>
+                                </div>
+                                <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
+                                    <h3 className="text-xs font-semibold text-white/40 uppercase flex items-center gap-2"><FileText className="h-3.5 w-3.5" /> Tags</h3>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {experience.tags?.length ? experience.tags.map((t, i) => (
+                                            <span key={i} className="px-2 py-0.5 text-xs bg-white/5 border border-white/10 rounded text-white/70">{t}</span>
+                                        )) : <span className="text-white/30 text-xs text-sm">No tags</span>}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ── Rounds ── */}
+                            {experience.rounds && experience.rounds.length > 0 && (
+                                <div>
+                                    <h3 className="text-sm font-semibold text-white/50 uppercase mb-3 flex items-center gap-2">
+                                        <MessageSquare className="h-4 w-4" /> Rounds ({experience.rounds.length})
+                                    </h3>
+                                    <div className="space-y-3">
+                                        {experience.rounds.map((round, idx) => (
+                                            <div key={idx} className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] transition-colors">
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <span className="text-xl">{getRoundIcon(getRoundLabel(round))}</span>
+                                                    <div>
+                                                        <h4 className="text-white font-medium text-base capitalize">{getRoundLabel(round)}</h4>
+                                                        <span className="text-xs text-white/40 block">Round {round.roundNumber || idx + 1} • {round.duration || 'Duration N/A'}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="pl-1 pt-2 space-y-2">
+                                                    {round.description && <div className="text-sm border-l-2 border-white/10 pl-3"><h5 className="text-xs text-white/40 uppercase mb-0.5">Description</h5><ExpandableText text={round.description} /></div>}
+                                                    {round.questions && round.questions.length > 0 && (
+                                                        <div className="mt-2">
+                                                            <h5 className="text-xs text-white/40 uppercase mb-1.5">Questions</h5>
+                                                            <ul className="list-disc list-inside space-y-1 text-sm text-white/80">
+                                                                {round.questions.map((q: any, i: number) => (
+                                                                    <li key={i} className="text-white/70">
+                                                                        {typeof q === 'string' ? q : <>
+                                                                            <span className="text-white/90">{q.question}</span>
+                                                                            {q.answerTip && <span className="block text-xs text-white/50 ml-4 italic">💡 {q.answerTip}</span>}
+                                                                        </>}
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ── Conclusion ── */}
+                            <div className="space-y-4">
+                                {experience.overallExperience && (
+                                    <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                                        <h3 className="text-sm font-semibold text-white/50 uppercase mb-2 flex items-center gap-2"><Star className="h-4 w-4" /> Overall Experience</h3>
+                                        <ExpandableText text={experience.overallExperience} />
+                                    </div>
+                                )}
+                                {experience.tipsForJuniors && (
+                                    <div className="p-4 rounded-xl bg-violet-500/5 border border-violet-500/10">
+                                        <h3 className="text-sm font-semibold text-violet-300 uppercase mb-2 flex items-center gap-2"><Lightbulb className="h-4 w-4" /> Tips for Juniors</h3>
+                                        <ExpandableText text={experience.tipsForJuniors} />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* ── Raw Data Toggle ── */}
+                            <div className="pt-4 border-t border-white/10">
+                                <button
+                                    onClick={() => setShowRaw(!showRaw)}
+                                    className="flex items-center gap-2 text-xs font-mono text-white/40 hover:text-white/60 transition-colors"
+                                >
+                                    {showRaw ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                    {showRaw ? 'Hide Raw Data' : 'Show Raw Data (Debug)'}
+                                </button>
+                                {showRaw && (
+                                    <pre className="mt-2 p-4 rounded-lg bg-black/50 text-[10px] text-white/60 font-mono overflow-x-auto border border-white/10">
+                                        {JSON.stringify(experience, null, 2)}
+                                    </pre>
+                                )}
                             </div>
                         </div>
                     </ScrollArea>
                 </div>
 
-                <DialogFooter className="gap-2 sm:gap-0">
-                    <Button
-                        variant="outline"
-                        onClick={onClose}
-                        disabled={isLoading}
-                        className="border-white/10 hover:bg-white/10 hover:text-white"
-                    >
+                <DialogFooter className="px-6 py-4 border-t border-white/10 bg-slate-900 gap-2 sm:gap-0">
+                    <Button variant="outline" onClick={onClose} disabled={isLoading} className="border-white/10 hover:bg-white/10 hover:text-white">
                         Cancel
                     </Button>
                     <div className="flex gap-2 w-full sm:w-auto justify-end">
-                        <Button
-                            variant="destructive"
-                            onClick={() => onReject(experience._id)}
-                            disabled={isLoading}
-                            className="bg-rose-500 hover:bg-rose-600 gap-2"
-                        >
-                            <XCircle className="h-4 w-4" />
-                            Reject / Delete
+                        <Button variant="destructive" onClick={() => onReject(experience._id)} disabled={isLoading} className="bg-rose-500 hover:bg-rose-600 gap-2">
+                            <XCircle className="h-4 w-4" /> Reject / Delete
                         </Button>
-                        <Button
-                            onClick={() => onApprove(experience._id)}
-                            disabled={isLoading}
-                            className="bg-emerald-500 hover:bg-emerald-600 text-white gap-2"
-                        >
-                            <CheckCircle2 className="h-4 w-4" />
-                            Force Approve
+                        <Button onClick={() => onApprove(experience._id)} disabled={isLoading} className="bg-emerald-500 hover:bg-emerald-600 text-white gap-2">
+                            <CheckCircle2 className="h-4 w-4" /> Approve Experience
                         </Button>
                     </div>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
     );
+}
+
+function ShieldAlertIcon({ status }: { status: string }) {
+    if (status === 'FLAGGED') return <AlertTriangle className="h-5 w-5 text-amber-500" />;
+    return <CheckCircle2 className="h-5 w-5 text-blue-500" />;
 }

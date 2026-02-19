@@ -14,7 +14,7 @@ interface ExperienceModalProps {
     tags?: string[];
     year?: number;
     batch?: string;
-    finalVerdict?: 'selected' | 'rejected' | 'waitlisted' | 'ongoing';
+    finalVerdict?: 'selected' | 'rejected';
     studentName?: string;
     minCGPA?: number;
     tipsForJuniors?: string;
@@ -103,8 +103,6 @@ export default function ExperienceModal({
     const verdictConfig = {
         selected: { label: '✓ Selected', color: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30' },
         rejected: { label: '✗ Not Selected', color: 'text-red-400 bg-red-500/15 border-red-500/30' },
-        waitlisted: { label: '⏳ Waitlisted', color: 'text-amber-400 bg-amber-500/15 border-amber-500/30' },
-        ongoing: { label: '🔄 Ongoing', color: 'text-sky-400 bg-sky-500/15 border-sky-500/30' },
     };
 
     return (

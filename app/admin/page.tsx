@@ -15,6 +15,7 @@ import {
     Activity,
     RefreshCw,
     Filter,
+    Building2,
 } from 'lucide-react';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -47,6 +48,14 @@ interface AdminLogEntry {
     details?: string;
     rollNumber?: string;
     timestamp: string;
+}
+
+interface Company {
+    _id: string;
+    name: string;
+    aliases: string[];
+    experienceCount: number;
+    createdAt: string;
 }
 
 type StatusFilter = 'ALL' | 'PENDING' | 'FLAGGED' | 'APPROVED' | 'REJECTED';
@@ -128,10 +137,11 @@ export default function AdminDashboard() {
     const [stats, setStats] = useState<Stats>({ total: 0, pending: 0, flagged: 0, approved: 0, rejected: 0 });
     const [experiences, setExperiences] = useState<Experience[]>([]);
     const [logs, setLogs] = useState<AdminLogEntry[]>([]);
+    const [companies, setCompanies] = useState<Company[]>([]);
     const [filter, setFilter] = useState<StatusFilter>('ALL');
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'table' | 'logs'>('table');
+    const [activeTab, setActiveTab] = useState<'table' | 'logs' | 'companies'>('table');
     const [reviewExperience, setReviewExperience] = useState<Experience | null>(null);
 
     // ── Data Fetching ───────────────────────────────────────────────────
@@ -165,11 +175,21 @@ export default function AdminDashboard() {
         }
     }, []);
 
+    const fetchCompanies = useCallback(async () => {
+        try {
+            const res = await fetch('/api/admin/companies');
+            const data = await res.json();
+            if (data.success) setCompanies(data.data);
+        } catch (err) {
+            console.error('Failed to fetch companies:', err);
+        }
+    }, []);
+
     const refreshAll = useCallback(async () => {
         setLoading(true);
-        await Promise.all([fetchStats(), fetchExperiences(), fetchLogs()]);
+        await Promise.all([fetchStats(), fetchExperiences(), fetchLogs(), fetchCompanies()]);
         setLoading(false);
-    }, [fetchStats, fetchExperiences, fetchLogs]);
+    }, [fetchStats, fetchExperiences, fetchLogs, fetchCompanies]);
 
     useEffect(() => {
         refreshAll();
@@ -290,6 +310,16 @@ export default function AdminDashboard() {
                         >
                             <Activity className="h-4 w-4" />
                             Activity Logs
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('companies')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'companies'
+                                ? 'bg-purple-500/20 border border-purple-500/30 text-purple-300'
+                                : 'bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10'
+                                }`}
+                        >
+                            <Building2 className="h-4 w-4" />
+                            Companies
                         </button>
                     </div>
 
@@ -470,6 +500,73 @@ export default function AdminDashboard() {
                                         </div>
                                     ))
                                 )}
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* ── Companies Tab ──────────────────────────────────────── */}
+                    {activeTab === 'companies' && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="space-y-4"
+                        >
+                            <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5 backdrop-blur-md">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="border-b border-white/10">
+                                            <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">Company Name</th>
+                                            <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">Experiences</th>
+                                            <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">Aliases</th>
+                                            <th className="text-right px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">First Seen</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/5">
+                                        {companies.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={4} className="px-4 py-12 text-center text-white/40">
+                                                    {loading ? 'Loading...' : 'No companies found'}
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            companies.map((company) => (
+                                                <tr key={company._id} className="hover:bg-white/5 transition-colors">
+                                                    <td className="px-4 py-3 text-sm text-white font-medium flex items-center gap-2">
+                                                        <div className="p-1.5 bg-blue-500/10 rounded-lg">
+                                                            <Building2 className="h-4 w-4 text-blue-400" />
+                                                        </div>
+                                                        {company.name}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/10 text-white/80 border border-white/10">
+                                                            {company.experienceCount}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-xs text-white/50">
+                                                        {company.aliases.length > 0 ? (
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {company.aliases.map((alias, i) => (
+                                                                    <span key={i} className="px-1.5 py-0.5 bg-white/5 rounded border border-white/5">
+                                                                        {alias}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            '—'
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right text-xs text-white/40 font-mono">
+                                                        {new Date(company.createdAt).toLocaleDateString('en-IN', {
+                                                            day: '2-digit',
+                                                            month: 'short',
+                                                            year: 'numeric'
+                                                        })}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
                         </motion.div>
                     )}

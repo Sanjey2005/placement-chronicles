@@ -42,7 +42,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
             standingBacklogs: 'No',
             ctc: 0,
             rounds: [],
-            finalVerdict: 'ongoing',
+            finalVerdict: 'selected',
             tipsForJuniors: '',
             tags: [],
             year: new Date().getFullYear(),

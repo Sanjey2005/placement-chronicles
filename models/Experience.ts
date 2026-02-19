@@ -75,7 +75,7 @@ export interface IExperience extends Document {
     courseBranch?: string;
     minCGPA?: number;
     rounds: IRound[];
-    finalVerdict?: 'selected' | 'rejected' | 'waitlisted' | 'ongoing'; // NEW
+    finalVerdict?: 'selected' | 'rejected'; // NEW
     tipsForJuniors?: string; // NEW
     overallExperience?: string; // NEW
     status: 'PENDING' | 'APPROVED' | 'FLAGGED' | 'REJECTED';
@@ -150,7 +150,7 @@ const ExperienceSchema = new Schema<IExperience>(
         },
         finalVerdict: {
             type: String,
-            enum: ['selected', 'rejected', 'waitlisted', 'ongoing'],
+            enum: ['selected', 'rejected'],
         },
         tipsForJuniors: {
             type: String,

@@ -12,7 +12,6 @@ interface CreateExperienceData {
     ctc: number;
     placementType: 'ON_CAMPUS' | 'OFF_CAMPUS';
     roleType: 'FULL_TIME' | 'INTERNSHIP' | 'SUMMER_INTERNSHIP';
-    verdict: 'ACCEPTED' | 'REJECTED';
     historyOfBacklogs: string;
     standingBacklogs: string;
     batch?: string;
@@ -20,7 +19,7 @@ interface CreateExperienceData {
     minCGPA?: number;
     tipsForJuniors?: string;
     overallExperience?: string;
-    finalVerdict?: 'selected' | 'rejected' | 'waitlisted' | 'ongoing';
+    finalVerdict?: 'selected' | 'rejected';
     rounds?: Array<{
         roundNumber: number;
         roundType: string;
@@ -75,6 +74,10 @@ export async function createExperience(
             console.warn('⚠️ Embedding generation failed, saving without vector:', embeddingError);
         }
 
+        // Derive legacy verdict field from finalVerdict
+        // Default to ACCEPTED if selected, otherwise REJECTED if rejected.
+        const derivedVerdict = data.finalVerdict === 'rejected' ? 'REJECTED' : 'ACCEPTED';
+
         // Step 3: Create and save the experience document
         const experience = new Experience({
             studentId: data.studentId,
@@ -83,7 +86,7 @@ export async function createExperience(
             ctc: data.ctc,
             placementType: data.placementType,
             roleType: data.roleType,
-            verdict: data.verdict,
+            verdict: derivedVerdict,
             historyOfBacklogs: data.historyOfBacklogs,
             standingBacklogs: data.standingBacklogs,
             batch: data.batch,

@@ -290,31 +290,7 @@ export default function BasicInfoStep({ form }: BasicInfoStepProps) {
                 </div>
             </div>
 
-            {/* Verdict (Full Width) */}
-            <div>
-                <Label className="flex items-center gap-2 text-white font-semibold mb-2">
-                    <CheckCircle2 className="h-4 w-4" />
-                    Verdict
-                </Label>
-                <Select
-                    onValueChange={(value) => {
-                        setValue('verdict', value as "ACCEPTED" | "REJECTED");
-                        trigger('verdict');
-                    }}
-                    defaultValue={watch('verdict')}
-                >
-                    <SelectTrigger className="w-full px-4 py-3 h-auto bg-white/10 border-white/20 text-white focus:ring-blue-500">
-                        <SelectValue placeholder="Select Verdict" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-900 border-white/10 text-white">
-                        <SelectItem value="ACCEPTED" className="focus:bg-white/10 focus:text-white cursor-pointer">Accepted</SelectItem>
-                        <SelectItem value="REJECTED" className="focus:bg-white/10 focus:text-white cursor-pointer">Rejected</SelectItem>
-                    </SelectContent>
-                </Select>
-                {errors.verdict && (
-                    <p className="mt-1 text-sm text-red-400">{errors.verdict.message}</p>
-                )}
-            </div>
+
         </div>
     );
 }

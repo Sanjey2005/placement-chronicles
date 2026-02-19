@@ -17,8 +17,6 @@ export default function ConclusionStep({ form }: ConclusionStepProps) {
     const verdictOptions = [
         { value: 'selected', label: 'Selected', icon: CheckCircle2, color: 'green' },
         { value: 'rejected', label: 'Not Selected', icon: XCircle, color: 'red' },
-        { value: 'waitlisted', label: 'Waitlisted', icon: Clock, color: 'yellow' },
-        { value: 'ongoing', label: 'Ongoing', icon: Clock, color: 'blue' },
     ];
 
     return (
@@ -41,8 +39,8 @@ export default function ConclusionStep({ form }: ConclusionStepProps) {
                             <label
                                 key={option.value}
                                 className={`relative flex flex-col items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${isSelected
-                                        ? `border-${option.color}-500 bg-${option.color}-500/20`
-                                        : 'border-white/20 bg-white/5 hover:bg-white/10'
+                                    ? `border-${option.color}-500 bg-${option.color}-500/20`
+                                    : 'border-white/20 bg-white/5 hover:bg-white/10'
                                     }`}
                             >
                                 <input

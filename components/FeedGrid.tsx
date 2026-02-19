@@ -160,7 +160,7 @@ export default function FeedGrid({ experiences, companies, batches }: FeedGridPr
                                 <SelectItem value="all" className="focus:bg-white/10 focus:text-white cursor-pointer">All Verdicts</SelectItem>
                                 <SelectItem value="ACCEPTED" className="focus:bg-white/10 focus:text-white cursor-pointer">Accepted</SelectItem>
                                 <SelectItem value="REJECTED" className="focus:bg-white/10 focus:text-white cursor-pointer">Rejected</SelectItem>
-                                <SelectItem value="WAITLISTED" className="focus:bg-white/10 focus:text-white cursor-pointer">Waitlisted</SelectItem>
+
                             </SelectContent>
                         </Select>
                     </div>

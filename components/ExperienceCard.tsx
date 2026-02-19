@@ -13,7 +13,7 @@ interface ExperienceCardProps {
     tags?: string[];
     year?: number;
     batch?: string;
-    finalVerdict?: 'selected' | 'rejected' | 'waitlisted' | 'ongoing';
+    finalVerdict?: 'selected' | 'rejected';
     studentName?: string;
     minCGPA?: number;
     tipsForJuniors?: string;
@@ -47,8 +47,7 @@ export default function ExperienceCard({
     const verdictConfig: Record<string, { label: string; cls: string }> = {
         selected: { label: '✓ Selected', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
         rejected: { label: '✗ Not Selected', cls: 'bg-red-500/15 text-red-400 border-red-500/25' },
-        waitlisted: { label: '⏳ Waitlisted', cls: 'bg-amber-500/15 text-amber-400 border-amber-500/25' },
-        ongoing: { label: '🔄 Ongoing', cls: 'bg-sky-500/15 text-sky-400 border-sky-500/25' },
+
     };
 
     return (

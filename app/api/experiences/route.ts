@@ -103,6 +103,10 @@ export async function POST(request: NextRequest) {
             console.warn('⚠️ Embedding failed, saving without vector:', embeddingError);
         }
 
+        // Derive legacy verdict field from finalVerdict
+        // Default to ACCEPTED if selected, otherwise REJECTED if rejected.
+        const derivedVerdict = validatedData.finalVerdict === 'rejected' ? 'REJECTED' : 'ACCEPTED';
+
         // Create experience document
         const experience = new Experience({
             studentId: 'anonymous', // TODO: Get from auth session
@@ -110,10 +114,14 @@ export async function POST(request: NextRequest) {
             company: validatedData.company,
             role: validatedData.role,
             ctc: validatedData.ctc,
-            batch: validatedData.batch,
-            minCGPA: validatedData.minCGPA,
+            placementType: validatedData.placementType,
+            roleType: validatedData.roleType,
+            verdict: derivedVerdict,
             historyOfBacklogs: validatedData.historyOfBacklogs,
             standingBacklogs: validatedData.standingBacklogs,
+            batch: validatedData.batch,
+            courseBranch: validatedData.courseBranch,
+            minCGPA: validatedData.minCGPA,
             rounds: validatedData.rounds,
             finalVerdict: validatedData.finalVerdict,
             tipsForJuniors: validatedData.tipsForJuniors,

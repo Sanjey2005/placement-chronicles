@@ -13,7 +13,6 @@ export const basicInfoSchema = z.object({
     minCGPA: z.number().min(0).max(10, 'CGPA must be between 0 and 10'),
     placementType: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']).default('ON_CAMPUS'),
     roleType: z.enum(['FULL_TIME', 'INTERNSHIP', 'SUMMER_INTERNSHIP']).default('FULL_TIME'),
-    verdict: z.enum(['ACCEPTED', 'REJECTED']).default('ACCEPTED'),
     historyOfBacklogs: z.enum(['Yes', 'No']).default('No'),
     standingBacklogs: z.enum(['Yes', 'No']).default('No'),
 });
@@ -69,7 +68,7 @@ export const roundBuilderSchema = z.object({
 // STEP 3: Conclusion Schema
 // ============================================================================
 export const conclusionSchema = z.object({
-    finalVerdict: z.enum(['selected', 'rejected', 'waitlisted', 'ongoing']),
+    finalVerdict: z.enum(['selected', 'rejected']),
     tipsForJuniors: z.string().min(20, 'Please share some tips for juniors (min 20 characters)'),
     overallExperience: z.string().default(''),
 });
