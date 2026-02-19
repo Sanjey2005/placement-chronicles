@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Building2, Briefcase, IndianRupee, ArrowUpRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ExperienceModal from './ExperienceModal';
+import { formatCompensation } from '@/lib/utils';
 
 interface ExperienceCardProps {
     company: string;
@@ -88,7 +89,7 @@ export default function ExperienceCard({
                         <div className="text-right shrink-0">
                             <div className="flex items-center gap-0.5 text-emerald-400 font-bold text-lg">
                                 <IndianRupee className="h-4 w-4" />
-                                {ctc} LPA
+                                {formatCompensation(ctc, roleType)}
                             </div>
                         </div>
                     </div>

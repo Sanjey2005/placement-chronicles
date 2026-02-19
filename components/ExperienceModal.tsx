@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X, Building2, Briefcase, IndianRupee, GraduationCap, Clock, MessageSquare, Lightbulb, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatCompensation } from '@/lib/utils';
 
 interface ExperienceModalProps {
     isOpen: boolean;
@@ -155,7 +156,7 @@ export default function ExperienceModal({
                                     <div className="text-right shrink-0">
                                         <div className="flex items-center gap-1 text-emerald-400 font-bold text-2xl">
                                             <IndianRupee className="h-6 w-6" />
-                                            {ctc} LPA
+                                            {formatCompensation(ctc, roleType)}
                                         </div>
                                     </div>
                                 </div>

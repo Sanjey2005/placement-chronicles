@@ -14,9 +14,28 @@ export default function Navbar() {
 
     // Check authentication only on client side to avoid hydration mismatch
     useEffect(() => {
-        const cookie = document.cookie;
-        setIsAuthenticated(cookie.includes('auth-token'));
-        setIsAdmin(cookie.includes('auth-token=admin'));
+        const getCookie = (name: string) => {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop()?.split(';').shift();
+        };
+
+        const token = getCookie('auth-token');
+        if (token) {
+            const [role, expiry] = token.split('|');
+            if (expiry && Date.now() > parseInt(expiry, 10)) {
+                setIsAuthenticated(false);
+                setIsAdmin(false);
+                // Optionally clear cookie if expired
+                document.cookie = 'auth-token=; path=/; max-age=0';
+            } else {
+                setIsAuthenticated(true);
+                setIsAdmin(role === 'admin');
+            }
+        } else {
+            setIsAuthenticated(false);
+            setIsAdmin(false);
+        }
     }, []);
 
     const handleLogout = () => {

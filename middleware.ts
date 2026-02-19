@@ -31,7 +31,26 @@ export function middleware(request: NextRequest) {
     const isAdminApiRoute = adminApiRoutes.some(route => pathname.startsWith(route));
 
     // Get the auth token from cookies
-    const authToken = request.cookies.get('auth-token')?.value;
+    const rawToken = request.cookies.get('auth-token')?.value;
+    let authToken: string | undefined;
+    let tokenExpiry: number | undefined;
+
+    if (rawToken) {
+        const parts = rawToken.split('|');
+        authToken = parts[0];
+        if (parts.length > 1) {
+            tokenExpiry = parseInt(parts[1], 10);
+        }
+    }
+
+    // Check if token is expired
+    if (tokenExpiry && Date.now() > tokenExpiry) {
+        // Token expired
+        const response = NextResponse.redirect(new URL('/login', request.url));
+        response.cookies.delete('auth-token');
+        response.cookies.delete('user-id');
+        return response;
+    }
 
     // Admin route checks — must have admin cookie value
     if (isAdminRoute || isAdminApiRoute) {

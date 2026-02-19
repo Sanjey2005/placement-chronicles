@@ -29,6 +29,7 @@ import {
     ChevronDown,
     ChevronUp
 } from 'lucide-react';
+import { formatCompensation } from '@/lib/utils';
 
 interface Experience {
     _id: string;
@@ -147,7 +148,7 @@ export function ReviewModal({ experience, isOpen, onClose, onApprove, onReject, 
                                     <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-white/70">
                                         <span className="flex items-center gap-1.5"><Briefcase className="h-4 w-4" /> {experience.role}</span>
                                         <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> Batch {experience.batch || 'N/A'}</span>
-                                        <span className="flex items-center gap-1.5 text-emerald-400 font-medium"><IndianRupee className="h-4 w-4" /> {experience.ctc} LPA</span>
+                                        <span className="flex items-center gap-1.5 text-emerald-400 font-medium"><IndianRupee className="h-4 w-4" /> {formatCompensation(experience.ctc, experience.roleType)}</span>
                                     </div>
                                     <div className="flex flex-wrap gap-2 text-xs pt-1">
                                         <span className="px-2 py-1 bg-white/5 rounded border border-white/10 text-white/60 flex items-center gap-1">
@@ -272,7 +273,7 @@ export function ReviewModal({ experience, isOpen, onClose, onApprove, onReject, 
                     </ScrollArea>
                 </div>
 
-                <DialogFooter className="px-6 py-4 border-t border-white/10 bg-slate-900">
+                <DialogFooter className="px-6 py-4 border-t border-white/10 bg-slate-900 shrink-0">
                     <div className="flex w-full items-center justify-between">
                         <Button variant="outline" onClick={onClose} disabled={isLoading} className="border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white">
                             Cancel

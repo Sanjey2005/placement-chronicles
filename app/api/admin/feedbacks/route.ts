@@ -6,7 +6,20 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
     try {
-        const authToken = request.cookies.get('auth-token')?.value;
+        const rawToken = request.cookies.get('auth-token')?.value;
+
+        let authToken: string | undefined;
+        if (rawToken) {
+            authToken = rawToken.split('|')[0];
+            const expiry = rawToken.split('|')[1];
+            if (expiry && Date.now() > parseInt(expiry, 10)) {
+                return NextResponse.json(
+                    { success: false, error: 'Session expired' },
+                    { status: 401 }
+                );
+            }
+        }
+
         if (authToken !== 'admin') {
             return NextResponse.json(
                 { success: false, error: 'Unauthorized' },
