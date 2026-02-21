@@ -199,7 +199,6 @@ export default function ChatPage() {
                                 </div>
                                 <div>
                                     <h1 className="text-2xl font-bold text-white">AI Assistant</h1>
-                                    <p className="text-sm text-white/60">Powered by Gemini Pro &amp; RAG</p>
                                 </div>
                             </div>
                         </div>
