@@ -13,6 +13,7 @@ export const basicInfoSchema = z.object({
     minCGPA: z.number().min(0).max(10, 'CGPA must be between 0 and 10'),
     placementType: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']).default('ON_CAMPUS'),
     roleType: z.enum(['FULL_TIME', 'INTERNSHIP', 'SUMMER_INTERNSHIP']).default('FULL_TIME'),
+    workModel: z.enum(['ON_SITE', 'WFH', 'HYBRID']),
     historyOfBacklogs: z.enum(['Yes', 'No']).default('No'),
     standingBacklogs: z.enum(['Yes', 'No']).default('No'),
 });

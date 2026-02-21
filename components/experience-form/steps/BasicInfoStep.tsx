@@ -2,7 +2,7 @@
 
 import { UseFormReturn } from 'react-hook-form';
 import { ExperienceFormData } from '@/lib/schemas/experience-schema';
-import { Building2, Briefcase, Calendar, IndianRupee, User, FileText, GraduationCap, Clock, CheckCircle2, AlertCircle, History } from 'lucide-react';
+import { Building2, Briefcase, Calendar, IndianRupee, User, FileText, GraduationCap, Clock, CheckCircle2, AlertCircle, History, MapPin } from 'lucide-react';
 
 interface BasicInfoStepProps {
     form: UseFormReturn<ExperienceFormData>;
@@ -145,8 +145,8 @@ export default function BasicInfoStep({ form }: BasicInfoStepProps) {
                 </div>
             </div>
 
-            {/* Job Type Info: Placement Type and Role Type */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Job Type Info: Placement Type, Role Type, and Work Model */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <Label className="flex items-center gap-2 text-white font-semibold mb-2">
                         <Building2 className="h-4 w-4" />
@@ -195,6 +195,32 @@ export default function BasicInfoStep({ form }: BasicInfoStepProps) {
                     </Select>
                     {errors.roleType && (
                         <p className="mt-1 text-sm text-red-400">{errors.roleType.message}</p>
+                    )}
+                </div>
+
+                <div>
+                    <Label className="flex items-center gap-2 text-white font-semibold mb-2">
+                        <MapPin className="h-4 w-4" />
+                        Work Model
+                    </Label>
+                    <Select
+                        onValueChange={(value) => {
+                            setValue('workModel', value as "ON_SITE" | "WFH" | "HYBRID");
+                            trigger('workModel');
+                        }}
+                        defaultValue={watch('workModel')}
+                    >
+                        <SelectTrigger className="w-full px-4 py-3 h-auto bg-white/10 border-white/20 text-white focus:ring-blue-500">
+                            <SelectValue placeholder="Select Work Model" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-white/10 text-white">
+                            <SelectItem value="ON_SITE" className="focus:bg-white/10 focus:text-white cursor-pointer">On-site</SelectItem>
+                            <SelectItem value="WFH" className="focus:bg-white/10 focus:text-white cursor-pointer">Work From Home</SelectItem>
+                            <SelectItem value="HYBRID" className="focus:bg-white/10 focus:text-white cursor-pointer">Hybrid</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    {errors.workModel && (
+                        <p className="mt-1 text-sm text-red-400">{errors.workModel.message}</p>
                     )}
                 </div>
             </div>

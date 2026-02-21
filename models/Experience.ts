@@ -55,6 +55,7 @@ export type Verdict = 'ACCEPTED' | 'REJECTED';
 
 export const PLACEMENT_TYPES = ['ON_CAMPUS', 'OFF_CAMPUS'];
 export const ROLE_TYPES = ['FULL_TIME', 'INTERNSHIP', 'SUMMER_INTERNSHIP'];
+export const WORK_MODELS = ['ON_SITE', 'WFH', 'HYBRID'];
 export const VERDICTS = ['ACCEPTED', 'REJECTED'];
 
 // ============================================================================
@@ -68,6 +69,7 @@ export interface IExperience extends Document {
     ctc: number;
     placementType?: PlacementType;
     roleType?: RoleType;
+    workModel?: 'ON_SITE' | 'WFH' | 'HYBRID';
     verdict?: Verdict;
     historyOfBacklogs?: string; // 'Yes' | 'No'
     standingBacklogs?: string; // 'Yes' | 'No'
@@ -122,6 +124,10 @@ const ExperienceSchema = new Schema<IExperience>(
         roleType: {
             type: String,
             enum: ROLE_TYPES,
+        },
+        workModel: {
+            type: String,
+            enum: WORK_MODELS,
         },
         verdict: {
             type: String,

@@ -49,6 +49,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
             finalVerdict: 'selected',
             tipsForJuniors: '',
             tags: [],
+            workModel: undefined,
             year: new Date().getFullYear(),
         },
         mode: 'onChange',
@@ -158,6 +159,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                     finalVerdict: apiData.finalVerdict || 'selected',
                     tipsForJuniors: apiData.tipsForJuniors || '',
                     overallExperience: apiData.overallExperience || '',
+                    workModel: apiData.workModel || undefined,
                     tags: apiData.tags || [],
                     year: apiData.year || new Date().getFullYear(),
                 };
@@ -188,7 +190,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
         let fieldsToValidate: (keyof ExperienceFormData)[] = [];
 
         if (currentStep === 1) {
-            fieldsToValidate = ['studentName', 'company', 'role', 'batch', 'minCGPA', 'historyOfBacklogs', 'standingBacklogs', 'ctc'];
+            fieldsToValidate = ['studentName', 'company', 'role', 'batch', 'minCGPA', 'historyOfBacklogs', 'standingBacklogs', 'ctc', 'workModel'];
         } else if (currentStep === 2) {
             fieldsToValidate = ['rounds'];
         } else if (currentStep === 3) {
