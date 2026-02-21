@@ -91,7 +91,7 @@ export default function ConclusionStep({ form }: ConclusionStepProps) {
             {/* Overall Experience (Optional) */}
             <div>
                 <label className="text-white font-semibold mb-2 block">
-                    Overall Experience <span className="text-red-400">*</span>
+                    Overall Experience <span className="text-white/40 text-sm font-normal">(Optional)</span>
                 </label>
                 <textarea
                     {...register('overallExperience')}

@@ -71,7 +71,7 @@ export const roundBuilderSchema = z.object({
 export const conclusionSchema = z.object({
     finalVerdict: z.enum(['selected', 'rejected']),
     tipsForJuniors: z.string().default(''),
-    overallExperience: z.string().min(20, 'Please share your overall experience (min 20 characters)'),
+    overallExperience: z.string().optional(),
 });
 
 // ============================================================================
