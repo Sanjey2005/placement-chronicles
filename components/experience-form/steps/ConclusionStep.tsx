@@ -72,7 +72,7 @@ export default function ConclusionStep({ form }: ConclusionStepProps) {
             <div>
                 <label className="flex items-center gap-2 text-white font-semibold mb-2">
                     <Lightbulb className="h-4 w-4" />
-                    Tips for Juniors <span className="text-red-400">*</span>
+                    Tips for Juniors <span className="text-white/40 text-sm font-normal">(Optional)</span>
                 </label>
                 <textarea
                     {...register('tipsForJuniors')}
@@ -91,7 +91,7 @@ export default function ConclusionStep({ form }: ConclusionStepProps) {
             {/* Overall Experience (Optional) */}
             <div>
                 <label className="text-white font-semibold mb-2 block">
-                    Overall Experience (Optional)
+                    Overall Experience <span className="text-red-400">*</span>
                 </label>
                 <textarea
                     {...register('overallExperience')}
@@ -99,6 +99,9 @@ export default function ConclusionStep({ form }: ConclusionStepProps) {
                     placeholder="How was your overall experience? Any memorable moments? How was the company culture?"
                     className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
                 />
+                {errors.overallExperience && (
+                    <p className="mt-1 text-sm text-red-400">{errors.overallExperience.message}</p>
+                )}
             </div>
 
             {/* Review Summary */}

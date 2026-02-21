@@ -42,8 +42,8 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
             role: '',
             batch: '',
             minCGPA: 0,
-            historyOfBacklogs: 'No',
-            standingBacklogs: 'No',
+            historyOfBacklogs: 'Not Allowed',
+            standingBacklogs: 'Not Allowed',
             ctc: 0,
             rounds: [],
             finalVerdict: 'selected',
@@ -76,7 +76,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                         if (now - parsed.timestamp < EXPIRATION_TIME) {
                             draftData = parsed.data;
                         } else {
-                            console.log('🗑️ Draft expired (older than 30 mins)');
+                            console.log('🗑️ Draft expired (older than 1 hour)');
                             localStorage.removeItem('experience-form-draft');
                             // We don't toast an error here so as not to annoy the user, just silently start fresh
                         }
@@ -176,8 +176,8 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                     courseBranch: apiData.courseBranch || '',
                     internshipDuration: apiData.internshipDuration || '',
                     minCGPA: apiData.minCGPA || 0,
-                    historyOfBacklogs: apiData.historyOfBacklogs || 'No',
-                    standingBacklogs: apiData.standingBacklogs || 'No',
+                    historyOfBacklogs: apiData.historyOfBacklogs || 'Not Allowed',
+                    standingBacklogs: apiData.standingBacklogs || 'Not Allowed',
                     ctc: apiData.ctc || 0,
                     rounds: normalizedRounds,
                     finalVerdict: apiData.finalVerdict || 'selected',

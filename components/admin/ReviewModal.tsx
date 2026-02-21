@@ -179,11 +179,13 @@ export function ReviewModal({ experience, isOpen, onClose, onApprove, onReject, 
                                     <h3 className="text-xs font-semibold text-white/40 uppercase flex items-center gap-2"><GraduationCap className="h-3.5 w-3.5" /> Eligibility</h3>
                                     <div className="grid grid-cols-2 gap-4 text-sm">
                                         <div><span className="text-white/50 block text-xs">Min CGPA</span>{experience.minCGPA || '—'}</div>
-                                        <div><span className="text-white/50 block text-xs">History of Backlogs</span>
-                                            <span className={experience.historyOfBacklogs === 'Yes' ? 'text-red-400' : 'text-white/80'}>{experience.historyOfBacklogs || '—'}</span>
+                                        <div>
+                                            <span className="text-xs text-white/40 uppercase">History of Backlogs</span>
+                                            <span className={experience.historyOfBacklogs === 'Not Allowed' ? 'text-red-400' : 'text-white/80'}>{experience.historyOfBacklogs || '—'}</span>
                                         </div>
-                                        <div><span className="text-white/50 block text-xs">Standing Backlogs</span>
-                                            <span className={experience.standingBacklogs === 'Yes' ? 'text-red-400' : 'text-white/80'}>{experience.standingBacklogs || '—'}</span>
+                                        <div className="flex flex-col">
+                                            <span className="text-xs text-white/40 uppercase">Standing Backlogs</span>
+                                            <span className={experience.standingBacklogs === 'Not Allowed' ? 'text-red-400' : 'text-white/80'}>{experience.standingBacklogs || '—'}</span>
                                         </div>
                                     </div>
                                 </div>

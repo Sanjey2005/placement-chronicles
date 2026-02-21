@@ -253,7 +253,7 @@ export async function GET(request: NextRequest) {
         }
 
         const experiences = await Experience.find(query)
-            .select('-studentId -studentName -moderationReason') // Fix Data Leakage (remove PII and internal data)
+            .select('-studentId -moderationReason') // Fix Data Leakage (remove PII and internal data, but keep studentName visible)
             .sort({ createdAt: -1 })
             .limit(100)
             .lean();

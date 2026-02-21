@@ -272,7 +272,7 @@ export default function BasicInfoStep({ form }: BasicInfoStepProps) {
                     </Label>
                     <Select
                         onValueChange={(value) => {
-                            setValue('historyOfBacklogs', value as "Yes" | "No");
+                            setValue('historyOfBacklogs', value as "Allowed" | "Not Allowed");
                             trigger('historyOfBacklogs');
                         }}
                         defaultValue={watch('historyOfBacklogs')}
@@ -281,8 +281,8 @@ export default function BasicInfoStep({ form }: BasicInfoStepProps) {
                             <SelectValue placeholder="Select" />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-900 border-white/10 text-white">
-                            <SelectItem value="Yes" className="focus:bg-white/10 focus:text-white cursor-pointer">Yes</SelectItem>
-                            <SelectItem value="No" className="focus:bg-white/10 focus:text-white cursor-pointer">No</SelectItem>
+                            <SelectItem value="Allowed" className="focus:bg-white/10 focus:text-white cursor-pointer">Allowed</SelectItem>
+                            <SelectItem value="Not Allowed" className="focus:bg-white/10 focus:text-white cursor-pointer">Not Allowed</SelectItem>
                         </SelectContent>
                     </Select>
                     {errors.historyOfBacklogs && (
@@ -297,7 +297,7 @@ export default function BasicInfoStep({ form }: BasicInfoStepProps) {
                     </Label>
                     <Select
                         onValueChange={(value) => {
-                            setValue('standingBacklogs', value as "Yes" | "No");
+                            setValue('standingBacklogs', value as "Allowed" | "Not Allowed");
                             trigger('standingBacklogs');
                         }}
                         defaultValue={watch('standingBacklogs')}
@@ -306,8 +306,8 @@ export default function BasicInfoStep({ form }: BasicInfoStepProps) {
                             <SelectValue placeholder="Select" />
                         </SelectTrigger>
                         <SelectContent className="bg-slate-900 border-white/10 text-white">
-                            <SelectItem value="Yes" className="focus:bg-white/10 focus:text-white cursor-pointer">Yes</SelectItem>
-                            <SelectItem value="No" className="focus:bg-white/10 focus:text-white cursor-pointer">No</SelectItem>
+                            <SelectItem value="Allowed" className="focus:bg-white/10 focus:text-white cursor-pointer">Allowed</SelectItem>
+                            <SelectItem value="Not Allowed" className="focus:bg-white/10 focus:text-white cursor-pointer">Not Allowed</SelectItem>
                         </SelectContent>
                     </Select>
                     {errors.standingBacklogs && (

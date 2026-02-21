@@ -26,19 +26,7 @@ export default function LoginPage() {
 
             if (result.success) {
                 // Set session cookie with role info
-                // Set session cookie with role info and 30-min expiry timestamp
                 const isAdmin = result.role === 'ADMIN';
-                const roleValue = isAdmin ? 'admin' : 'authenticated';
-                const expiryTime = Date.now() + 30 * 60 * 1000; // 30 minutes from now
-                const cookieValue = `${roleValue}|${expiryTime}`;
-
-                // Set cookies (Session cookie, expires on browser close OR when timestamp passes)
-                document.cookie = `auth-token=${cookieValue}; path=/; SameSite=Lax`;
-
-                // Store student ID (roll number) in cookie for feedback identification
-                if (!isAdmin && username) {
-                    document.cookie = `user-id=${username}; path=/; SameSite=Lax`;
-                }
 
                 toast.success(isAdmin ? 'Admin login successful! Redirecting...' : 'Login successful! Redirecting...');
                 router.push(isAdmin ? '/admin' : '/');

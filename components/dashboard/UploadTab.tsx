@@ -116,8 +116,8 @@ export default function UploadTab() {
                 ...extractedData,
                 studentId: extractedData.studentId || '',
                 year: extractedData.year || undefined,
-                historyOfBacklogs: extractedData.historyOfBacklogs || 'No',
-                standingBacklogs: extractedData.standingBacklogs || 'No',
+                historyOfBacklogs: extractedData.historyOfBacklogs || 'Not Allowed',
+                standingBacklogs: extractedData.standingBacklogs || 'Not Allowed',
                 placementType: 'ON_CAMPUS' as const, // Default
                 roleType: 'FULL_TIME' as const, // Default
                 verdict: 'ACCEPTED' as const, // Default
@@ -299,24 +299,23 @@ export default function UploadTab() {
                             <div>
                                 <label className="text-sm font-medium text-white/90 mb-2 block">History of Backlogs</label>
                                 <select
-                                    value={extractedData.historyOfBacklogs || 'No'}
+                                    value={extractedData.historyOfBacklogs || 'Not Allowed'}
                                     onChange={(e) => updateField('historyOfBacklogs', e.target.value)}
-                                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg text-white"
                                 >
-                                    <option value="No" className="bg-slate-900">No</option>
-                                    <option value="Yes" className="bg-slate-900">Yes</option>
+                                    <option value="Not Allowed">Not Allowed</option>
+                                    <option value="Allowed">Allowed</option>
                                 </select>
                             </div>
-
                             <div>
-                                <label className="text-sm font-medium text-white/90 mb-2 block">Standing Backlogs</label>
+                                <label className="block text-sm font-medium text-zinc-400 mb-1">Standing Backlogs <span className="text-red-500">*</span></label>
                                 <select
-                                    value={extractedData.standingBacklogs || 'No'}
+                                    value={extractedData.standingBacklogs || 'Not Allowed'}
                                     onChange={(e) => updateField('standingBacklogs', e.target.value)}
                                     className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
-                                    <option value="No" className="bg-slate-900">No</option>
-                                    <option value="Yes" className="bg-slate-900">Yes</option>
+                                    <option value="Not Allowed" className="bg-slate-900">Not Allowed</option>
+                                    <option value="Allowed" className="bg-slate-900">Allowed</option>
                                 </select>
                             </div>
                         </div>

@@ -225,14 +225,14 @@ export default function DisclaimerModal({
                                     )}
                                 </div>
                                 <div className="flex flex-wrap gap-2 mt-2 ml-10">
-                                    {(data.historyOfBacklogs === 'Yes') && (
-                                        <span className="px-3 py-1 text-xs font-medium rounded-full bg-red-500/10 text-red-300 border border-red-500/20">
-                                            History of Backlogs: {data.historyOfBacklogs}
+                                    {(data.historyOfBacklogs === 'Allowed') && (
+                                        <span className="px-3 py-1 text-xs font-medium rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                                            History of Backlogs: Allowed
                                         </span>
                                     )}
-                                    {(data.standingBacklogs === 'Yes') && (
-                                        <span className="px-3 py-1 text-xs font-medium rounded-full bg-orange-500/10 text-orange-300 border border-orange-500/20">
-                                            Standing Backlogs: {data.standingBacklogs}
+                                    {(data.standingBacklogs === 'Allowed') && (
+                                        <span className="px-3 py-1 text-xs font-medium rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                                            Standing Backlogs: Allowed
                                         </span>
                                     )}
                                 </div>
@@ -254,7 +254,7 @@ export default function DisclaimerModal({
                                     {data.historyOfBacklogs && (
                                         <div className="flex flex-col">
                                             <span className="text-xs text-white/40 uppercase">History of Backlogs</span>
-                                            <span className={`font-medium ${data.historyOfBacklogs === 'Yes' ? 'text-red-400' : 'text-emerald-400'}`}>
+                                            <span className={`font-medium ${data.historyOfBacklogs === 'Not Allowed' ? 'text-red-400' : 'text-emerald-400'}`}>
                                                 {data.historyOfBacklogs}
                                             </span>
                                         </div>
@@ -262,7 +262,7 @@ export default function DisclaimerModal({
                                     {data.standingBacklogs && (
                                         <div className="flex flex-col">
                                             <span className="text-xs text-white/40 uppercase">Standing Backlogs</span>
-                                            <span className={`font-medium ${data.standingBacklogs === 'Yes' ? 'text-red-400' : 'text-emerald-400'}`}>
+                                            <span className={`font-medium ${data.standingBacklogs === 'Not Allowed' ? 'text-red-400' : 'text-emerald-400'}`}>
                                                 {data.standingBacklogs}
                                             </span>
                                         </div>

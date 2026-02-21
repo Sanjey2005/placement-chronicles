@@ -14,8 +14,8 @@ export const basicInfoSchema = z.object({
     placementType: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']).default('ON_CAMPUS'),
     roleType: z.enum(['FULL_TIME', 'INTERNSHIP', 'SUMMER_INTERNSHIP']).default('FULL_TIME'),
     workModel: z.enum(['ON_SITE', 'WFH', 'HYBRID']),
-    historyOfBacklogs: z.enum(['Yes', 'No']).default('No'),
-    standingBacklogs: z.enum(['Yes', 'No']).default('No'),
+    historyOfBacklogs: z.enum(['Allowed', 'Not Allowed']).default('Not Allowed'),
+    standingBacklogs: z.enum(['Allowed', 'Not Allowed']).default('Not Allowed'),
 });
 
 // ============================================================================
@@ -70,8 +70,8 @@ export const roundBuilderSchema = z.object({
 // ============================================================================
 export const conclusionSchema = z.object({
     finalVerdict: z.enum(['selected', 'rejected']),
-    tipsForJuniors: z.string().min(20, 'Please share some tips for juniors (min 20 characters)'),
-    overallExperience: z.string().default(''),
+    tipsForJuniors: z.string().default(''),
+    overallExperience: z.string().min(20, 'Please share your overall experience (min 20 characters)'),
 });
 
 // ============================================================================

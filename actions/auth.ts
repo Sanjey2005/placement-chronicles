@@ -1,5 +1,7 @@
 'use server';
 
+import { cookies } from 'next/headers';
+
 interface LoginResponse {
     success: boolean;
     cookies?: string[];
@@ -42,6 +44,33 @@ export async function login(formData: FormData): Promise<LoginResponse> {
         const data = await response.json();
 
         if (data.success) {
+            // Set cookies strictly on the server side to survive mobile navigation
+            const cookieStore = await cookies();
+            const isAdmin = data.role === 'ADMIN';
+            const roleValue = isAdmin ? 'admin' : 'authenticated';
+            const expiryTime = Date.now() + 60 * 60 * 1000;
+            const cookieValue = `${roleValue}|${expiryTime}`;
+
+            // Set the primary auth token (30 min expiry)
+            cookieStore.set('auth-token', cookieValue, {
+                maxAge: 60 * 60,
+                path: '/',
+                sameSite: 'lax',
+                httpOnly: false, // Required false so Navbar.tsx can read it
+                secure: process.env.NODE_ENV === 'production',
+            });
+
+            // Set the user ID cookie for feedback if not admin
+            if (!isAdmin && username) {
+                cookieStore.set('user-id', username, {
+                    maxAge: 60 * 60,
+                    path: '/',
+                    sameSite: 'lax',
+                    httpOnly: false,
+                    secure: process.env.NODE_ENV === 'production',
+                });
+            }
+
             return {
                 success: true,
                 message: 'Login successful',

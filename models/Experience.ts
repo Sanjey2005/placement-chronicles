@@ -71,8 +71,8 @@ export interface IExperience extends Document {
     roleType?: RoleType;
     workModel?: 'ON_SITE' | 'WFH' | 'HYBRID';
     verdict?: Verdict;
-    historyOfBacklogs?: string; // 'Yes' | 'No'
-    standingBacklogs?: string; // 'Yes' | 'No'
+    historyOfBacklogs?: string; // 'Allowed' | 'Not Allowed'
+    standingBacklogs?: string; // 'Allowed' | 'Not Allowed'
     batch?: string;
     courseBranch?: string;
     minCGPA?: number;
