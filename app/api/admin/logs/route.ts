@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import AdminLog from '@/models/AdminLog';
+import { requireAdmin } from '@/lib/auth-check';
 
 export async function GET(request: NextRequest) {
+    if (!requireAdmin(request)) {
+        return NextResponse.json({ success: false, error: 'Forbidden: Admin access only' }, { status: 403 });
+    }
+
     try {
         await dbConnect();
 

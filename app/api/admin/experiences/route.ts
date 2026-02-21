@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Experience from '@/models/Experience';
 import AdminLog from '@/models/AdminLog';
+import { requireAdmin } from '@/lib/auth-check';
 
 // GET: Fetch experiences with optional status filter
 export async function GET(request: NextRequest) {
+    if (!requireAdmin(request)) {
+        return NextResponse.json({ success: false, error: 'Forbidden: Admin access only' }, { status: 403 });
+    }
+
     try {
         await dbConnect();
 
@@ -49,6 +54,10 @@ export async function GET(request: NextRequest) {
 
 // PATCH: Update experience status (approve/reject)
 export async function PATCH(request: NextRequest) {
+    if (!requireAdmin(request)) {
+        return NextResponse.json({ success: false, error: 'Forbidden: Admin access only' }, { status: 403 });
+    }
+
     try {
         const { id, action } = await request.json();
 
@@ -110,6 +119,10 @@ export async function PATCH(request: NextRequest) {
 
 // DELETE: Delete an experience
 export async function DELETE(request: NextRequest) {
+    if (!requireAdmin(request)) {
+        return NextResponse.json({ success: false, error: 'Forbidden: Admin access only' }, { status: 403 });
+    }
+
     try {
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
