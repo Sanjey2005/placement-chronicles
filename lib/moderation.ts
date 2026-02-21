@@ -26,7 +26,7 @@ const COMPANY_ALIASES: Record<string, string> = {
 /**
  * Deterministically resolve known aliases.
  */
-function enforceCanonicalName(name: string): string {
+export function enforceCanonicalName(name: string): string {
     if (!name) return name;
 
     const normalizedInput = name.trim().toLowerCase().replace(/\s+/g, ' ');

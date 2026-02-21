@@ -18,6 +18,7 @@ import {
     Building2,
     MessageSquare,
     User,
+    Sparkles,
 } from 'lucide-react';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -157,6 +158,7 @@ export default function AdminDashboard() {
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'table' | 'logs' | 'companies' | 'feedbacks'>('table'); // Updated type
     const [reviewExperience, setReviewExperience] = useState<Experience | null>(null);
+    const [cleanupLoading, setCleanupLoading] = useState(false);
 
     // ── Data Fetching ───────────────────────────────────────────────────
     const fetchStats = useCallback(async () => {
@@ -263,6 +265,32 @@ export default function AdminDashboard() {
             toast.error('Failed to delete experience');
         } finally {
             setActionLoading(null);
+        }
+    };
+
+    // ── Clean Companies ──────────────────────────────────────────────
+    const handleCleanup = async () => {
+        if (!confirm('This will merge duplicate company names and remove orphaned entries. Continue?')) return;
+
+        setCleanupLoading(true);
+        try {
+            const res = await fetch('/api/admin/companies/cleanup', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                const msg = data.message || 'Cleanup complete';
+                toast.success(msg, { duration: 5000 });
+                if (data.data?.merges?.length > 0) {
+                    const mergeList = data.data.merges.map((m: any) => `${m.from} → ${m.to}`).join(', ');
+                    toast.info(`Merged: ${mergeList}`, { duration: 7000 });
+                }
+                await refreshAll();
+            } else {
+                toast.error(data.error || 'Cleanup failed');
+            }
+        } catch {
+            toast.error('Failed to clean companies');
+        } finally {
+            setCleanupLoading(false);
         }
     };
 
@@ -547,7 +575,18 @@ export default function AdminDashboard() {
                             animate={{ opacity: 1 }}
                             className="space-y-4"
                         >
-                            {/* ... (existing companies table) ... */}
+                            {/* Clean Companies Button */}
+                            <div className="flex items-center justify-between">
+                                <p className="text-sm text-white/50">{companies.length} companies registered</p>
+                                <button
+                                    onClick={handleCleanup}
+                                    disabled={cleanupLoading}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 border border-purple-500/30 rounded-lg transition-all text-sm font-medium text-purple-300 disabled:opacity-50"
+                                >
+                                    <Sparkles className={`h-4 w-4 ${cleanupLoading ? 'animate-pulse' : ''}`} />
+                                    {cleanupLoading ? 'Cleaning...' : 'Clean Companies'}
+                                </button>
+                            </div>
                             <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5 backdrop-blur-md">
                                 <table className="w-full">
                                     <thead>
