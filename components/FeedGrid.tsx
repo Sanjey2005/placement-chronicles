@@ -14,6 +14,9 @@ interface FeedGridProps {
 
 export default function FeedGrid({ experiences, companies, batches }: FeedGridProps) {
     const [filteredExperiences, setFilteredExperiences] = useState(experiences);
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 12;
+
     const [filters, setFilters] = useState({
         companies: [] as string[],
         batches: [] as string[],
@@ -50,6 +53,7 @@ export default function FeedGrid({ experiences, companies, batches }: FeedGridPr
         }
 
         setFilteredExperiences(result);
+        setCurrentPage(1); // Reset to page 1 on filter
     };
 
     // Update filters and apply
@@ -91,12 +95,21 @@ export default function FeedGrid({ experiences, companies, batches }: FeedGridPr
         }
 
         setFilteredExperiences(result);
+        setCurrentPage(1); // Reset to page 1 on filter
     };
 
     const clearFilters = () => {
         setFilters({ companies: [], batches: [], verdicts: [], types: [], cgpa: '', search: '' });
         setFilteredExperiences(experiences);
+        setCurrentPage(1);
     };
+
+    // Calculate pagination
+    const totalPages = Math.ceil(filteredExperiences.length / ITEMS_PER_PAGE);
+    const paginatedExperiences = filteredExperiences.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
 
     return (
         <div className="space-y-6">
@@ -238,7 +251,7 @@ export default function FeedGrid({ experiences, companies, batches }: FeedGridPr
 
             {/* Bento Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 auto-rows-auto">
-                {filteredExperiences.map((exp, index) => (
+                {paginatedExperiences.map((exp, index) => (
                     <motion.div
                         key={exp._id?.toString() || index}
                         initial={{ opacity: 0, y: 20 }}
@@ -273,6 +286,31 @@ export default function FeedGrid({ experiences, companies, batches }: FeedGridPr
                         <p className="text-xl font-semibold text-white mb-2">No experiences found</p>
                         <p className="text-white/60">Try adjusting your filters or search query</p>
                     </div>
+                </div>
+            )}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-4 pt-8 pb-4">
+                    <button
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 bg-white/10 hover:bg-white/20 disabled:hover:bg-white/10 disabled:opacity-50 border border-white/20 rounded-lg text-white transition-all text-sm font-semibold"
+                    >
+                        Previous
+                    </button>
+
+                    <span className="text-white/80 text-sm">
+                        Page {currentPage} of {totalPages}
+                    </span>
+
+                    <button
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className="px-4 py-2 bg-white/10 hover:bg-white/20 disabled:hover:bg-white/10 disabled:opacity-50 border border-white/20 rounded-lg text-white transition-all text-sm font-semibold"
+                    >
+                        Next
+                    </button>
                 </div>
             )}
         </div>
