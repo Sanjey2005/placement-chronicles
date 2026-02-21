@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Building2, Briefcase, IndianRupee, ArrowUpRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ExperienceModal from './ExperienceModal';
 import { formatCompensation } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface ExperienceCardProps {
     company: string;
@@ -23,6 +25,12 @@ interface ExperienceCardProps {
     roleType?: string;
     historyOfBacklogs?: string;
     standingBacklogs?: string;
+}
+
+function getCookie(name: string): string | null {
+    if (typeof document === 'undefined') return null;
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : null;
 }
 
 export default function ExperienceCard({
@@ -44,11 +52,22 @@ export default function ExperienceCard({
     standingBacklogs,
 }: ExperienceCardProps) {
     const [modalOpen, setModalOpen] = useState(false);
+    const router = useRouter();
 
     const verdictConfig: Record<string, { label: string; cls: string }> = {
         selected: { label: '✓ Selected', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
         rejected: { label: '✗ Not Selected', cls: 'bg-red-500/15 text-red-400 border-red-500/25' },
 
+    };
+
+    const handleCardClick = () => {
+        const token = getCookie('auth-token');
+        if (!token) {
+            toast.info('Please log in to view experience details');
+            router.push('/login');
+            return;
+        }
+        setModalOpen(true);
     };
 
     return (
@@ -57,7 +76,7 @@ export default function ExperienceCard({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
-                onClick={() => setModalOpen(true)}
+                onClick={handleCardClick}
                 className="cursor-pointer group"
             >
                 <article className="relative rounded-xl bg-slate-950/60 backdrop-blur-xl border border-white/[0.08] p-6 transition-all duration-300 hover:border-violet-500/30 hover:bg-slate-900/60 hover:shadow-[0_0_40px_-10px_rgba(139,92,246,0.15)]">
