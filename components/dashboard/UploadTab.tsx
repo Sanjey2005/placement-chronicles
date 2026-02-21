@@ -116,7 +116,7 @@ export default function UploadTab() {
                 ...extractedData,
                 studentId: extractedData.studentId || '',
                 year: extractedData.year || undefined,
-                historyOfBacklogs: extractedData.historyOfBacklogs || 'Not Allowed',
+                historyOfBacklogs: extractedData.historyOfBacklogs || 'Allowed',
                 standingBacklogs: extractedData.standingBacklogs || 'Not Allowed',
                 placementType: 'ON_CAMPUS' as const, // Default
                 roleType: 'FULL_TIME' as const, // Default
@@ -299,7 +299,7 @@ export default function UploadTab() {
                             <div>
                                 <label className="text-sm font-medium text-white/90 mb-2 block">History of Backlogs</label>
                                 <select
-                                    value={extractedData.historyOfBacklogs || 'Not Allowed'}
+                                    value={extractedData.historyOfBacklogs || 'Allowed'}
                                     onChange={(e) => updateField('historyOfBacklogs', e.target.value)}
                                     className="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-lg text-white"
                                 >

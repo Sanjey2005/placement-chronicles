@@ -14,7 +14,7 @@ export const basicInfoSchema = z.object({
     placementType: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']).default('ON_CAMPUS'),
     roleType: z.enum(['FULL_TIME', 'INTERNSHIP', 'SUMMER_INTERNSHIP']).default('FULL_TIME'),
     workModel: z.enum(['ON_SITE', 'WFH', 'HYBRID']),
-    historyOfBacklogs: z.enum(['Allowed', 'Not Allowed']).default('Not Allowed'),
+    historyOfBacklogs: z.enum(['Allowed', 'Not Allowed']).default('Allowed'),
     standingBacklogs: z.enum(['Allowed', 'Not Allowed']).default('Not Allowed'),
 });
 

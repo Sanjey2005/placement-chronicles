@@ -192,7 +192,7 @@ export async function getAllExperiences(): Promise<{
             placementType: exp.placementType || 'ON_CAMPUS',
             roleType: exp.roleType || 'FULL_TIME',
             verdict: exp.verdict || 'ACCEPTED',
-            historyOfBacklogs: exp.historyOfBacklogs || 'Not Allowed',
+            historyOfBacklogs: exp.historyOfBacklogs || 'Allowed',
             standingBacklogs: exp.standingBacklogs || 'Not Allowed',
             batch: exp.batch || '',
             minCGPA: exp.minCGPA || 0,
