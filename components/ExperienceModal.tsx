@@ -357,10 +357,10 @@ export default function ExperienceModal({
                                                             <h5 className="text-xs font-semibold text-white/40 uppercase mb-2">Study Sources</h5>
                                                             <ul className="space-y-1">
                                                                 {(Array.isArray(round.studySources) ? round.studySources : round.studySources.split(/[,;\n]+/).map((s: string) => s.trim()).filter(Boolean)).map((source: string, sIdx: number) => (
-                                                                    <li key={sIdx} className="text-sm text-blue-400 hover:text-blue-300 underline underline-offset-2">
-                                                                        <a href={source} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
-                                                                            🔗 {source}
-                                                                        </a>
+                                                                    <li key={sIdx} className="text-sm text-white/80">
+                                                                        <span className="flex items-center gap-1">
+                                                                            📖 {source}
+                                                                        </span>
                                                                     </li>
                                                                 ))}
                                                             </ul>

@@ -31,6 +31,33 @@ function generateSearchText(data: any): string {
     return text;
 }
 
+import sanitizeHtml from 'sanitize-html';
+
+// Helper function to sanitize user-generated HTML
+// Uses sanitize-html to remove all HTML tags initially
+function aggressiveSanitize(input: string): string {
+    return sanitizeHtml(input, {
+        allowedTags: [], // Strip all tags
+        allowedAttributes: {}, // Strip all attributes
+    });
+}
+
+// Helper function to process all strings in an object through sanitizeHtml
+function deepSanitize(obj: any): any {
+    if (typeof obj === 'string') {
+        return aggressiveSanitize(obj);
+    }
+    if (Array.isArray(obj)) {
+        return obj.map(deepSanitize);
+    }
+    if (obj && typeof obj === 'object') {
+        return Object.fromEntries(
+            Object.entries(obj).map(([k, v]) => [k, deepSanitize(v)])
+        );
+    }
+    return obj;
+}
+
 // POST: Create new experience
 export async function POST(request: NextRequest) {
     try {
@@ -39,8 +66,8 @@ export async function POST(request: NextRequest) {
         // Validate with Zod
         const rawValidated = experienceFormSchema.parse(body);
 
-        // SECURITY: Sanitize all string fields to prevent stored XSS
-        const validatedData = sanitizeObject(rawValidated);
+        // SECURITY: Sanitize all string fields heavily to prevent stored XSS
+        const validatedData = deepSanitize(rawValidated);
 
         // Connect to database
         await dbConnect();
@@ -143,8 +170,8 @@ export async function POST(request: NextRequest) {
             ...(embedding && { embedding }),
             tags: validatedData.tags || [],
             year: validatedData.year || new Date().getFullYear(),
-            status,
-            moderationReason,
+            status, // Enforced locally, cannot be overridden by user
+            moderationReason, // Enforced locally
         });
 
         const savedExperience = await experience.save();
@@ -199,6 +226,7 @@ export async function GET(request: NextRequest) {
         }
 
         const experiences = await Experience.find(query)
+            .select('-studentId -studentName -moderationReason') // Fix Data Leakage (remove PII and internal data)
             .sort({ createdAt: -1 })
             .limit(100)
             .lean();

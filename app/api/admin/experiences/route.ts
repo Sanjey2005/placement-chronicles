@@ -63,7 +63,15 @@ export async function PATCH(request: NextRequest) {
     try {
         const { id, action } = await request.json();
 
-        if (!id || !action) {
+        // NoSQL Injection Fix: Ensure ID is a string to prevent query object injection
+        if (typeof id !== 'string' || id.trim() === '') {
+            return NextResponse.json(
+                { success: false, error: 'invalid id or action format' },
+                { status: 400 }
+            );
+        }
+
+        if (!action || typeof action !== 'string') {
             return NextResponse.json(
                 { success: false, error: 'id and action are required' },
                 { status: 400 }
@@ -129,9 +137,10 @@ export async function DELETE(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
 
-        if (!id) {
+        // NoSQL Injection / Validation Fix: Ensure ID is present and valid
+        if (!id || typeof id !== 'string') {
             return NextResponse.json(
-                { success: false, error: 'id is required' },
+                { success: false, error: 'invalid id format' },
                 { status: 400 }
             );
         }

@@ -66,7 +66,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                 try {
                     const parsed = JSON.parse(savedDraft);
                     const now = Date.now();
-                    const EXPIRATION_TIME = 30 * 60 * 1000; // 30 minutes in ms
+                    const EXPIRATION_TIME = 60 * 60 * 1000; // 1 hour in ms
 
                     // Backward compatibility: If it's an old draft without a timestamp, or it's new and within 30 min
                     let draftData = null;
@@ -280,9 +280,15 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
             setPendingData(null);
             setIsDisclaimerOpen(false);
             localStorage.removeItem('experience-form-draft'); // Clear cache on success
-        } catch (error) {
-            toast.error('Failed to submit experience');
+        } catch (error: any) {
             console.error('Submit error:', error);
+            const errorMsg = error.message || '';
+            if (errorMsg.includes('429') || errorMsg.toLowerCase().includes('capacity')) {
+                toast.error('High traffic: Please try again in a minute.', { duration: 5000 });
+                toast.info("Don't worry, your data is safely saved on your device for 1 hour!", { duration: 7000 });
+            } else {
+                toast.error(errorMsg || 'Failed to submit experience');
+            }
             // We keep the modal open so they can try again or check what went wrong
         } finally {
             setIsFinalSubmitting(false);
@@ -318,7 +324,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                         <motion.h1
                             initial={{ opacity: 0, y: -20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="text-6xl font-bold mb-4 tracking-tight"
+                            className="text-4xl sm:text-6xl font-bold mb-4 tracking-tight px-2"
                         >
                             <span className="bg-gradient-to-br from-white to-zinc-500 bg-clip-text text-transparent">
                                 Share Your Experience
@@ -368,8 +374,8 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                     </motion.div>
 
                     {/* Progress Indicator */}
-                    <div className="mb-10 max-w-xl mx-auto">
-                        <div className="flex items-center justify-between">
+                    <div className="mb-8 sm:mb-10 max-w-xl mx-auto overflow-x-auto pb-4 scrollbar-hide">
+                        <div className="flex items-center justify-between min-w-[300px]">
                             {STEPS.map((step, index) => (
                                 <div key={step.id} className="flex items-center" style={{ flex: index < STEPS.length - 1 ? 1 : 'none' }}>
                                     {/* Step circle + label */}
@@ -409,7 +415,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
 
                     {/* Form Container - Glass Morphic Panel */}
                     <form onSubmit={handleSubmit(onFormSubmit)} onKeyDown={handleKeyDown}>
-                        <div className="backdrop-blur-3xl bg-zinc-900/40 border border-white/10 shadow-2xl shadow-purple-500/10 rounded-3xl p-10 ring-1 ring-white/5">
+                        <div className="backdrop-blur-3xl bg-zinc-900/40 border border-white/10 shadow-2xl shadow-purple-500/10 rounded-2xl sm:rounded-3xl p-4 sm:p-10 ring-1 ring-white/5">
                             <AnimatePresence mode="wait">
                                 <motion.div
                                     key={currentStep}
@@ -425,14 +431,14 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                             </AnimatePresence>
 
                             {/* Navigation Buttons */}
-                            <div className="flex justify-between mt-10 pt-8 border-t border-white/5">
+                            <div className="flex flex-col-reverse sm:flex-row justify-between gap-4 mt-10 pt-8 border-t border-white/5">
                                 <button
                                     type="button"
                                     onClick={prevStep}
                                     disabled={currentStep === 1}
-                                    className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-300 ${currentStep === 1
+                                    className={`flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 rounded-xl font-medium transition-all duration-300 ${currentStep === 1
                                         ? 'opacity-30 cursor-not-allowed text-zinc-600'
-                                        : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                                        : 'text-zinc-400 hover:text-white hover:bg-white/5 bg-white/5 sm:bg-transparent'
                                         }`}
                                 >
                                     <ArrowLeft className="h-5 w-5" />
@@ -443,7 +449,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                                     <button
                                         type="button"
                                         onClick={nextStep}
-                                        className="flex items-center gap-2 px-8 py-3 bg-white text-black hover:bg-zinc-200 font-semibold rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)]"
+                                        className="flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-3 bg-white text-black hover:bg-zinc-200 font-semibold rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)]"
                                     >
                                         Next
                                         <ArrowRight className="h-5 w-5" />
@@ -452,9 +458,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                                     <button
                                         type="submit"
                                         disabled={isSubmitting || isStepChanging}
-
-                                        className={`flex items-center gap-2 px-8 py-3 bg-white text-black font-semibold rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.3)] ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-zinc-200 hover:shadow-[0_0_30px_rgba(255,255,255,0.5)]'
-                                            }`}
+                                        className={`flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-3 bg-white text-black font-semibold rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.3)] ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-zinc-200 hover:shadow-[0_0_30px_rgba(255,255,255,0.5)]'}`}
                                     >
                                         {isSubmitting ? 'Submitting...' : 'Submit Experience'}
                                         <Check className="h-5 w-5" />

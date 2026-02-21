@@ -77,7 +77,7 @@ export async function createExperience(
 
         const derivedVerdict = data.finalVerdict === 'rejected' ? 'REJECTED' : 'ACCEPTED';
 
-        // Save base experience
+        // Save base experience explicitly filtering allowed fields (Mass Assignment Fix)
         const experience = new Experience({
             studentId: data.studentId,
             company: data.company,
@@ -98,6 +98,7 @@ export async function createExperience(
             ...(embedding && { embedding }),
             tags: data.tags || [],
             year: data.year,
+            status: 'PENDING', // Force pending status, ignore any incoming status
         });
 
         const savedExperience = await experience.save();
@@ -184,7 +185,8 @@ export async function getAllExperiences(): Promise<{
         const serializedExperiences = experiences.map(exp => ({
             ...exp,
             _id: (exp._id as any).toString(),
-            studentId: exp.studentId || '',
+            studentId: undefined, // Fix Data Leakage (remove PII)
+            studentName: undefined, // Fix Data Leakage (remove PII)
             company: exp.company || '',
             role: exp.role || '',
             ctc: exp.ctc || 0,
@@ -231,6 +233,8 @@ export async function getExperiencesByCompany(company: string): Promise<{
         const serializedExperiences = experiences.map(exp => ({
             ...exp,
             _id: (exp._id as any).toString(),
+            studentId: undefined, // Fix Data Leakage (remove PII)
+            studentName: undefined, // Fix Data Leakage (remove PII)
         }));
 
         return {
@@ -245,6 +249,8 @@ export async function getExperiencesByCompany(company: string): Promise<{
     }
 }
 
+import { cookies } from 'next/headers';
+
 /**
  * Server action to delete an experience
  * @param id - Experience ID
@@ -255,7 +261,28 @@ export async function deleteExperience(id: string): Promise<{
     error?: string;
 }> {
     try {
+        // IDOR Fix: Check if user is an admin before allowing delete
+        const cookieStore = await cookies();
+        const rawToken = cookieStore.get('auth-token')?.value;
+
+        if (!rawToken || !rawToken.startsWith('admin|')) {
+            return {
+                success: false,
+                error: 'Forbidden: Admin access required to delete experiences',
+            };
+        }
+
         await dbConnect();
+
+        // NoSQL Injection Fix: Ensure ID is a valid string/ObjectId length before query
+        if (typeof id !== 'string' || id.trim() === '') {
+            return { success: false, error: 'Invalid ID format' };
+        }
+
+        const experience = await Experience.findById(id);
+        if (!experience) {
+            return { success: false, error: 'Experience not found' };
+        }
 
         await Experience.findByIdAndDelete(id);
 
