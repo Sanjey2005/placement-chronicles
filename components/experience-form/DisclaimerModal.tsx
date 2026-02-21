@@ -423,23 +423,23 @@ export default function DisclaimerModal({
                         </div>
 
                         {/* Sticky Bottom Actions */}
-                        <div className="absolute bottom-0 left-0 right-0 bg-slate-950/80 backdrop-blur-xl border-t border-white/10 p-6 z-30">
-                            <div className="flex flex-col md:flex-row items-center justify-between gap-4 max-w-5xl mx-auto">
-                                <label className="flex items-start gap-3 cursor-pointer group">
-                                    <div className="relative flex items-center pt-1">
+                        <div className="absolute bottom-0 left-0 right-0 bg-slate-950/80 backdrop-blur-xl border-t border-white/10 p-4 sm:p-6 z-30">
+                            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6 w-full">
+                                <label className="flex items-start gap-3 cursor-pointer group flex-1 min-w-0">
+                                    <div className="relative flex items-center pt-1 shrink-0">
                                         <input
                                             type="checkbox"
                                             checked={isConfirmed}
                                             onChange={(e) => setIsConfirmed(e.target.checked)}
-                                            className="peer h-5 w-5 rounded border-white/30 bg-white/5 text-violet-500 focus:ring-violet-500 focus:ring-offset-0 cursor-pointer transition-all"
+                                            className="peer h-5 w-5 rounded border-white/30 bg-white/5 text-violet-500 focus:ring-violet-500 focus:ring-offset-0 cursor-pointer transition-all shrink-0"
                                         />
                                     </div>
-                                    <span className="text-sm text-white/60 group-hover:text-white/80 transition-colors select-none">
+                                    <span className="text-sm text-white/60 group-hover:text-white/80 transition-colors select-none leading-relaxed">
                                         I confirm that all the information entered above is correct. I understand that I cannot edit this experience once submitted.
                                     </span>
                                 </label>
 
-                                <div className="flex items-center gap-3 w-full md:w-auto">
+                                <div className="flex items-center gap-3 w-full md:w-auto shrink-0 justify-end mt-2 md:mt-0 border-t border-white/5 md:border-t-0 pt-4 md:pt-0">
                                     <button
                                         onClick={onClose}
                                         className="flex-1 md:flex-none px-6 py-3 rounded-xl font-medium text-white/60 hover:text-white hover:bg-white/5 transition-all"
