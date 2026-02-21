@@ -6,7 +6,7 @@
 
 const HF_API_KEY = process.env.HUGGINGFACE_API_KEY || '';
 const HF_EMBEDDING_URL =
-    'https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2';
+    'https://router.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2';
 
 /**
  * Generate vector embedding using Hugging Face Inference API

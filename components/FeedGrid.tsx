@@ -19,6 +19,7 @@ export default function FeedGrid({ experiences, companies, batches }: FeedGridPr
         batches: [] as string[],
         verdicts: [] as string[],
         types: [] as string[],
+        cgpa: '',
         search: '',
     });
 
@@ -41,6 +42,11 @@ export default function FeedGrid({ experiences, companies, batches }: FeedGridPr
                 exp.role.toLowerCase().includes(searchLower) ||
                 exp.tags?.some((tag: string) => tag.toLowerCase().includes(searchLower))
             );
+        }
+
+        if (filters.cgpa) {
+            const cgpaThreshold = parseFloat(filters.cgpa);
+            result = result.filter(exp => exp.minCGPA != null && exp.minCGPA <= cgpaThreshold);
         }
 
         setFilteredExperiences(result);
@@ -79,11 +85,16 @@ export default function FeedGrid({ experiences, companies, batches }: FeedGridPr
             );
         }
 
+        if (updated.cgpa) {
+            const cgpaThreshold = parseFloat(updated.cgpa);
+            result = result.filter(exp => exp.minCGPA != null && exp.minCGPA <= cgpaThreshold);
+        }
+
         setFilteredExperiences(result);
     };
 
     const clearFilters = () => {
-        setFilters({ companies: [], batches: [], verdicts: [], types: [], search: '' });
+        setFilters({ companies: [], batches: [], verdicts: [], types: [], cgpa: '', search: '' });
         setFilteredExperiences(experiences);
     };
 
@@ -187,8 +198,29 @@ export default function FeedGrid({ experiences, companies, batches }: FeedGridPr
                         </Select>
                     </div>
 
+                    {/* CGPA Filter */}
+                    <div className="min-w-[130px]">
+                        <Select
+                            value={filters.cgpa || "all"}
+                            onValueChange={(value) => {
+                                updateFilters({ cgpa: value === "all" ? '' : value });
+                            }}
+                        >
+                            <SelectTrigger className="w-full h-10 px-4 py-2 bg-white/10 border-white/20 text-white focus:ring-blue-500">
+                                <SelectValue placeholder="All CGPAs" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-900 border-white/10 text-white">
+                                <SelectItem value="all" className="focus:bg-white/10 focus:text-white cursor-pointer">All CGPAs</SelectItem>
+                                <SelectItem value="6" className="focus:bg-white/10 focus:text-white cursor-pointer">6 & above</SelectItem>
+                                <SelectItem value="7" className="focus:bg-white/10 focus:text-white cursor-pointer">7 & above</SelectItem>
+                                <SelectItem value="8" className="focus:bg-white/10 focus:text-white cursor-pointer">8 & above</SelectItem>
+                                <SelectItem value="9" className="focus:bg-white/10 focus:text-white cursor-pointer">9 & above</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
                     {/* Clear Filters */}
-                    {(filters.companies.length > 0 || filters.batches.length > 0 || filters.verdicts.length > 0 || filters.types.length > 0 || filters.search) && (
+                    {(filters.companies.length > 0 || filters.batches.length > 0 || filters.verdicts.length > 0 || filters.types.length > 0 || filters.cgpa || filters.search) && (
                         <button
                             onClick={clearFilters}
                             className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 text-red-300 rounded-lg transition-all text-sm font-semibold whitespace-nowrap"

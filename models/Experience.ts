@@ -135,11 +135,11 @@ const ExperienceSchema = new Schema<IExperience>(
         },
         historyOfBacklogs: {
             type: String,
-            enum: ['Yes', 'No'],
+            enum: ['Allowed', 'Not Allowed'],
         },
         standingBacklogs: {
             type: String,
-            enum: ['Yes', 'No'],
+            enum: ['Allowed', 'Not Allowed'],
         },
         batch: {
             type: String,

@@ -185,6 +185,7 @@ export async function POST(request: NextRequest) {
             ctc: validatedData.ctc,
             placementType: validatedData.placementType,
             roleType: validatedData.roleType,
+            workModel: validatedData.workModel,
             verdict: derivedVerdict,
             historyOfBacklogs: validatedData.historyOfBacklogs,
             standingBacklogs: validatedData.standingBacklogs,
@@ -236,6 +237,7 @@ export async function POST(request: NextRequest) {
             data: savedExperience,
         });
     } catch (error) {
+        console.error("EXPERIENCE API ERROR:", error);
         if (error instanceof Error && error.name === 'ZodError') {
             return NextResponse.json(
                 {
@@ -250,6 +252,7 @@ export async function POST(request: NextRequest) {
             {
                 success: false,
                 error: 'An internal server error occurred while creating experience',
+                details: error instanceof Error ? error.message : String(error)
             },
             { status: 500 }
         );

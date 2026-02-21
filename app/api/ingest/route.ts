@@ -86,6 +86,7 @@ export async function POST(request: NextRequest) {
             const pdfData = await pdfParse(buffer);
             pdfText = pdfData.text;
         } catch (parseError: any) {
+            console.error('PDF PARSE ERROR:', parseError?.message || parseError);
             return NextResponse.json({
                 error: 'Failed to read PDF text. Please try a different PDF or enter manually.',
             }, { status: 400 });
@@ -107,6 +108,8 @@ export async function POST(request: NextRequest) {
         // ── Step 2: Sanitize and send text to Groq LLM ─────────────
         const sanitizedPdfText = sanitizeForPrompt(pdfText.substring(0, 8000));
 
+        console.log('Sending to Groq... Text length:', sanitizedPdfText.length);
+
         const completion = await groq.chat.completions.create({
             model: 'llama-3.3-70b-versatile',
             messages: [
@@ -119,6 +122,8 @@ export async function POST(request: NextRequest) {
             max_tokens: 4000,
             temperature: 0.1,
         });
+
+        console.log('Groq response received successfully');
 
         const responseText = completion.choices[0]?.message?.content || '';
 
@@ -139,6 +144,7 @@ export async function POST(request: NextRequest) {
                 throw new Error('No JSON found in response');
             }
         } catch (parseError) {
+            console.error('JSON PARSE ERROR:', parseError);
             parsedData = {};
         }
 
@@ -214,9 +220,12 @@ export async function POST(request: NextRequest) {
             message: 'Extracted using Groq llama-3.3-70b-versatile',
         });
 
-    } catch (error) {
+    } catch (error: any) {
+        console.error('INGEST API ERROR:', error?.message || error);
+        console.error('INGEST API STACK:', error?.stack);
         return NextResponse.json({
             error: 'Failed to process PDF due to an internal server error',
+            details: error instanceof Error ? error.message : String(error),
         }, { status: 500 });
     }
 }
