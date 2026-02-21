@@ -7,6 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatCompensation(amount: number | undefined | null, roleType?: string): string {
   if (amount === undefined || amount === null) return 'N/A';
+  if (amount === 0) return 'Prefer not to say';
 
   const formatter = new Intl.NumberFormat('en-IN', {
     maximumFractionDigits: 2,
