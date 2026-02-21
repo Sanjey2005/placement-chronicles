@@ -25,6 +25,9 @@ export default function LoginPage() {
             const result = await login(formData);
 
             if (result.success) {
+                // Remove disclaimer flag so it shows on every login
+                sessionStorage.removeItem('disclaimerShown');
+
                 // Set session cookie with role info
                 const isAdmin = result.role === 'ADMIN';
 

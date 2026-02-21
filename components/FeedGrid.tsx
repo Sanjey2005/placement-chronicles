@@ -293,6 +293,14 @@ export default function FeedGrid({ experiences, companies, batches }: FeedGridPr
             {totalPages > 1 && (
                 <div className="flex justify-center items-center gap-4 pt-8 pb-4">
                     <button
+                        onClick={() => setCurrentPage(1)}
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 bg-white/10 hover:bg-white/20 disabled:hover:bg-white/10 disabled:opacity-50 border border-white/20 rounded-lg text-white transition-all text-sm font-semibold"
+                    >
+                        Go to Beginning
+                    </button>
+
+                    <button
                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                         disabled={currentPage === 1}
                         className="px-4 py-2 bg-white/10 hover:bg-white/20 disabled:hover:bg-white/10 disabled:opacity-50 border border-white/20 rounded-lg text-white transition-all text-sm font-semibold"
