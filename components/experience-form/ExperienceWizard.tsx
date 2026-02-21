@@ -374,7 +374,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                     </motion.div>
 
                     {/* Progress Indicator */}
-                    <div className="mb-8 sm:mb-10 max-w-xl mx-auto overflow-x-auto overflow-y-visible pb-4 scrollbar-hide">
+                    <div className="mb-8 sm:mb-10 max-w-xl mx-auto px-2">
                         <div className="flex items-center justify-between min-w-[280px]">
                             {STEPS.map((step, index) => (
                                 <div key={step.id} className="flex items-center" style={{ flex: index < STEPS.length - 1 ? 1 : 'none' }}>
@@ -384,7 +384,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                                             className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-sm sm:text-base transition-all duration-300 ${currentStep > step.id
                                                 ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.4)]'
                                                 : currentStep === step.id
-                                                    ? 'bg-white text-black shadow-[0_0_0_4px_rgba(255,255,255,0.2),0_0_20px_rgba(255,255,255,0.4)]'
+                                                    ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.3)]'
                                                     : 'bg-zinc-800/50 text-zinc-600 border border-zinc-700'
                                                 }`}
                                         >
