@@ -7,6 +7,9 @@ import { experienceFormSchema } from '@/lib/schemas/experience-schema';
 import { escapeRegex, sanitizeObject } from '@/lib/sanitize';
 import { moderateExperience } from '@/lib/moderation';
 import { groqApiRateLimit } from '@/lib/ratelimit';
+import { batchBackupAndDelete } from '@/lib/backup';
+
+const MAX_DOCUMENTS = 5000;
 
 // Helper function to generate searchable text from experience data
 function generateSearchText(data: any): string {
@@ -133,6 +136,23 @@ export async function POST(request: NextRequest) {
 
         // Update data with normalized company name
         validatedData.company = finalCompanyName;
+
+        // ── FIFO Storage Limit: Archive oldest when at limit, flush when 5+ archived ──
+        const currentCount = await Experience.countDocuments({ status: { $ne: 'ARCHIVED' } });
+        if (currentCount >= MAX_DOCUMENTS) {
+            const oldest = await Experience.findOne({ status: { $ne: 'ARCHIVED' } }).sort({ createdAt: 1 });
+            if (oldest) {
+                await Experience.findByIdAndUpdate(oldest._id, { status: 'ARCHIVED' });
+                const archivedCount = await Experience.countDocuments({ status: 'ARCHIVED' });
+                if (archivedCount >= 5) {
+                    const archivedData = await Experience.find({ status: 'ARCHIVED' }).lean();
+                    const backedUpSuccessfully = await batchBackupAndDelete(archivedData);
+                    if (backedUpSuccessfully) {
+                        await Experience.deleteMany({ status: 'ARCHIVED' });
+                    }
+                }
+            }
+        }
 
         // Generate searchable text and try embedding (non-blocking)
         const searchText = generateSearchText(validatedData);
