@@ -110,7 +110,16 @@ export async function POST(request: NextRequest) {
         }
 
         try {
-            const moderationResult = await moderateExperience(validatedData);
+            // ── Fetch existing companies to guide LLM normalization ──
+            let existingCompaniesList: string[] = [];
+            try {
+                const allCompanies = await Company.find({}).select('canonicalName').lean();
+                existingCompaniesList = allCompanies.map((c: any) => c.canonicalName);
+            } catch (err) {
+                console.error('Failed to fetch existing companies for moderation:', err);
+            }
+
+            const moderationResult = await moderateExperience(validatedData, existingCompaniesList);
 
             // 1. Handle Normalization
             if (moderationResult.canonicalCompanyName) {
