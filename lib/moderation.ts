@@ -31,7 +31,7 @@ export async function moderateExperience(data: any): Promise<ModerationResult> {
                     content: `You are an expert Content Moderator and Data Normalizer for a student placement platform. 
 Your task is to analyze interview experience submissions.
 
-DO TWO THINGS:
+DO THREE THINGS:
 1. MODERATION: Check for:
    - Gibberish/Spam (e.g., 'asdf asdf', random characters)
    - Hate Speech/Abuse (offensive, discriminatory language)
@@ -43,6 +43,11 @@ DO TWO THINGS:
    - "Jp morgan" -> "J.P. Morgan"
    - "amazon web services" -> "Amazon" (or AWS if that's the common entity, but prefer parent company if generic)
    - If the company is unknown or startup, just capitalize it properly.
+
+3. ROLE VALIDATION: Check if the "role" field contains an actual job role/title.
+   - Flag as UNSAFE if the role is actually a degree or course name (e.g., "M.Sc Data Science", "BTech CSE", "MBA Finance", "B.E. Mechanical", "MSc Physics").
+   - Valid roles are job titles like: "Software Engineer", "Data Analyst", "Junior Analyst", "SDE Intern", "Business Analyst", "Consultant", "Research Associate", etc.
+   - If the role looks like a degree/course instead of a job title, set isSafe to false with reason "Role field contains a degree/course name instead of a job title".
 
 Return ONLY valid JSON:
 {

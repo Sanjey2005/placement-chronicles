@@ -4,6 +4,7 @@ import Experience from '@/models/Experience';
 import Company from '@/models/Company';
 import { getEmbedding } from '@/lib/vector';
 import { experienceFormSchema } from '@/lib/schemas/experience-schema';
+import AdminLog from '@/models/AdminLog';
 import { escapeRegex, sanitizeObject } from '@/lib/sanitize';
 import { moderateExperience } from '@/lib/moderation';
 import { groqApiRateLimit } from '@/lib/ratelimit';
@@ -202,6 +203,33 @@ export async function POST(request: NextRequest) {
         });
 
         const savedExperience = await experience.save();
+
+        // ── Activity Log: Record submission + moderation outcome ──
+        try {
+            const now = new Date();
+            const dateStr = now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+            const studentLabel = validatedData.studentName || 'Unknown';
+            let logDetails = '';
+
+            if (status === 'APPROVED') {
+                logDetails = `${studentLabel} uploaded an experience for ${validatedData.company} (${validatedData.role}) on ${dateStr} — auto-approved by Groq moderation`;
+            } else if (status === 'FLAGGED') {
+                logDetails = `${studentLabel} uploaded an experience for ${validatedData.company} (${validatedData.role}) on ${dateStr} — flagged for admin review: ${moderationReason}`;
+            } else {
+                logDetails = `${studentLabel} uploaded an experience for ${validatedData.company} (${validatedData.role}) on ${dateStr} — pending review`;
+            }
+
+            await AdminLog.create({
+                action: status === 'APPROVED' ? 'AUTO_APPROVE' : status === 'FLAGGED' ? 'FLAG' : 'SUBMIT',
+                adminId: 'system',
+                targetId: savedExperience._id.toString(),
+                details: logDetails,
+                rollNumber: studentLabel,
+            });
+        } catch (logError) {
+            // Non-critical: don't block submission if logging fails
+            console.error('Failed to create activity log:', logError);
+        }
 
         return NextResponse.json({
             success: true,

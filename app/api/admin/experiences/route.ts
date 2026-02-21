@@ -109,7 +109,7 @@ export async function PATCH(request: NextRequest) {
             action: action.toUpperCase(),
             adminId: 'sanjey$12',
             targetId: id,
-            details: `${action.toUpperCase()} experience by ${(experience as any).studentName || 'Unknown'} at ${(experience as any).company || 'Unknown'}`,
+            details: `Admin ${action.toLowerCase() === 'approve' ? 'approved' : 'rejected'} experience uploaded by ${(experience as any).studentName || 'Unknown'} for ${(experience as any).company || 'Unknown'} (${(experience as any).role || 'Unknown role'})`,
             rollNumber: (experience as any).studentId, // Capture student roll number
         });
 
@@ -161,7 +161,7 @@ export async function DELETE(request: NextRequest) {
             action: 'DELETE',
             adminId: 'sanjey$12',
             targetId: id,
-            details: `Permanently deleted experience by ${(experience as any).studentName || 'Unknown'} at ${(experience as any).company || 'Unknown'}`,
+            details: `Admin permanently deleted experience uploaded by ${(experience as any).studentName || 'Unknown'} for ${(experience as any).company || 'Unknown'} (${(experience as any).role || 'Unknown role'})`,
             rollNumber: (experience as any).studentId, // Capture student roll number
         });
 

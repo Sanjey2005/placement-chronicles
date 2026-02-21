@@ -185,8 +185,7 @@ export async function getAllExperiences(): Promise<{
         const serializedExperiences = experiences.map(exp => ({
             ...exp,
             _id: (exp._id as any).toString(),
-            studentId: undefined, // Fix Data Leakage (remove PII)
-            studentName: undefined, // Fix Data Leakage (remove PII)
+            studentId: undefined, // Fix Data Leakage (remove PII — roll number)
             company: exp.company || '',
             role: exp.role || '',
             ctc: exp.ctc || 0,
