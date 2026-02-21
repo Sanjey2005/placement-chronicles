@@ -36,5 +36,23 @@ export async function GET(request: NextRequest) {
     }
 }
 
+// DELETE: Clear all activity logs
+export async function DELETE(request: NextRequest) {
+    if (!requireAdmin(request)) {
+        return NextResponse.json({ success: false, error: 'Forbidden: Admin access only' }, { status: 403 });
+    }
+
+    try {
+        await dbConnect();
+        await AdminLog.deleteMany({});
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        return NextResponse.json(
+            { success: false, error: 'An internal server error occurred while clearing logs' },
+            { status: 500 }
+        );
+    }
+}
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

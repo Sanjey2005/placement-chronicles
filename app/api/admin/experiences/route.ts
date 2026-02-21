@@ -107,10 +107,9 @@ export async function PATCH(request: NextRequest) {
         // Create admin log entry
         await AdminLog.create({
             action: action.toUpperCase(),
-            adminId: 'sanjey$12',
+            adminId: 'admin',
             targetId: id,
-            details: `Admin ${action.toLowerCase() === 'approve' ? 'approved' : 'rejected'} experience uploaded by ${(experience as any).studentName || 'Unknown'} for ${(experience as any).company || 'Unknown'} (${(experience as any).role || 'Unknown role'})`,
-            rollNumber: (experience as any).studentId, // Capture student roll number
+            details: `${(experience as any).studentName || 'Unknown'} uploaded an experience for ${(experience as any).company || 'Unknown'}`,
         });
 
         return NextResponse.json({
@@ -159,10 +158,9 @@ export async function DELETE(request: NextRequest) {
         // Create admin log entry
         await AdminLog.create({
             action: 'DELETE',
-            adminId: 'sanjey$12',
+            adminId: 'admin',
             targetId: id,
-            details: `Admin permanently deleted experience uploaded by ${(experience as any).studentName || 'Unknown'} for ${(experience as any).company || 'Unknown'} (${(experience as any).role || 'Unknown role'})`,
-            rollNumber: (experience as any).studentId, // Capture student roll number
+            details: `${(experience as any).studentName || 'Unknown'} uploaded an experience for ${(experience as any).company || 'Unknown'}`,
         });
 
         return NextResponse.json({ success: true });

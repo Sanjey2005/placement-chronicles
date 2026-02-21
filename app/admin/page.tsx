@@ -489,38 +489,39 @@ export default function AdminDashboard() {
                                 ) : (
                                     logs.map((log) => (
                                         <div key={log._id} className="px-4 py-3 flex items-start gap-3 hover:bg-white/5 transition-colors">
-                                            <div className={`mt-0.5 p-1.5 rounded-lg ${log.action === 'APPROVE'
+                                            <div className={`mt-0.5 p-1.5 rounded-lg ${log.action === 'APPROVE' || log.action === 'AUTO_APPROVE'
                                                 ? 'bg-emerald-500/20 text-emerald-300'
                                                 : log.action === 'REJECT'
                                                     ? 'bg-rose-500/20 text-rose-300'
                                                     : log.action === 'DELETE'
                                                         ? 'bg-red-500/20 text-red-300'
-                                                        : 'bg-white/10 text-white/60'
+                                                        : log.action === 'FLAG'
+                                                            ? 'bg-amber-500/20 text-amber-300'
+                                                            : 'bg-white/10 text-white/60'
                                                 }`}>
-                                                {log.action === 'APPROVE' && <CheckCircle2 className="h-3.5 w-3.5" />}
+                                                {(log.action === 'APPROVE' || log.action === 'AUTO_APPROVE') && <CheckCircle2 className="h-3.5 w-3.5" />}
                                                 {log.action === 'REJECT' && <XCircle className="h-3.5 w-3.5" />}
                                                 {log.action === 'DELETE' && <Trash2 className="h-3.5 w-3.5" />}
-                                                {!['APPROVE', 'REJECT', 'DELETE'].includes(log.action) && <Activity className="h-3.5 w-3.5" />}
+                                                {log.action === 'FLAG' && <AlertTriangle className="h-3.5 w-3.5" />}
+                                                {!['APPROVE', 'AUTO_APPROVE', 'REJECT', 'DELETE', 'FLAG'].includes(log.action) && <Activity className="h-3.5 w-3.5" />}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm text-white/80">
                                                     <span className="font-medium text-white">{log.adminId}</span>
                                                     {' '}
-                                                    <span className={`font-semibold ${log.action === 'APPROVE' ? 'text-emerald-400' :
+                                                    <span className={`font-semibold ${log.action === 'APPROVE' || log.action === 'AUTO_APPROVE' ? 'text-emerald-400' :
                                                         log.action === 'REJECT' ? 'text-rose-400' :
-                                                            log.action === 'DELETE' ? 'text-red-400' : 'text-white/60'
+                                                            log.action === 'DELETE' ? 'text-red-400' :
+                                                                log.action === 'FLAG' ? 'text-amber-400' : 'text-white/60'
                                                         }`}>
-                                                        {log.action.toLowerCase()}d
+                                                        {log.action === 'AUTO_APPROVE' ? 'auto_approved' :
+                                                            log.action === 'FLAG' ? 'flagged' :
+                                                                `${log.action.toLowerCase()}d`}
                                                     </span>
                                                     {' '}an experience
                                                 </p>
                                                 <p className="text-xs text-white/50 mt-0.5 truncate">
                                                     {log.details}
-                                                    {log.rollNumber && (
-                                                        <span className="ml-2 text-white/30 font-mono">
-                                                            (Student ID: {log.rollNumber})
-                                                        </span>
-                                                    )}
                                                 </p>
                                             </div>
                                             <span className="text-xs text-white/30 whitespace-nowrap">
@@ -529,6 +530,7 @@ export default function AdminDashboard() {
                                                     month: 'short',
                                                     hour: '2-digit',
                                                     minute: '2-digit',
+                                                    hour12: true,
                                                 })}
                                             </span>
                                         </div>
