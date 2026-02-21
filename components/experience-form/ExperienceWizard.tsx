@@ -64,15 +64,35 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
             const savedDraft = localStorage.getItem('experience-form-draft');
             if (savedDraft) {
                 try {
-                    const parsedDraft = JSON.parse(savedDraft);
-                    // Check if draft is essentially empty or has meaningful data
-                    if (Object.keys(parsedDraft).length > 0) {
-                        console.log('📦 Loading saved draft:', parsedDraft);
-                        reset(parsedDraft);
+                    const parsed = JSON.parse(savedDraft);
+                    const now = Date.now();
+                    const EXPIRATION_TIME = 30 * 60 * 1000; // 30 minutes in ms
+
+                    // Backward compatibility: If it's an old draft without a timestamp, or it's new and within 30 min
+                    let draftData = null;
+
+                    if (parsed.timestamp && parsed.data) {
+                        // New format
+                        if (now - parsed.timestamp < EXPIRATION_TIME) {
+                            draftData = parsed.data;
+                        } else {
+                            console.log('🗑️ Draft expired (older than 30 mins)');
+                            localStorage.removeItem('experience-form-draft');
+                            // We don't toast an error here so as not to annoy the user, just silently start fresh
+                        }
+                    } else if (Object.keys(parsed).length > 0 && !parsed.timestamp) {
+                        // Old format (fallback)
+                        draftData = parsed;
+                    }
+
+                    if (draftData && Object.keys(draftData).length > 0) {
+                        console.log('📦 Loading saved draft:', draftData);
+                        reset(draftData);
                         toast.info('Restored your saved progress');
                     }
                 } catch (e) {
                     console.error('Failed to parse draft', e);
+                    localStorage.removeItem('experience-form-draft');
                 }
             }
         }
@@ -82,7 +102,11 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
     useEffect(() => {
         const subscription = form.watch((value) => {
             if (Object.keys(value).length > 0) {
-                localStorage.setItem('experience-form-draft', JSON.stringify(value));
+                const payload = {
+                    timestamp: Date.now(),
+                    data: value
+                };
+                localStorage.setItem('experience-form-draft', JSON.stringify(payload));
             }
         });
         return () => subscription.unsubscribe();
@@ -166,8 +190,12 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
 
                 reset(newData);
 
-                // Force save to local storage immediately
-                localStorage.setItem('experience-form-draft', JSON.stringify(newData));
+                // Force save to local storage immediately with timestamp
+                const payload = {
+                    timestamp: Date.now(),
+                    data: newData
+                };
+                localStorage.setItem('experience-form-draft', JSON.stringify(payload));
 
                 toast.success('PDF data extracted! Please review the pre-filled information.');
                 // Stay on current step so user can review Basic Info first
@@ -251,6 +279,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
             setCurrentStep(1);
             setPendingData(null);
             setIsDisclaimerOpen(false);
+            localStorage.removeItem('experience-form-draft'); // Clear cache on success
         } catch (error) {
             toast.error('Failed to submit experience');
             console.error('Submit error:', error);
