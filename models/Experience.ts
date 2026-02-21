@@ -78,7 +78,7 @@ export interface IExperience extends Document {
     finalVerdict?: 'selected' | 'rejected'; // NEW
     tipsForJuniors?: string; // NEW
     overallExperience?: string; // NEW
-    status: 'PENDING' | 'APPROVED' | 'FLAGGED' | 'REJECTED';
+    status: 'PENDING' | 'APPROVED' | 'FLAGGED' | 'REJECTED' | 'ARCHIVED';
     moderationReason?: string;
     embedding?: number[];
     tags?: string[];
@@ -172,7 +172,7 @@ const ExperienceSchema = new Schema<IExperience>(
         },
         status: {
             type: String,
-            enum: ['PENDING', 'APPROVED', 'FLAGGED', 'REJECTED'],
+            enum: ['PENDING', 'APPROVED', 'FLAGGED', 'REJECTED', 'ARCHIVED'],
             default: 'PENDING',
             index: true,
         },

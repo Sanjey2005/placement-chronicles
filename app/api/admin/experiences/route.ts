@@ -3,6 +3,8 @@ import dbConnect from '@/lib/db';
 import Experience from '@/models/Experience';
 import AdminLog from '@/models/AdminLog';
 import { requireAdmin } from '@/lib/auth-check';
+import mongoose from 'mongoose';
+import { batchBackupAndDelete } from '@/lib/backup';
 
 // GET: Fetch experiences with optional status filter
 export async function GET(request: NextRequest) {
@@ -144,7 +146,28 @@ export async function DELETE(request: NextRequest) {
             );
         }
 
-        await Experience.findByIdAndDelete(id);
+        // SOFT DELETE: Move to ARCHIVED instead of permanent deletion
+        await Experience.findByIdAndUpdate(id, { status: 'ARCHIVED' });
+
+        // MONGODB STORAGE LIMIT CHECK: Only flush if we're hitting 450MB near the 512MB limit
+        if (mongoose.connection.db) {
+            const stats = await mongoose.connection.db.command({ dbStats: 1 });
+            const dataSizeMB = stats.dataSize / (1024 * 1024); // Convert Bytes to MB
+
+            if (dataSizeMB > 450) {
+                const archivedCount = await Experience.countDocuments({ status: 'ARCHIVED' });
+
+                // FLUSH PROTOCOL: Over 5 queued and storage is choked
+                if (archivedCount >= 5) {
+                    const archivedData = await Experience.find({ status: 'ARCHIVED' }).lean();
+                    const backedUpSuccessfully = await batchBackupAndDelete(archivedData);
+
+                    if (backedUpSuccessfully) {
+                        await Experience.deleteMany({ status: 'ARCHIVED' });
+                    }
+                }
+            }
+        }
 
         // Create admin log entry
         await AdminLog.create({
