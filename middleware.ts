@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { get } from '@vercel/edge-config';
+import { globalApiRateLimit } from './lib/ratelimit';
 
 // Public routes that don't require authentication
 const publicRoutes = ['/login', '/api/auth'];
@@ -46,6 +47,24 @@ export async function middleware(request: NextRequest) {
     // --- END EDGE CONFIG PROTECTION ---
 
     const { pathname } = request.nextUrl;
+
+    // --- GENERIC API RATE LIMITING (Upstash Redis) ---
+    console.log('Middleware Path:', pathname, 'HasRateLimit:', !!globalApiRateLimit);
+    if (pathname.startsWith('/api') && globalApiRateLimit) {
+        const ip = request.headers.get('x-real-ip') || request.headers.get('x-forwarded-for') || '127.0.0.1';
+        try {
+            const { success } = await globalApiRateLimit.limit(ip);
+            if (!success) {
+                return NextResponse.json(
+                    { error: 'Too Many Requests: Rate limit exceeded. Please try again later.' },
+                    { status: 429 }
+                );
+            }
+        } catch (error) {
+            // Fail open if Redis is unreachable
+        }
+    }
+    // --- END RATE LIMITING ---
 
     // Check if the route is public
     const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));

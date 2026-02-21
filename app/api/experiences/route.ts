@@ -6,6 +6,7 @@ import { getEmbedding } from '@/lib/vector';
 import { experienceFormSchema } from '@/lib/schemas/experience-schema';
 import { escapeRegex, sanitizeObject } from '@/lib/sanitize';
 import { moderateExperience } from '@/lib/moderation';
+import { groqApiRateLimit } from '@/lib/ratelimit';
 
 // Helper function to generate searchable text from experience data
 function generateSearchText(data: any): string {
@@ -50,6 +51,25 @@ export async function POST(request: NextRequest) {
         let status: 'APPROVED' | 'FLAGGED' | 'PENDING' = 'PENDING';
         let moderationReason: string | null = null;
         let finalCompanyName = validatedData.company; // Default to user input
+
+        // ── Check Groq Global Limit (45 RPM) ────────────────────────
+        if (groqApiRateLimit) {
+            try {
+                // Use a single static key to enforce the global limit across all users
+                const { success } = await groqApiRateLimit.limit('global_groq_throttle_key');
+                if (!success) {
+                    return NextResponse.json(
+                        {
+                            success: false,
+                            error: 'AI processing is currently at capacity. Please try again in 60 seconds.',
+                        },
+                        { status: 429, headers: { 'Retry-After': '60' } }
+                    );
+                }
+            } catch (limitError) {
+                // Fail open on Redis failure, fall through to moderation attempt
+            }
+        }
 
         try {
             const moderationResult = await moderateExperience(validatedData);
