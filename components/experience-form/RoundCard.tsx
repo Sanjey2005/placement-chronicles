@@ -182,7 +182,7 @@ export default function RoundCard({ form, index, onRemove }: RoundCardProps) {
                             <div>
                                 <div className="flex items-center justify-between mb-3">
                                     <label className="text-white font-semibold">
-                                        Questions <span className="text-red-400">*</span>
+                                        Questions <span className="text-white/40 text-sm font-normal">(Optional if Notes provided)</span>
                                     </label>
                                     <button
                                         type="button"
@@ -230,6 +230,9 @@ export default function RoundCard({ form, index, onRemove }: RoundCardProps) {
                                             </div>
                                         ))}
                                     </div>
+                                )}
+                                {roundError && 'questions' in roundError && (
+                                    <p className="mt-2 text-sm text-red-400">{(roundError as any).questions?.message}</p>
                                 )}
                             </div>
 

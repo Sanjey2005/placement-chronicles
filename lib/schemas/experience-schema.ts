@@ -45,12 +45,32 @@ export const interviewRoundSchema = z.object({
     interviewType: z.enum(['technical', 'hr', 'managerial', 'mixed']).default('technical'),
     questions: z.array(
         z.object({
-            question: z.string().min(3, 'Question must be at least 3 characters'),
-            answerTip: z.string().default(''),
+            question: z.string().optional().default(''),
+            answerTip: z.string().optional().default(''),
+        }).superRefine((val, ctx) => {
+            if ((val.question?.trim().length || 0) === 0 && (val.answerTip?.trim().length || 0) === 0) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "Please provide either a Question or an Answer/Tip",
+                    path: ["question"],
+                });
+            }
         })
     ).optional().default([]),
     notes: z.string().default(''),
     duration: z.string().default(''),
+}).superRefine((val, ctx) => {
+    // Need at least one valid question OR some notes
+    const hasValidQuestions = val.questions && val.questions.length > 0;
+    const hasNotes = val.notes.trim().length > 0;
+
+    if (!hasValidQuestions && !hasNotes) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Please add at least one Question or provide Additional Notes for this interview round.",
+            path: ["questions"], // Attach to questions for UI
+        });
+    }
 });
 
 // Discriminated Union for all round types
