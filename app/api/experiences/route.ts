@@ -217,12 +217,16 @@ export async function POST(request: NextRequest) {
         // ── Activity Log: Record submission + moderation outcome ──
         try {
             const studentLabel = validatedData.studentName || 'Unknown';
+            // Fallback to anonymous if studentId is not properly populated yet
+            const rollNumber = experience.studentId && experience.studentId !== 'anonymous'
+                ? experience.studentId
+                : '(Roll Number missing)';
 
             await AdminLog.create({
                 action: status === 'APPROVED' ? 'AUTO_APPROVE' : status === 'FLAGGED' ? 'FLAG' : 'SUBMIT',
                 adminId: 'system',
                 targetId: savedExperience._id.toString(),
-                details: `${studentLabel} uploaded an experience for ${validatedData.company}`,
+                details: `${studentLabel} (${rollNumber}) uploaded an experience for ${validatedData.company}`,
             });
         } catch (logError) {
             // Non-critical: don't block submission if logging fails
