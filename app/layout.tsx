@@ -15,25 +15,71 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Placement Chronicles - Real Interview & PSG placement experiences",
-  description: "Share and explore real placement interview and PSG placement experiences from students on Placement Chronicles",
+  metadataBase: new URL('https://placement-chronicles.vercel.app'),
+  title: "Placement Chronicles",
+  description: "Share and explore real placement interview and PSG placement experiences from students on Placement Chronicles. The ultimate platform for PSG Tech placement preparation.",
+  keywords: ["PSG Tech", "PSG placement experiences", "Interview experiences", "Placement Chronicles", "PSG College of Technology", "Placement preparation", "Engineering interview reviews"],
+  authors: [{ name: "Placement Chronicles Team" }],
+  creator: "Placement Chronicles Team",
+  publisher: "Placement Chronicles",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
   icons: {
     icon: '/logo.png',
     apple: '/logo.png',
+    shortcut: '/logo.png',
   },
   openGraph: {
-    title: 'Placement Chronicles - Real Interview & PSG placement experiences',
-    description: 'Share and explore real placement interview and PSG placement experiences from students on Placement Chronicles',
-    type: 'website',
+    title: 'Placement Chronicles',
+    description: 'Real PSG placement experiences and interview insights. Help your juniors by sharing your journey.',
+    url: 'https://placement-chronicles.vercel.app',
     siteName: 'Placement Chronicles',
+    images: [
+      {
+        url: '/logo.png',
+        width: 800,
+        height: 600,
+        alt: 'Placement Chronicles Logo',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Placement Chronicles',
+    description: 'Real PSG placement experiences and interview insights.',
     images: ['/logo.png'],
   },
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
   verification: {
     google: "oCIVvhLTTOFxdKNSyQJweFSclxzsJTnnE_IoH8dj45w",
+  },
+};
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Placement Chronicles',
+  url: 'https://placement-chronicles.vercel.app',
+  description: 'A community-driven platform for PSG Tech students to share and explore placement interview experiences.',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: 'https://placement-chronicles.vercel.app/search?q={search_term_string}',
+    'query-input': 'required name=search_term_string',
   },
 };
 
@@ -44,6 +90,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
