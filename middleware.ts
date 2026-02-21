@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { get } from '@vercel/edge-config';
 
 // Public routes that don't require authentication
 const publicRoutes = ['/login', '/api/auth'];
@@ -14,7 +15,36 @@ const protectedApiRoutes = ['/api/chat', '/api/ingest', '/api/experiences'];
 const adminRoutes = ['/admin'];
 const adminApiRoutes = ['/api/admin'];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
+    // --- EDGE CONFIG PROTECTION (placement-chronicles-store) ---
+    try {
+        // 1. Maintenance Mode Switch: Kills the site if under massive attack
+        const maintenanceMode = await get('maintenance_mode');
+        if (maintenanceMode) {
+            return NextResponse.json(
+                { error: 'Site is temporarily down for maintenance. Please try again later.' },
+                { status: 503 }
+            );
+        }
+
+        // 2. IP Blocking: Denies access to specific malicious IPs
+        const blockedIps = await get('blocked_ips') as string[] | undefined;
+        if (blockedIps && Array.isArray(blockedIps)) {
+            const ip = request.headers.get('x-real-ip') || request.headers.get('x-forwarded-for') || 'Unknown IP';
+
+            if (blockedIps.includes(ip)) {
+                return NextResponse.json(
+                    { error: 'Access Denied: Your IP has been blocked due to suspicious activity.' },
+                    { status: 403 }
+                );
+            }
+        }
+    } catch (error) {
+        // Fallback: If edge config isn't hooked up yet, log and bypass so normal traffic continues
+        console.warn('Vercel Edge Config not configured or failed to fetch. Ensure EDGE_CONFIG is set.', error);
+    }
+    // --- END EDGE CONFIG PROTECTION ---
+
     const { pathname } = request.nextUrl;
 
     // Check if the route is public
