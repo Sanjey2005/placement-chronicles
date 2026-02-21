@@ -52,7 +52,7 @@ export default function Footer() {
                             {/* Social Links */}
                             <a
                                 href="mailto:sanjey8105@gmail.com"
-                                className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 hover:text-blue-400 transition-all border border-white/10"
+                                className="p-2.5 rounded-full bg-white/5 text-white/70 hover:bg-white/10 hover:text-blue-400 transition-all border border-white/10"
                                 aria-label="Email"
                             >
                                 <Mail className="h-4 w-4" />
@@ -61,7 +61,7 @@ export default function Footer() {
                                 href="https://www.linkedin.com/in/shree-sanjey-404547285?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 hover:text-blue-600 transition-all border border-white/10"
+                                className="p-2.5 rounded-full bg-white/5 text-white/70 hover:bg-white/10 hover:text-blue-600 transition-all border border-white/10"
                                 aria-label="LinkedIn"
                             >
                                 <Linkedin className="h-4 w-4" />
