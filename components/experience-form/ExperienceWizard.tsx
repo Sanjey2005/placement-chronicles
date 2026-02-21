@@ -374,14 +374,14 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                     </motion.div>
 
                     {/* Progress Indicator */}
-                    <div className="mb-8 sm:mb-10 max-w-xl mx-auto overflow-x-auto pb-4 scrollbar-hide">
-                        <div className="flex items-center justify-between min-w-[300px]">
+                    <div className="mb-8 sm:mb-10 max-w-xl mx-auto overflow-x-auto overflow-y-visible pb-4 scrollbar-hide">
+                        <div className="flex items-center justify-between min-w-[280px]">
                             {STEPS.map((step, index) => (
                                 <div key={step.id} className="flex items-center" style={{ flex: index < STEPS.length - 1 ? 1 : 'none' }}>
                                     {/* Step circle + label */}
-                                    <div className="flex flex-col items-center" style={{ minWidth: '80px' }}>
+                                    <div className="flex flex-col items-center" style={{ minWidth: '70px' }}>
                                         <div
-                                            className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all duration-300 ${currentStep > step.id
+                                            className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-sm sm:text-base transition-all duration-300 ${currentStep > step.id
                                                 ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.4)]'
                                                 : currentStep === step.id
                                                     ? 'bg-white text-black shadow-[0_0_0_4px_rgba(255,255,255,0.2),0_0_20px_rgba(255,255,255,0.4)]'
@@ -389,22 +389,22 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                                                 }`}
                                         >
                                             {currentStep > step.id ? (
-                                                <Check className="h-6 w-6" />
+                                                <Check className="h-5 w-5 sm:h-6 sm:w-6" />
                                             ) : (
                                                 step.id
                                             )}
                                         </div>
-                                        <div className="mt-3 text-center">
-                                            <p className={`text-sm font-semibold transition-colors ${currentStep >= step.id ? 'text-white' : 'text-zinc-600'}`}>
+                                        <div className="mt-2 sm:mt-3 text-center">
+                                            <p className={`text-xs sm:text-sm font-semibold transition-colors ${currentStep >= step.id ? 'text-white' : 'text-zinc-600'}`}>
                                                 {step.name}
                                             </p>
-                                            <p className="text-xs text-zinc-600 mt-0.5">{step.description}</p>
+                                            <p className="text-[10px] sm:text-xs text-zinc-600 mt-0.5">{step.description}</p>
                                         </div>
                                     </div>
                                     {/* Connector line */}
                                     {index < STEPS.length - 1 && (
                                         <div
-                                            className={`h-0.5 flex-1 mx-4 rounded transition-all duration-300 self-start mt-6 ${currentStep > step.id ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'bg-zinc-800'
+                                            className={`h-0.5 flex-1 mx-2 sm:mx-4 rounded transition-all duration-300 self-start mt-5 sm:mt-6 ${currentStep > step.id ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'bg-zinc-800'
                                                 }`}
                                         />
                                     )}

@@ -314,7 +314,7 @@ export default function AdminDashboard() {
                     </div>
 
                     {/* Tab Switcher */}
-                    <div className="flex items-center gap-2 mb-6">
+                    <div className="flex flex-wrap items-center gap-2 mb-6">
                         <button
                             onClick={() => setActiveTab('table')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'table'
@@ -424,7 +424,7 @@ export default function AdminDashboard() {
                                                         {exp.moderationReason || '—'}
                                                     </td>
                                                     <td className="px-4 py-3 text-right">
-                                                        <div className="flex items-center justify-end gap-1.5">
+                                                        <div className="flex flex-wrap items-center justify-end gap-1.5">
                                                             {exp.status === 'FLAGGED' && (
                                                                 <button
                                                                     onClick={() => setReviewExperience(exp)}

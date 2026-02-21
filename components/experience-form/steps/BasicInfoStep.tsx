@@ -84,7 +84,7 @@ export default function BasicInfoStep({ form }: BasicInfoStepProps) {
                 <div>
                     <Label className="flex items-center gap-2 text-white font-semibold mb-2">
                         <Calendar className="h-4 w-4" />
-                        Batch Year
+                        Batch Year (Year of Passing Out)
                     </Label>
                     <Select
                         onValueChange={(value) => {
