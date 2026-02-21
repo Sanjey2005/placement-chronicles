@@ -18,7 +18,10 @@ export default function Navbar() {
         const getCookie = (name: string) => {
             const value = `; ${document.cookie}`;
             const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop()?.split(';').shift();
+            if (parts.length === 2) {
+                const encodedCookie = parts.pop()?.split(';').shift();
+                return encodedCookie ? decodeURIComponent(encodedCookie) : undefined;
+            }
         };
 
         const token = getCookie('auth-token');
