@@ -60,7 +60,7 @@ export default function ExperienceCard({
                 onClick={() => setModalOpen(true)}
                 className="cursor-pointer group"
             >
-                <div className="relative rounded-xl bg-slate-950/60 backdrop-blur-xl border border-white/[0.08] p-6 transition-all duration-300 hover:border-violet-500/30 hover:bg-slate-900/60 hover:shadow-[0_0_40px_-10px_rgba(139,92,246,0.15)]">
+                <article className="relative rounded-xl bg-slate-950/60 backdrop-blur-xl border border-white/[0.08] p-6 transition-all duration-300 hover:border-violet-500/30 hover:bg-slate-900/60 hover:shadow-[0_0_40px_-10px_rgba(139,92,246,0.15)]">
                     {/* Top accent line */}
                     <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-violet-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
@@ -154,7 +154,7 @@ export default function ExperienceCard({
                             View Details →
                         </span>
                     </div>
-                </div>
+                </article>
             </motion.div>
 
             {/* Detail Modal */}

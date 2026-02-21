@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 import dbConnect from '@/lib/db';
-import Experience from '@/models/Experience';
+import ExperienceChunk from '@/models/ExperienceChunk';
 import { getEmbedding, cosineSimilarity } from '@/lib/vector';
 import { chatRateLimiter } from '@/lib/redis';
 import { stripHtmlTags } from '@/lib/sanitize';
@@ -64,85 +64,92 @@ export async function POST(request: NextRequest) {
         // Connect to database
         await dbConnect();
 
-        // Step 1: Generate embedding for user's message (still using Gemini for embeddings)
+        // Step 1: LLM Entity Extraction for Metadata Pre-filtering (Phase 2)
+        let extractedCompany: string | null = null;
+        try {
+            const extractResponse = await groq.chat.completions.create({
+                messages: [
+                    {
+                        role: 'system',
+                        content: `Extract the company name the user is asking about. Return ONLY a JSON object: {"companyName": "extracted_name"}. If no specific company is mentioned, return {"companyName": null}.`
+                    },
+                    { role: 'user', content: userMessage }
+                ],
+                model: 'llama-3.3-70b-versatile',
+                temperature: 0,
+                response_format: { type: 'json_object' }
+            });
+
+            const content = extractResponse.choices[0]?.message?.content;
+            if (content) {
+                const parsed = JSON.parse(content);
+                extractedCompany = parsed.companyName;
+                console.log('🔍 Extracted entity:', extractedCompany);
+            }
+        } catch (extractErr) {
+            console.error('⚠️ Entity extraction failed:', extractErr);
+        }
+
+        // Step 2: Generate embedding for user's message
         let queryEmbedding: number[] = [];
         try {
             queryEmbedding = await getEmbedding(userMessage);
         } catch (embeddingError) {
-            console.warn('⚠️ Embedding generation failed, using fallback search:', embeddingError);
+            console.warn('⚠️ Embedding generation failed, skipping vector search:', embeddingError);
         }
 
-        // Step 2: Vector search OR fallback to text search
-        let scoredExperiences: any[] = [];
+        // Step 3: Hybrid Retrieval against ExperienceChunk (Phase 2)
+        let scoredChunks: any[] = [];
 
         if (queryEmbedding.length > 0) {
-            // Vector search
-            const allExperiences = await Experience.find({
-                embedding: { $exists: true, $ne: null },
-            })
-                .select('studentId company role ctc rounds tags year embedding')
-                .lean();
+            // Build base filter based on extracted metadata
+            const queryFilter: any = { embedding: { $exists: true, $ne: null } };
 
-            scoredExperiences = allExperiences
-                .map((exp: any) => ({
-                    ...exp,
-                    similarity: exp.embedding
-                        ? cosineSimilarity(queryEmbedding, exp.embedding)
+            if (extractedCompany) {
+                // Perform a case-insensitive regex match against companyName
+                queryFilter['metadata.companyName'] = { $regex: new RegExp(extractedCompany, 'i') };
+            }
+
+            // Fetch candidate chunks
+            const candidateChunks = await ExperienceChunk.find(queryFilter)
+                .select('text metadata embedding')
+                .lean()
+                .limit(100); // Limit pool size for in-memory cosine sim
+
+            // Strict similarity thresholding
+            const SIMILARITY_THRESHOLD = 0.50; // Increased threshold to drop hallucinated matches
+
+            scoredChunks = candidateChunks
+                .map((chunk: any) => ({
+                    ...chunk,
+                    similarity: chunk.embedding
+                        ? cosineSimilarity(queryEmbedding, chunk.embedding)
                         : 0,
                 }))
+                .filter((chunk: any) => chunk.similarity >= SIMILARITY_THRESHOLD)
                 .sort((a: any, b: any) => b.similarity - a.similarity)
-                .slice(0, 3);
-        } else {
-            // Fallback: Get recent experiences without vector search
-            const recentExperiences = await Experience.find({})
-                .select('studentId company role ctc rounds tags year')
-                .sort({ createdAt: -1 })
-                .limit(3)
-                .lean();
-
-            scoredExperiences = recentExperiences.map((exp: any) => ({
-                ...exp,
-                similarity: 0.5, // Neutral score for fallback
-            }));
+                .slice(0, 5); // Return Top-5 chunks (K=5)
         }
 
-        // Step 3: Build context from retrieved experiences
-        const context = scoredExperiences
-            .map((exp: any, index: number) => {
-                const roundsText = exp.rounds
-                    ?.map(
-                        (round: any) =>
-                            `${round.roundType}: ${round.questions?.join(', ') || 'No questions listed'}`
-                    )
-                    .join('; ');
-
-                return `
-Experience ${index + 1}:
-Company: ${exp.company}
-Role: ${exp.role}
-CTC: ${exp.ctc} LPA
-Year: ${exp.year || 'Not specified'}
-Interview Rounds: ${roundsText || 'No rounds listed'}
-Skills/Tags: ${exp.tags?.join(', ') || 'None'}
-        `.trim();
+        // Step 4: Build Context (Phase 3 Prep)
+        const context = scoredChunks
+            .map((chunk: any, index: number) => {
+                return `[Source ${index + 1}] (Student: ${chunk.metadata.studentName} | Company: ${chunk.metadata.companyName} | Role: ${chunk.metadata.roleType.replace('_', ' ')}):
+${chunk.text}`.trim();
             })
-            .join('\n\n---\n\n');
+            .join('\n\n');
 
-        // Step 4: Generate STREAMING response using Groq (Llama 3.2)
-        const systemPrompt = `You are an AI assistant helping students prepare for job interviews. You have access to a database of interview experiences from previous students.
+        // Step 5: Strict Citation Prompt Generation (Phase 3)
+        const systemPrompt = `You are the Placement Chronicles Assistant, an AI helping students prepare for job interviews based strictly on collected student experiences.
 
-Based on the following interview experiences, answer the user's question. Be specific, helpful, and cite the companies/roles when relevant.
-
-INTERVIEW EXPERIENCES:
-${context || 'No relevant experiences found in the database.'}
+CONTEXT (Retrieved Interview Experiences):
+${context || 'No specific experiences matching the query were found.'}
 
 INSTRUCTIONS:
-- Provide a helpful, detailed answer based on the experiences above
-- If the experiences don't contain relevant information, say so politely
-- Mention specific companies and roles when citing examples
-- Be encouraging and supportive
-- If asked about interview questions, list them clearly
-- Format your response in a clear, readable way`;
+1. You MUST ONLY answer using the provided context.
+2. If the context does not contain the answer or is empty, say: "I don't have enough specific experiences about that yet in my database. Please check back later or try rephrasing." DO NOT guess or hallucinate.
+3. You MUST cite your sources at the end of every claim using the metadata provided (e.g., "According to [studentName]'s experience at [companyName]...").
+4. Be helpful but rigidly adhere to only providing information present in the Context.`;
 
         // Use Groq streaming API with Llama 3.2
         const chatCompletion = await groq.chat.completions.create({
@@ -171,10 +178,10 @@ INSTRUCTIONS:
                     }
 
                     // Send sources and completion signal
-                    const sources = scoredExperiences.map((exp: any) => ({
-                        company: exp.company,
-                        role: exp.role,
-                        similarity: exp.similarity,
+                    const sources = scoredChunks.map((chunk: any) => ({
+                        company: chunk.metadata.companyName,
+                        role: chunk.metadata.roleType,
+                        similarity: chunk.similarity,
                     }));
 
                     const finalData = `data: ${JSON.stringify({

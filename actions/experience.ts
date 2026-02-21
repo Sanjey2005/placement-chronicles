@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import dbConnect from '@/lib/db';
 import Experience, { IExperience } from '@/models/Experience';
-import { getEmbedding, generateExperienceSummary } from '@/lib/vector';
+import ExperienceChunk from '@/models/ExperienceChunk';
+import { getEmbedding, generateExperienceSummary, chunkExperience } from '@/lib/vector';
 
 interface CreateExperienceData {
     studentId: string;
@@ -57,7 +58,8 @@ export async function createExperience(
         // Connect to database
         await dbConnect();
 
-        // Step 1: Generate text summary from experience data
+        // Legacy mechanism: generate full experience embedding for backwards mapping/compatibility
+        // (Optional, can be removed in future if we solely rely on chunks)
         const summary = generateExperienceSummary({
             company: data.company,
             role: data.role,
@@ -66,19 +68,16 @@ export async function createExperience(
             tags: data.tags,
         });
 
-        // Step 2: Generate vector embedding (non-blocking — save even if this fails)
         let embedding: number[] | null = null;
         try {
             embedding = await getEmbedding(summary);
         } catch (embeddingError) {
-            console.warn('⚠️ Embedding generation failed, saving without vector:', embeddingError);
+            console.warn('⚠️ Embedding generation failed contextually, saving without vector:', embeddingError);
         }
 
-        // Derive legacy verdict field from finalVerdict
-        // Default to ACCEPTED if selected, otherwise REJECTED if rejected.
         const derivedVerdict = data.finalVerdict === 'rejected' ? 'REJECTED' : 'ACCEPTED';
 
-        // Step 3: Create and save the experience document
+        // Save base experience
         const experience = new Experience({
             studentId: data.studentId,
             company: data.company,
@@ -102,6 +101,43 @@ export async function createExperience(
         });
 
         const savedExperience = await experience.save();
+
+        // Step 2: NEW PIPELINE - Semantic Chunking
+        try {
+            const chunks = chunkExperience({
+                companyName: data.company,
+                roleType: data.roleType,
+                studentName: data.studentId, // Fallback if name is unavailable during creation
+                ctc: data.ctc,
+                placementType: data.placementType,
+                minCGPA: data.minCGPA,
+                rounds: data.rounds,
+                tags: data.tags,
+                tipsForJuniors: data.tipsForJuniors,
+                overallExperience: data.overallExperience
+            });
+
+            const dbChunks = [];
+            for (const chunk of chunks) {
+                const chunkEmbedding = await getEmbedding(chunk.text);
+
+                if (chunkEmbedding && chunkEmbedding.length > 0) {
+                    dbChunks.push({
+                        experienceId: savedExperience._id,
+                        text: chunk.text,
+                        embedding: chunkEmbedding,
+                        metadata: chunk.metadata
+                    });
+                }
+            }
+
+            if (dbChunks.length > 0) {
+                await ExperienceChunk.insertMany(dbChunks);
+                console.log(`✅ Saved ${dbChunks.length} semantic chunks to DB`);
+            }
+        } catch (chunkError) {
+            console.error('⚠️ Semantic chunk creation/embedding failed:', chunkError);
+        }
 
         // Step 4: Revalidate cache
         revalidatePath('/');

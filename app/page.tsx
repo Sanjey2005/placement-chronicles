@@ -13,6 +13,29 @@ export default async function Home() {
   const result = await getAllExperiences();
   const experiences = result.success ? result.data || [] : [];
 
+  // Calculate Average CTC
+  // We need to convert stipends (per month) into LPA equivalents to get a meaningful average
+  let totalLPA = 0;
+  let validExperiencesCount = 0;
+
+  experiences.forEach(exp => {
+    if (exp.ctc > 0) {
+      if (exp.roleType === 'INTERNSHIP' || exp.roleType === 'SUMMER_INTERNSHIP') {
+        // Assuming CTC for internships is given as per month stipend
+        // Convert monthly stipend to LPA (e.g., 10000 * 12 / 100000 = 1.2 LPA)
+        totalLPA += (exp.ctc * 12) / 100000;
+      } else {
+        // Full time role CTC is already in LPA
+        totalLPA += exp.ctc;
+      }
+      validExperiencesCount++;
+    }
+  });
+
+  const averageCTC = validExperiencesCount > 0
+    ? (totalLPA / validExperiencesCount).toFixed(2)
+    : '0';
+
   // Extract unique companies and batches for filters
   const companies = Array.from(new Set(experiences.map(e => e.company))).sort();
   const batches = Array.from(new Set(experiences.map(e => e.batch).filter((b): b is string => !!b))).sort().reverse();
@@ -69,9 +92,7 @@ export default async function Home() {
                 </div>
                 <div>
                   <p className="text-3xl font-bold text-white">
-                    {experiences.length > 0
-                      ? `${Math.round(experiences.reduce((acc, e) => acc + e.ctc, 0) / experiences.length)} LPA`
-                      : '0 LPA'}
+                    {averageCTC} LPA
                   </p>
                   <p className="text-white/70 text-sm">Average CTC</p>
                 </div>

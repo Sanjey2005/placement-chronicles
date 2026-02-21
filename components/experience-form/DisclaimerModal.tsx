@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Building2, Briefcase, IndianRupee, GraduationCap, Clock, MessageSquare, Lightbulb, Star, AlertTriangle, CheckCircle2 } from 'lucide-react'; // Added CheckCircle2
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCompensation } from '@/lib/utils';
@@ -80,20 +81,49 @@ export default function DisclaimerModal({
 }: DisclaimerModalProps) {
     // Checkbox state
     const [isConfirmed, setIsConfirmed] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // Lock body scroll when modal is open
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isOpen]);
+
+    // Handle ESC key press
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+
+        if (isOpen) {
+            window.addEventListener('keydown', handleKeyDown);
+        }
+
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
 
     // Reset confirmation when modal opens
     useEffect(() => {
         if (isOpen) setIsConfirmed(false);
     }, [isOpen]);
 
-    if (!isOpen) return null;
-
     const verdictConfig = {
         selected: { label: '✓ Selected', color: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30' },
         rejected: { label: '✗ Not Selected', color: 'text-red-400 bg-red-500/15 border-red-500/30' },
     };
 
-    return (
+    const modalContent = (
         <AnimatePresence>
             {isOpen && (
                 <motion.div
@@ -420,8 +450,8 @@ export default function DisclaimerModal({
                                         onClick={onConfirm}
                                         disabled={!isConfirmed || isSubmitting}
                                         className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-bold transition-all duration-300 ${isConfirmed && !isSubmitting
-                                                ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)] hover:bg-zinc-100 transform hover:scale-[1.02]'
-                                                : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                                            ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)] hover:bg-zinc-100 transform hover:scale-[1.02]'
+                                            : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
                                             }`}
                                     >
                                         {isSubmitting ? (
@@ -444,4 +474,8 @@ export default function DisclaimerModal({
             )}
         </AnimatePresence>
     );
+
+    if (!mounted) return null;
+
+    return createPortal(modalContent, document.body);
 }

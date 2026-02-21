@@ -138,3 +138,97 @@ export function generateExperienceSummary(data: {
 
     return parts.join(' ');
 }
+
+/**
+ * Break an experience down into logical semantic chunks for vector storage.
+ * 
+ * Strategy:
+ * 1. Overview Chunk (Company, Role, CTC, Eligibility, General thoughts)
+ * 2. Round Chunks (One chunk per interview/test/hackathon round to keep search targeted)
+ * 3. Final Thoughts (Tips for juniors, Overall experience)
+ */
+export function chunkExperience(data: {
+    companyName: string;
+    roleType: string;
+    studentName: string;
+    ctc?: number;
+    placementType?: string;
+    minCGPA?: number;
+    rounds?: Array<any>;
+    tags?: string[];
+    tipsForJuniors?: string;
+    overallExperience?: string;
+}): Array<{ text: string; metadata: { companyName: string; roleType: string; studentName: string; } }> {
+
+    const chunks: string[] = [];
+    const metadata = {
+        companyName: data.companyName,
+        roleType: data.roleType,
+        studentName: !!data.studentName ? data.studentName : 'Anonymous',
+    };
+
+    // 1. Overview Chunk
+    const overviewParts = [
+        `Student ${metadata.studentName} interviewed at ${metadata.companyName} for a ${metadata.roleType.replace('_', ' ')} role.`,
+    ];
+    if (data.placementType) overviewParts.push(`Placement Type: ${data.placementType.replace('_', ' ')}.`);
+    if (data.ctc) overviewParts.push(`Offered CTC: ${data.ctc} LPA.`);
+    if (data.minCGPA) overviewParts.push(`Eligibility required a minimum CGPA of ${data.minCGPA}.`);
+    if (data.tags && data.tags.length > 0) overviewParts.push(`Skills & Topics matching this role: ${data.tags.join(', ')}.`);
+
+    chunks.push(overviewParts.join(' '));
+
+    // 2. Round Chunks
+    if (data.rounds && data.rounds.length > 0) {
+        data.rounds.forEach((round, index) => {
+            const roundType = round.roundType || round.interviewType || round.type || 'Round';
+            let roundText = `Round ${index + 1} (${roundType}) at ${metadata.companyName} for ${metadata.roleType}:`;
+
+            if (round.duration) roundText += ` Duration was ${round.duration}.`;
+            if (round.description) roundText += ` \nDescription: ${round.description}`;
+            if (round.experience) roundText += ` \nExperience: ${round.experience}`;
+
+            // Hackathon logic
+            if (round.problemStatement) roundText += ` \nProblem Statement: ${round.problemStatement}`;
+            if (round.strategy) roundText += ` \nStrategy: ${round.strategy}`;
+
+            // Test logic
+            if (round.topics) roundText += ` \nTopics: ${Array.isArray(round.topics) ? round.topics.join(', ') : round.topics}`;
+
+            // Interview logic
+            if (round.questions && round.questions.length > 0) {
+                roundText += ` \nQuestions Asked:`;
+                round.questions.forEach((q: any) => {
+                    if (typeof q === 'string') {
+                        roundText += `\n- ${q}`;
+                    } else {
+                        roundText += `\n- ${q.question}`;
+                        if (q.answerTip) roundText += ` (Tip: ${q.answerTip})`;
+                    }
+                });
+            }
+            if (round.notes) roundText += ` \nNotes: ${round.notes}`;
+
+            chunks.push(roundText.trim());
+        });
+    }
+
+    // 3. Final Thoughts Chunk
+    const summaryParts = [];
+    if (data.overallExperience) {
+        summaryParts.push(`Overall Experience at ${metadata.companyName}: ${data.overallExperience}`);
+    }
+    if (data.tipsForJuniors) {
+        summaryParts.push(`Preparation Tips for ${metadata.companyName}: ${data.tipsForJuniors}`);
+    }
+
+    if (summaryParts.length > 0) {
+        chunks.push(summaryParts.join(' \n\n'));
+    }
+
+    // Map into required format
+    return chunks.map(text => ({
+        text,
+        metadata
+    }));
+}
