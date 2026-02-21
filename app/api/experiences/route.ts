@@ -8,7 +8,7 @@ import { escapeRegex, sanitizeObject } from '@/lib/sanitize';
 import { moderateExperience } from '@/lib/moderation';
 import { groqApiRateLimit } from '@/lib/ratelimit';
 
-// Hhelper function to generate searchable text from experience data
+// Helper function to generate searchable text from experience data
 function generateSearchText(data: any): string {
     let text = `${data.company} ${data.role} ${data.batch || ''} ${data.minCGPA || ''} ${data.tipsForJuniors || ''}`;
 
