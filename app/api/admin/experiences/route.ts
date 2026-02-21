@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Experience from '@/models/Experience';
+import Company from '@/models/Company';
 import AdminLog from '@/models/AdminLog';
 import { requireAdmin } from '@/lib/auth-check';
+import { moderateExperience } from '@/lib/moderation';
 
 // GET: Fetch experiences with optional status filter
 export async function GET(request: NextRequest) {
@@ -102,6 +104,60 @@ export async function PATCH(request: NextRequest) {
                 { success: false, error: 'Experience not found' },
                 { status: 404 }
             );
+        }
+
+        // ── Re-normalize company name when approving ────────────────
+        // When Groq was unavailable during submission, the raw user input
+        // was saved as the company name (possibly an alias like "Buckman Labs").
+        // Now that admin is approving, try to re-run Groq normalization
+        // to replace the alias with the canonical name and clean up stale entries.
+        if (newStatus === 'APPROVED') {
+            try {
+                const oldCompanyName = (experience as any).company;
+
+                // Fetch existing companies to guide LLM normalization
+                const allCompanies = await Company.find({}).select('canonicalName').lean();
+                const existingCompaniesList = allCompanies.map((c: any) => c.canonicalName);
+
+                const moderationResult = await moderateExperience(
+                    { company: oldCompanyName, role: (experience as any).role },
+                    existingCompaniesList
+                );
+
+                const canonicalName = moderationResult.canonicalCompanyName;
+
+                // If Groq returned a different (canonical) name, fix the data
+                if (canonicalName && canonicalName !== oldCompanyName) {
+                    // 1. Update the experience's company field
+                    await Experience.findByIdAndUpdate(id, { company: canonicalName });
+
+                    // 2. Remove the stale alias Company entry if no other experiences use it
+                    const aliasUsageCount = await Experience.countDocuments({
+                        company: oldCompanyName,
+                        _id: { $ne: id },
+                    });
+                    if (aliasUsageCount === 0) {
+                        await Company.deleteOne({ canonicalName: oldCompanyName });
+                    }
+
+                    // 3. Ensure the canonical Company entry exists
+                    const canonicalExists = await Company.findOne({ canonicalName });
+                    if (!canonicalExists) {
+                        await Company.create({ canonicalName });
+                    }
+
+                    // Update the experience object for the response
+                    (experience as any).company = canonicalName;
+                }
+
+                // Normalization succeeded, ensure flag is cleared
+                await Experience.findByIdAndUpdate(id, { needsCompanyNormalization: false });
+            } catch (normError) {
+                // Groq is still unavailable — mark for deferred normalization.
+                // Next successful Groq call will pick this up and clean it.
+                await Experience.findByIdAndUpdate(id, { needsCompanyNormalization: true });
+                console.error('Re-normalization deferred (Groq unavailable):', normError);
+            }
         }
 
         // Create admin log entry

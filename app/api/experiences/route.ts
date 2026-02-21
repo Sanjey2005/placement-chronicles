@@ -134,6 +134,66 @@ export async function POST(request: NextRequest) {
                 status = 'FLAGGED';
                 moderationReason = moderationResult.reason;
             }
+
+            // ── Deferred Normalization: Clean up pending aliases ─────
+            // Groq worked for this submission, so also fix any approved
+            // experiences that were waiting for re-normalization.
+            try {
+                const pendingExperiences = await Experience.find({
+                    needsCompanyNormalization: true,
+                    status: 'APPROVED',
+                }).limit(5).lean(); // Process up to 5 at a time to avoid overloading Groq
+
+                for (const pending of pendingExperiences) {
+                    try {
+                        const pendingId = (pending._id as any).toString();
+                        const oldName = pending.company;
+
+                        const allCompanies = await Company.find({}).select('canonicalName').lean();
+                        const companyList = allCompanies.map((c: any) => c.canonicalName);
+
+                        const normResult = await moderateExperience(
+                            { company: oldName, role: pending.role },
+                            companyList
+                        );
+
+                        const canonical = normResult.canonicalCompanyName;
+
+                        if (canonical && canonical !== oldName) {
+                            // Fix the experience company name
+                            await Experience.findByIdAndUpdate(pendingId, {
+                                company: canonical,
+                                needsCompanyNormalization: false,
+                            });
+
+                            // Remove stale alias Company entry if unused
+                            const aliasCount = await Experience.countDocuments({
+                                company: oldName,
+                                _id: { $ne: pendingId },
+                            });
+                            if (aliasCount === 0) {
+                                await Company.deleteOne({ canonicalName: oldName });
+                            }
+
+                            // Ensure canonical Company entry exists
+                            const exists = await Company.findOne({ canonicalName: canonical });
+                            if (!exists) {
+                                await Company.create({ canonicalName: canonical });
+                            }
+                        } else {
+                            // Name is already correct, just clear the flag
+                            await Experience.findByIdAndUpdate(pendingId, {
+                                needsCompanyNormalization: false,
+                            });
+                        }
+                    } catch (singleErr) {
+                        // Skip this one, will retry on next successful call
+                    }
+                }
+            } catch (deferredErr) {
+                // Non-critical: don't block the current submission
+                console.error('Deferred normalization batch error:', deferredErr);
+            }
         } catch (modError) {
             // Groq unavailable → flag for manual admin review
             status = 'FLAGGED';

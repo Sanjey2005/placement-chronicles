@@ -145,7 +145,10 @@ export async function POST(request: NextRequest) {
             }
         } catch (parseError) {
             console.error('JSON PARSE ERROR:', parseError);
-            parsedData = {};
+            return NextResponse.json({
+                success: false,
+                error: 'Failed to parse the extracted data. Please enter the information manually or try again after 5 minutes.',
+            }, { status: 422 });
         }
 
         // ── Step 4: Normalize to form schema (discriminated union) ──
@@ -223,10 +226,17 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
         console.error('INGEST API ERROR:', error?.message || error);
         console.error('INGEST API STACK:', error?.stack);
+
+        // Check if it's a rate limit error from Groq
+        const isRateLimit = error?.status === 429 || error?.message?.includes('429') || error?.message?.toLowerCase()?.includes('rate');
+
         return NextResponse.json({
-            error: 'Failed to process PDF due to an internal server error',
+            success: false,
+            error: isRateLimit
+                ? 'AI is currently rate-limited. Please enter the information manually or try again after 5 minutes.'
+                : 'AI service is temporarily unavailable. Please enter the information manually or try again after 5 minutes.',
             details: error instanceof Error ? error.message : String(error),
-        }, { status: 500 });
+        }, { status: isRateLimit ? 429 : 500 });
     }
 }
 

@@ -82,6 +82,7 @@ export interface IExperience extends Document {
     overallExperience?: string; // NEW
     status: 'PENDING' | 'APPROVED' | 'FLAGGED' | 'REJECTED' | 'ARCHIVED';
     moderationReason?: string;
+    needsCompanyNormalization?: boolean;
     embedding?: number[];
     tags?: string[];
     year?: number;
@@ -185,6 +186,10 @@ const ExperienceSchema = new Schema<IExperience>(
         moderationReason: {
             type: String,
             default: null,
+        },
+        needsCompanyNormalization: {
+            type: Boolean,
+            default: false,
         },
     },
     {

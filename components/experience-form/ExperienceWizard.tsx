@@ -200,11 +200,17 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                 toast.success('PDF data extracted! Please review the pre-filled information.');
                 // Stay on current step so user can review Basic Info first
             } else {
-                toast.error(result.error || 'Failed to extract data from PDF');
+                toast.warning(
+                    result.error || 'Enter the information manually or try again after 5 minutes for the rate limit to ease down.',
+                    { duration: 5000 }
+                );
             }
         } catch (error) {
             console.error('Upload error:', error);
-            toast.error('Error uploading PDF');
+            toast.warning(
+                'Enter the information manually or try again after 5 minutes for the rate limit to ease down.',
+                { duration: 5000 }
+            );
         } finally {
             setIsUploading(false);
         }
