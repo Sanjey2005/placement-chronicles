@@ -45,13 +45,13 @@ export default function DisclaimerModal() {
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <GlassCard className="max-w-md w-full p-6 space-y-6 border border-amber-500/30 shadow-2xl shadow-amber-500/10 relative overflow-hidden">
+            <GlassCard className="max-w-md w-full p-6 space-y-6 border border-purple-500/30 shadow-2xl shadow-purple-500/10 relative overflow-hidden">
                 {/* Decorative background glow */}
-                <div className="absolute -top-24 -right-24 w-48 h-48 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -top-24 -right-24 w-48 h-48 bg-purple-500/20 rounded-full blur-3xl pointer-events-none" />
 
                 <div className="flex items-start gap-4">
-                    <div className="p-3 bg-amber-500/20 rounded-xl shrink-0">
-                        <ShieldAlert className="h-6 w-6 text-amber-400" />
+                    <div className="p-3 bg-purple-500/20 rounded-xl shrink-0">
+                        <ShieldAlert className="h-6 w-6 text-purple-400" />
                     </div>
                     <div className="space-y-2">
                         <h2 className="text-xl font-bold text-white tracking-tight">Important Notice</h2>
@@ -65,7 +65,7 @@ export default function DisclaimerModal() {
                     <div className="flex gap-3">
                         <CheckCircle2 className="h-5 w-5 text-blue-400 shrink-0 mt-0.5" />
                         <p className="text-sm text-zinc-300">
-                            <strong className="text-white">AI-Generated Content:</strong> Our platform uses AI to extract and format information from documents. Please <strong className="text-amber-300">double-check anything the AI generates</strong> as it can occasionally make mistakes.
+                            <strong className="text-white">AI-Generated Content:</strong> Our platform uses AI to extract and format information from documents. Please <strong className="text-purple-300">double-check anything the AI generates</strong> as it can occasionally make mistakes.
                         </p>
                     </div>
                     <div className="flex gap-3">
@@ -90,7 +90,7 @@ export default function DisclaimerModal() {
 
                 <Button
                     onClick={handleAcknowledge}
-                    className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold py-6 shadow-lg shadow-amber-500/20 border-0 transition-all hover:scale-[1.02]"
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-6 shadow-lg shadow-purple-500/20 border-0 transition-all hover:scale-[1.02]"
                 >
                     I Understand and Agree
                 </Button>
