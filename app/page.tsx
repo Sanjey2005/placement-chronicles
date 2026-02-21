@@ -5,9 +5,29 @@ import Link from 'next/link';
 import GridBackground from '@/components/GridBackground';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import type { Metadata } from 'next';
 
 // Dynamic page - needs DB data
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Placement Chronicles — PSG Tech Placement & Interview Experiences',
+  description: 'Browse real PSG Tech placement and interview experiences shared by PSG College of Technology students. Company-wise, role-wise, and batch-wise placement insights — all in one place.',
+  openGraph: {
+    title: 'Placement Chronicles — PSG Tech Placement & Interview Experiences',
+    description: 'Real PSG Tech placement experiences shared by students. Company-wise interview insights, CTC details, round breakdowns, and tips for juniors.',
+    url: 'https://placement-chronicles.vercel.app',
+    images: [{
+      url: 'https://placement-chronicles.vercel.app/logo.png',
+      width: 512,
+      height: 512,
+      alt: 'Placement Chronicles — PSG Tech',
+    }],
+  },
+  alternates: {
+    canonical: 'https://placement-chronicles.vercel.app',
+  },
+};
 
 export default async function Home() {
   const result = await getAllExperiences();

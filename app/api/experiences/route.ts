@@ -39,10 +39,17 @@ import sanitizeHtml from 'sanitize-html';
 // Helper function to sanitize user-generated HTML
 // Uses sanitize-html to remove all HTML tags initially
 function aggressiveSanitize(input: string): string {
-    return sanitizeHtml(input, {
+    const cleaned = sanitizeHtml(input, {
         allowedTags: [], // Strip all tags
         allowedAttributes: {}, // Strip all attributes
     });
+    // sanitize-html encodes special chars — decode them since we want plain text
+    return cleaned
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#x27;/g, "'");
 }
 
 // Helper function to process all strings in an object through sanitizeHtml

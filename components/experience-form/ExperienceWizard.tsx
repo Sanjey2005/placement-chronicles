@@ -384,7 +384,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                                             className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all duration-300 ${currentStep > step.id
                                                 ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.4)]'
                                                 : currentStep === step.id
-                                                    ? 'bg-white text-black ring-4 ring-white/20 shadow-[0_0_20px_rgba(255,255,255,0.4)]'
+                                                    ? 'bg-white text-black shadow-[0_0_0_4px_rgba(255,255,255,0.2),0_0_20px_rgba(255,255,255,0.4)]'
                                                     : 'bg-zinc-800/50 text-zinc-600 border border-zinc-700'
                                                 }`}
                                         >

@@ -119,7 +119,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // If trying to access a protected route without auth token
-    if ((isProtectedRoute || isProtectedApiRoute || !isPublicRoute) && !authToken) {
+    if ((isProtectedRoute || isProtectedApiRoute) && !authToken) {
         // Redirect to login
         const loginUrl = new URL('/login', request.url);
         return NextResponse.redirect(loginUrl);

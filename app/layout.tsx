@@ -39,10 +39,10 @@ export const metadata: Metadata = {
     siteName: 'Placement Chronicles',
     images: [
       {
-        url: '/logo.png',
-        width: 800,
-        height: 600,
-        alt: 'Placement Chronicles Logo',
+        url: 'https://placement-chronicles.vercel.app/logo.png',
+        width: 512,
+        height: 512,
+        alt: 'Placement Chronicles Logo — PSG Tech Placement Experiences',
       },
     ],
     locale: 'en_US',
@@ -70,18 +70,41 @@ export const metadata: Metadata = {
   },
 };
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  name: 'Placement Chronicles',
-  url: 'https://placement-chronicles.vercel.app',
-  description: 'A community-driven platform for PSG Tech students to share and explore placement interview experiences.',
-  potentialAction: {
-    '@type': 'SearchAction',
-    target: 'https://placement-chronicles.vercel.app/search?q={search_term_string}',
-    'query-input': 'required name=search_term_string',
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Placement Chronicles',
+    alternateName: 'PSG Tech Placement Chronicles',
+    url: 'https://placement-chronicles.vercel.app',
+    description: 'A community-driven platform for PSG Tech students to share and explore placement interview experiences.',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: 'https://placement-chronicles.vercel.app/?search={search_term_string}',
+      },
+      'query-input': 'required name=search_term_string',
+    },
   },
-};
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Placement Chronicles',
+    url: 'https://placement-chronicles.vercel.app',
+    logo: {
+      '@type': 'ImageObject',
+      url: 'https://placement-chronicles.vercel.app/logo.png',
+      width: 512,
+      height: 512,
+    },
+    description: 'PSG College of Technology\'s largest community platform for sharing real placement and interview experiences.',
+    foundingLocation: {
+      '@type': 'Place',
+      name: 'PSG College of Technology, Coimbatore, India',
+    },
+  },
+];
 
 export default function RootLayout({
   children,
