@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import StarField from '@/components/StarField';
 import GlassCard from '@/components/GlassCard';
 import { Button } from '@/components/ui/button';
@@ -52,13 +53,26 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="min-h-screen flex flex-col items-center justify-center p-4">
             <StarField />
+
+            {/* SEO: Crawlable hero - PSG Tech placement keywords for search visibility */}
+            <div className="text-center mb-8 max-w-2xl mx-auto">
+                <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-2">
+                    Placement Chronicles
+                </h1>
+                <p className="text-white/70 text-lg">
+                    PSG Tech&apos;s platform for sharing real placement and interview experiences. Explore insights from PSG College of Technology students.
+                </p>
+                <Link href="/about" className="text-blue-400 hover:text-blue-300 text-sm mt-2 inline-block">
+                    Learn more about Placement Chronicles →
+                </Link>
+            </div>
 
             <GlassCard className="w-full max-w-md p-8 space-y-6">
                 <div className="text-center space-y-2">
-                    <h1 className="text-3xl font-bold text-white tracking-tight">Welcome Back</h1>
-                    <p className="text-zinc-400">Sign in to Placement Chronicles</p>
+                    <h2 className="text-2xl font-bold text-white tracking-tight">Welcome Back</h2>
+                    <p className="text-zinc-400">Sign in to access PSG Tech placement experiences</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">

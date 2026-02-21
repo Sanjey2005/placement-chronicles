@@ -57,12 +57,6 @@ const ExperienceChunkSchema = new Schema<IExperienceChunk>(
 );
 
 // ============================================================================
-// Indexes
-// ============================================================================
-// Useful if we fall back to manual text scraping filters
-ExperienceChunkSchema.index({ 'metadata.companyName': 1 });
-
-// ============================================================================
 // Model Export
 // ============================================================================
 const ExperienceChunk: Model<IExperienceChunk> =

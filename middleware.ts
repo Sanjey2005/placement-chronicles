@@ -3,8 +3,8 @@ import type { NextRequest } from 'next/server';
 import { get } from '@vercel/edge-config';
 import { globalApiRateLimit } from './lib/ratelimit';
 
-// Public routes that don't require authentication
-const publicRoutes = ['/login', '/api/auth'];
+// Public routes that don't require authentication (SEO: /about is crawlable)
+const publicRoutes = ['/login', '/about', '/api/auth'];
 
 // Protected routes that explicitly require authentication
 const protectedRoutes = ['/share-experience', '/chat'];
@@ -18,31 +18,32 @@ const adminApiRoutes = ['/api/admin'];
 
 export async function middleware(request: NextRequest) {
     // --- EDGE CONFIG PROTECTION (placement-chronicles-store) ---
-    try {
-        // 1. Maintenance Mode Switch: Kills the site if under massive attack
-        const maintenanceMode = await get('maintenance_mode');
-        if (maintenanceMode) {
-            return NextResponse.json(
-                { error: 'Site is temporarily down for maintenance. Please try again later.' },
-                { status: 503 }
-            );
-        }
-
-        // 2. IP Blocking: Denies access to specific malicious IPs
-        const blockedIps = await get('blocked_ips') as string[] | undefined;
-        if (blockedIps && Array.isArray(blockedIps)) {
-            const ip = request.headers.get('x-real-ip') || request.headers.get('x-forwarded-for') || 'Unknown IP';
-
-            if (blockedIps.includes(ip)) {
+    // Skip entirely if EDGE_CONFIG is not set (local dev, or not configured on Vercel)
+    if (process.env.EDGE_CONFIG) {
+        try {
+            const maintenanceMode = await get('maintenance_mode');
+            if (maintenanceMode) {
                 return NextResponse.json(
-                    { error: 'Access Denied: Your IP has been blocked due to suspicious activity.' },
-                    { status: 403 }
+                    { error: 'Site is temporarily down for maintenance. Please try again later.' },
+                    { status: 503 }
                 );
             }
+
+            const blockedIps = await get('blocked_ips') as string[] | undefined;
+            if (blockedIps && Array.isArray(blockedIps)) {
+                const ip = request.headers.get('x-real-ip') || request.headers.get('x-forwarded-for') || 'Unknown IP';
+
+                if (blockedIps.includes(ip)) {
+                    return NextResponse.json(
+                        { error: 'Access Denied: Your IP has been blocked due to suspicious activity.' },
+                        { status: 403 }
+                    );
+                }
+            }
+        } catch (error) {
+            // Fail open if edge config fetch fails
+            console.warn('Edge Config fetch failed:', error);
         }
-    } catch (error) {
-        // Fallback: If edge config isn't hooked up yet, log and bypass so normal traffic continues
-        console.warn('Vercel Edge Config not configured or failed to fetch. Ensure EDGE_CONFIG is set.', error);
     }
     // --- END EDGE CONFIG PROTECTION ---
 
