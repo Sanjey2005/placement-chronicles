@@ -116,8 +116,9 @@ export async function POST(request: NextRequest) {
             }
         } catch (modError) {
             // Groq unavailable → flag for manual admin review
-            status = 'FLAGGED';
-            moderationReason = 'AI Service Unavailable - Manual Review Required';
+            if (status = 'FLAGGED') {
+                moderationReason = 'AI Service Unavailable - Manual Review Required';
+            }
         }
 
         // ── Company Management ──────────────────────────────────────
