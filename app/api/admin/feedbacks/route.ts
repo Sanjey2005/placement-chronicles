@@ -33,9 +33,8 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({ success: true, data: feedbacks });
     } catch (error) {
-        console.error('Error fetching feedbacks:', error);
         return NextResponse.json(
-            { success: false, error: 'Failed to fetch feedbacks' },
+            { success: false, error: 'An internal server error occurred while fetching feedbacks' },
             { status: 500 }
         );
     }

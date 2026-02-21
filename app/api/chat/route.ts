@@ -84,10 +84,9 @@ export async function POST(request: NextRequest) {
             if (content) {
                 const parsed = JSON.parse(content);
                 extractedCompany = parsed.companyName;
-                console.log('🔍 Extracted entity:', extractedCompany);
             }
         } catch (extractErr) {
-            console.error('⚠️ Entity extraction failed:', extractErr);
+            // Silently fail entity extraction
         }
 
         // Step 2: Generate embedding for user's message
@@ -95,7 +94,7 @@ export async function POST(request: NextRequest) {
         try {
             queryEmbedding = await getEmbedding(userMessage);
         } catch (embeddingError) {
-            console.warn('⚠️ Embedding generation failed, skipping vector search:', embeddingError);
+            // Silently fail embedding, will fallback to non-vector flow or empty context
         }
 
         // Step 3: Hybrid Retrieval against ExperienceChunk (Phase 2)
@@ -192,7 +191,6 @@ INSTRUCTIONS:
 
                     controller.close();
                 } catch (error) {
-                    console.error('Streaming error occurred');
                     controller.error(error);
                 }
             },
@@ -207,11 +205,9 @@ INSTRUCTIONS:
             },
         });
     } catch (error) {
-        console.error('Chat API error occurred');
         return NextResponse.json(
             {
-                error: 'Failed to process chat message',
-                details: error instanceof Error ? error.message : 'Unknown error',
+                error: 'An internal server error occurred while processing your chat message.',
             },
             { status: 500 }
         );

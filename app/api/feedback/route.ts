@@ -31,9 +31,8 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ success: true, message: 'Feedback submitted successfully' });
     } catch (error) {
-        console.error('Error submitting feedback:', error);
         return NextResponse.json(
-            { success: false, error: 'Failed to submit feedback' },
+            { success: false, error: 'An internal server error occurred while submitting feedback' },
             { status: 500 }
         );
     }

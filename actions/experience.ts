@@ -72,7 +72,7 @@ export async function createExperience(
         try {
             embedding = await getEmbedding(summary);
         } catch (embeddingError) {
-            console.warn('⚠️ Embedding generation failed contextually, saving without vector:', embeddingError);
+            // Silently skip embedding context on failure
         }
 
         const derivedVerdict = data.finalVerdict === 'rejected' ? 'REJECTED' : 'ACCEPTED';
@@ -120,23 +120,19 @@ export async function createExperience(
             const dbChunks = [];
             for (const chunk of chunks) {
                 const chunkEmbedding = await getEmbedding(chunk.text);
-
-                if (chunkEmbedding && chunkEmbedding.length > 0) {
-                    dbChunks.push({
-                        experienceId: savedExperience._id,
-                        text: chunk.text,
-                        embedding: chunkEmbedding,
-                        metadata: chunk.metadata
-                    });
-                }
+                dbChunks.push({
+                    experienceId: savedExperience._id,
+                    metadata: chunk.metadata,
+                    text: chunk.text,
+                    embedding: chunkEmbedding,
+                });
             }
 
             if (dbChunks.length > 0) {
                 await ExperienceChunk.insertMany(dbChunks);
-                console.log(`✅ Saved ${dbChunks.length} semantic chunks to DB`);
             }
         } catch (chunkError) {
-            console.error('⚠️ Semantic chunk creation/embedding failed:', chunkError);
+            // Non-critical: If vector creation goes down, continue with regular save
         }
 
         // Step 4: Revalidate cache
@@ -150,10 +146,16 @@ export async function createExperience(
             } as any,
         };
     } catch (error) {
-        console.error('Error creating experience:', error);
+        if (error instanceof Error && error.name === 'ZodError') {
+            return {
+                success: false,
+                error: 'Validation failed'
+            };
+        }
+
         return {
             success: false,
-            error: error instanceof Error ? error.message : 'Failed to create experience',
+            error: 'An internal server error occurred while creating experience'
         };
     }
 }
@@ -201,10 +203,9 @@ export async function getAllExperiences(): Promise<{
             data: serializedExperiences as unknown as IExperience[],
         };
     } catch (error) {
-        console.error('Error fetching experiences:', error);
         return {
             success: false,
-            error: 'Failed to fetch experiences',
+            error: 'An internal server error occurred while fetching experiences'
         };
     }
 }
@@ -237,10 +238,9 @@ export async function getExperiencesByCompany(company: string): Promise<{
             data: serializedExperiences as unknown as IExperience[],
         };
     } catch (error) {
-        console.error('Error fetching experiences by company:', error);
         return {
             success: false,
-            error: 'Failed to fetch experiences',
+            error: 'An internal server error occurred while fetching company experiences'
         };
     }
 }
@@ -265,10 +265,6 @@ export async function deleteExperience(id: string): Promise<{
             success: true,
         };
     } catch (error) {
-        console.error('Error deleting experience:', error);
-        return {
-            success: false,
-            error: 'Failed to delete experience',
-        };
+        return { success: false, error: 'An internal server error occurred while deleting experience' };
     }
 }

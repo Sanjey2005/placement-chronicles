@@ -57,24 +57,20 @@ export async function POST(request: NextRequest) {
             // 1. Handle Normalization
             if (moderationResult.canonicalCompanyName) {
                 finalCompanyName = moderationResult.canonicalCompanyName;
-                console.log(`🏢 Normalizing company: "${validatedData.company}" -> "${finalCompanyName}"`);
             }
 
             // 2. Handle Safety
             if (moderationResult.isSafe) {
                 status = 'APPROVED';
                 moderationReason = null;
-                console.log('✅ Experience APPROVED by AI');
             } else {
                 status = 'FLAGGED';
                 moderationReason = moderationResult.reason;
-                console.log('⚠️ Experience FLAGGED:', moderationResult.reason);
             }
         } catch (modError) {
             // Groq unavailable → flag for manual admin review
             status = 'FLAGGED';
             moderationReason = 'AI Service Unavailable - Manual Review Required';
-            console.warn('⚠️ Moderation failed, flagging for review:', modError);
         }
 
         // ── Company Management ──────────────────────────────────────
@@ -83,11 +79,9 @@ export async function POST(request: NextRequest) {
             const existingCompany = await Company.findOne({ canonicalName: finalCompanyName });
             if (!existingCompany) {
                 await Company.create({ canonicalName: finalCompanyName });
-                console.log(`🆕 Created new company: "${finalCompanyName}"`);
             }
         } catch (companyError) {
-            console.error('Failed to manage Company record:', companyError);
-            // Don't block submission, just log error
+            // Don't block submission, just log error conceptually
         }
 
         // Update data with normalized company name
@@ -100,7 +94,7 @@ export async function POST(request: NextRequest) {
             embedding = await getEmbedding(searchText);
             if (embedding.length === 0) embedding = null;
         } catch (embeddingError) {
-            console.warn('⚠️ Embedding failed, saving without vector:', embeddingError);
+            // Silently fail, embedding isn't required to save initially
         }
 
         // Derive legacy verdict field from finalVerdict
@@ -140,14 +134,11 @@ export async function POST(request: NextRequest) {
             data: savedExperience,
         });
     } catch (error) {
-        console.error('Error creating experience');
-
         if (error instanceof Error && error.name === 'ZodError') {
             return NextResponse.json(
                 {
                     success: false,
                     error: 'Validation failed',
-                    details: error.message,
                 },
                 { status: 400 }
             );
@@ -156,8 +147,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
             {
                 success: false,
-                error: 'Failed to create experience',
-                details: error instanceof Error ? error.message : 'Unknown error',
+                error: 'An internal server error occurred while creating experience',
             },
             { status: 500 }
         );
@@ -198,11 +188,10 @@ export async function GET(request: NextRequest) {
             data: experiences,
         });
     } catch (error) {
-        console.error('Error fetching experiences');
         return NextResponse.json(
             {
                 success: false,
-                error: 'Failed to fetch experiences',
+                error: 'An internal server error occurred while fetching experiences',
             },
             { status: 500 }
         );

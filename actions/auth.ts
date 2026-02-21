@@ -54,12 +54,7 @@ export async function login(formData: FormData): Promise<LoginResponse> {
             };
         }
     } catch (error) {
-        console.error('Login error:', error);
-
-        return {
-            success: false,
-            error: 'An unexpected error occurred during login',
-        };
+        return { success: false, error: 'An internal server error occurred during login' };
     }
 }
 

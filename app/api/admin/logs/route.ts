@@ -24,9 +24,8 @@ export async function GET(request: NextRequest) {
             data: serialized,
         });
     } catch (error) {
-        console.error('Error fetching admin logs:', error);
         return NextResponse.json(
-            { success: false, error: 'Failed to fetch logs' },
+            { success: false, error: 'An internal server error occurred while fetching admin logs' },
             { status: 500 }
         );
     }

@@ -19,9 +19,8 @@ export async function GET(request: NextRequest) {
             data: { total, pending, flagged, approved, rejected },
         });
     } catch (error) {
-        console.error('Error fetching admin stats:', error);
         return NextResponse.json(
-            { success: false, error: 'Failed to fetch stats' },
+            { success: false, error: 'An internal server error occurred while fetching admin stats' },
             { status: 500 }
         );
     }

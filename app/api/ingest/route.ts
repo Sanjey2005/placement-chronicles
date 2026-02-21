@@ -64,17 +64,12 @@ Return ONLY valid JSON, no markdown code blocks, no explanation.`;
 
 export async function POST(request: NextRequest) {
     try {
-        console.log('📤 PDF Upload started');
-
         const formData = await request.formData();
         const file = formData.get('file') as File;
 
         if (!file) {
             return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
         }
-
-        // Log only file type and size — never the filename (may contain PII)
-        console.log('📄 File received: type=%s size=%d', file.type, file.size);
 
         if (file.type !== 'application/pdf') {
             return NextResponse.json({ error: 'Only PDF files are supported' }, { status: 400 });
@@ -90,12 +85,9 @@ export async function POST(request: NextRequest) {
             const pdfParse = require('pdf-parse');
             const pdfData = await pdfParse(buffer);
             pdfText = pdfData.text;
-            console.log('📝 PDF text extracted, length:', pdfText.length);
         } catch (parseError: any) {
-            console.error('❌ pdf-parse failed:', parseError.message);
             return NextResponse.json({
-                error: 'Failed to read PDF text. Please try a different PDF.',
-                details: parseError.message,
+                error: 'Failed to read PDF text. Please try a different PDF or enter manually.',
             }, { status: 400 });
         } finally {
             // ── SECURITY: Clear PDF buffer from memory immediately ──
@@ -114,7 +106,6 @@ export async function POST(request: NextRequest) {
 
         // ── Step 2: Sanitize and send text to Groq LLM ─────────────
         const sanitizedPdfText = sanitizeForPrompt(pdfText.substring(0, 8000));
-        console.log('🤖 Sending to Groq (llama-3.3-70b-versatile)...');
 
         const completion = await groq.chat.completions.create({
             model: 'llama-3.3-70b-versatile',
@@ -130,7 +121,6 @@ export async function POST(request: NextRequest) {
         });
 
         const responseText = completion.choices[0]?.message?.content || '';
-        console.log('✅ Groq responded! Length:', responseText.length);
 
         // ── Step 3: Parse JSON response ─────────────────────────────
         let parsedData;
@@ -149,7 +139,6 @@ export async function POST(request: NextRequest) {
                 throw new Error('No JSON found in response');
             }
         } catch (parseError) {
-            console.error('⚠️ JSON parse error');
             parsedData = {};
         }
 
@@ -219,10 +208,6 @@ export async function POST(request: NextRequest) {
         // ── SECURITY: Sanitize all string fields to remove HTML/XSS ──
         const sanitizedData = sanitizeObject(normalizedData);
 
-        // Log only non-PII metadata
-        console.log('✅ Data extracted successfully');
-        console.log('📊 Extracted: company=%s, rounds=%d', sanitizedData.company, sanitizedData.rounds.length);
-
         return NextResponse.json({
             success: true,
             data: sanitizedData,
@@ -230,10 +215,8 @@ export async function POST(request: NextRequest) {
         });
 
     } catch (error) {
-        console.error('❌ Ingest error occurred');
         return NextResponse.json({
-            error: 'Failed to process PDF',
-            details: error instanceof Error ? error.message : 'Unknown error',
+            error: 'Failed to process PDF due to an internal server error',
         }, { status: 500 });
     }
 }

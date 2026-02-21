@@ -47,6 +47,6 @@ export async function GET() {
         // SECURITY: Never expose API key prefixes
         return NextResponse.json({ results });
     } catch (e: any) {
-        return NextResponse.json({ error: e.message }, { status: 500 });
+        return NextResponse.json({ error: 'An internal server error occurred while testing models' }, { status: 500 });
     }
 }

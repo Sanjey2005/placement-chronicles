@@ -26,21 +26,13 @@ export async function POST(request: NextRequest) {
         const adminUser = process.env.ADMIN_USERNAME;
         const adminPass = process.env.ADMIN_PASSWORD;
 
-        console.log('--- Admin Login Attempt ---');
-        console.log('Input RollNo:', rollno);
-        console.log('Env AdminUser:', adminUser);
-        console.log('Match User:', rollno === adminUser);
-        console.log('Match Pass:', password === adminPass);
-
         if (adminUser && adminPass && rollno === adminUser && password === adminPass) {
-            console.log('Admin login SUCCESS');
             return NextResponse.json({
                 success: true,
                 message: 'Admin login successful',
                 role: 'ADMIN',
             });
         }
-        console.log('Admin login FAILED, proceeding to eCampus auth...');
 
         // ── Step 1: GET the login page ──────────────────────────────
         const loginPageRes = await fetch(ECAMPUS_LOGIN_URL, {
@@ -142,7 +134,7 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json(
-            { success: false, error: 'An unexpected error occurred during login' },
+            { success: false, error: 'An internal server error occurred during login' },
             { status: 500 }
         );
     }

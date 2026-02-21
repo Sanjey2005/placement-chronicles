@@ -35,9 +35,8 @@ export async function GET() {
             data
         });
     } catch (error) {
-        console.error('Error fetching companies:', error);
         return NextResponse.json(
-            { success: false, error: 'Failed to fetch companies' },
+            { success: false, error: 'An internal server error occurred while fetching companies' },
             { status: 500 }
         );
     }

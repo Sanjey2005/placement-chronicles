@@ -40,9 +40,8 @@ export async function GET(request: NextRequest) {
             totalPages: Math.ceil(total / limit),
         });
     } catch (error) {
-        console.error('Error fetching admin experiences:', error);
         return NextResponse.json(
-            { success: false, error: 'Failed to fetch experiences' },
+            { success: false, error: 'An internal server error occurred while fetching admin experiences' },
             { status: 500 }
         );
     }
@@ -102,9 +101,8 @@ export async function PATCH(request: NextRequest) {
             data: { ...experience, _id: (experience._id as any).toString() },
         });
     } catch (error) {
-        console.error('Error updating experience status:', error);
         return NextResponse.json(
-            { success: false, error: 'Failed to update experience' },
+            { success: false, error: 'An internal server error occurred while updating experience status' },
             { status: 500 }
         );
     }
@@ -146,9 +144,8 @@ export async function DELETE(request: NextRequest) {
 
         return NextResponse.json({ success: true });
     } catch (error) {
-        console.error('Error deleting experience:', error);
         return NextResponse.json(
-            { success: false, error: 'Failed to delete experience' },
+            { success: false, error: 'An internal server error occurred while deleting experience' },
             { status: 500 }
         );
     }
