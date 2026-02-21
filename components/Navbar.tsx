@@ -13,6 +13,7 @@ export default function Navbar() {
     const pathname = usePathname();
 
     // Check authentication only on client side to avoid hydration mismatch
+    // Run whenever the pathname changes so we catch logins/logouts via router.push
     useEffect(() => {
         const getCookie = (name: string) => {
             const value = `; ${document.cookie}`;
@@ -36,7 +37,7 @@ export default function Navbar() {
             setIsAuthenticated(false);
             setIsAdmin(false);
         }
-    }, []);
+    }, [pathname]);
 
     const handleLogout = () => {
         // Clear auth cookie and user-id
