@@ -25,6 +25,9 @@ export const metadata: Metadata = {
     description: 'Share and explore real placement interview experiences',
     images: ['/logo.png'],
   },
+  verification: {
+    google: "oCIVvhLTTOFxdKNSyQJweFSclxzsJTnnE_IoH8dj45w",
+  },
 };
 
 export default function RootLayout({
