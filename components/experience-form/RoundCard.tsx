@@ -2,7 +2,7 @@
 
 import { UseFormReturn, useFieldArray } from 'react-hook-form';
 import { ExperienceFormData } from '@/lib/schemas/experience-schema';
-import { Trash2, Plus, X, Beaker, Code, Users, Link as LinkIcon } from 'lucide-react';
+import { Trash2, Plus, X, Beaker, Code, Users, Link as LinkIcon, MessageSquare } from 'lucide-react';
 import { useState } from 'react';
 
 interface RoundCardProps {
@@ -33,6 +33,8 @@ export default function RoundCard({ form, index, onRemove }: RoundCardProps) {
                 return { icon: Code, color: 'purple', label: 'Hackathon' };
             case 'interview':
                 return { icon: Users, color: 'green', label: 'Interview' };
+            case 'gd':
+                return { icon: MessageSquare, color: 'orange', label: 'Group Discussion' };
             default:
                 return { icon: Users, color: 'gray', label: 'Round' };
         }
@@ -246,6 +248,40 @@ export default function RoundCard({ form, index, onRemove }: RoundCardProps) {
                                     rows={2}
                                     placeholder="Any other details about this round..."
                                     className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    {/* GROUP DISCUSSION FIELDS */}
+                    {roundType === 'gd' && (
+                        <>
+                            {/* Topics */}
+                            <div>
+                                <label className="text-white font-semibold mb-2 block">
+                                    Discussion Topic(s) <span className="text-red-400">*</span>
+                                </label>
+                                <textarea
+                                    {...register(`rounds.${index}.topics` as const)}
+                                    rows={3}
+                                    placeholder="What topics were given for the discussion?"
+                                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                                />
+                                {roundError && 'topics' in roundError && (
+                                    <p className="mt-1 text-sm text-red-400">{(roundError as any).topics?.message || "Topics are required"}</p>
+                                )}
+                            </div>
+
+                            {/* Tips */}
+                            <div>
+                                <label className="text-white font-semibold mb-2 block">
+                                    Your Tips / Experience (Optional)
+                                </label>
+                                <textarea
+                                    {...register(`rounds.${index}.tips` as const)}
+                                    rows={3}
+                                    placeholder="Any tips on how to structure arguments, group dynamics, or what the moderators were looking for?"
+                                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
                                 />
                             </div>
                         </>

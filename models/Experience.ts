@@ -20,6 +20,14 @@ export interface IHackathonRound {
     strategy: string;
 }
 
+// Group Discussion Round
+export interface IGdRound {
+    type: 'gd';
+    roundNumber: number;
+    topics: string;
+    tips?: string;
+}
+
 // Interview Round
 export interface IInterviewRound {
     type: 'interview';
@@ -43,7 +51,7 @@ export interface ILegacyRound {
 }
 
 // Union type for all rounds
-export type IRound = IOnlineTestRound | IHackathonRound | IInterviewRound | ILegacyRound;
+export type IRound = IOnlineTestRound | IHackathonRound | IInterviewRound | IGdRound | ILegacyRound;
 
 // ============================================================================
 // Enums & Types
@@ -76,6 +84,7 @@ export interface IExperience extends Document {
     batch?: string;
     courseBranch?: string;
     minCGPA?: number;
+    resumeShortlisting?: boolean;
     rounds: IRound[];
     finalVerdict?: 'selected' | 'rejected'; // NEW
     tipsForJuniors?: string; // NEW
@@ -150,6 +159,10 @@ const ExperienceSchema = new Schema<IExperience>(
         },
         minCGPA: {
             type: Number,
+        },
+        resumeShortlisting: {
+            type: Boolean,
+            default: false,
         },
         rounds: {
             type: Schema.Types.Mixed,

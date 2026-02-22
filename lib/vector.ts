@@ -20,6 +20,10 @@ export async function getEmbedding(text: string): Promise<number[]> {
     const maxRetries = 3;
     let delay = 3000;
 
+    // The model tokenizer handles truncation internally (512 tokens ≠ 512 chars).
+    // Pass up to 2000 chars to preserve detail from longer round descriptions.
+    const truncatedText = text.substring(0, 2000);
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
             const response = await fetch(HF_EMBEDDING_URL, {
@@ -29,7 +33,7 @@ export async function getEmbedding(text: string): Promise<number[]> {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    inputs: text.substring(0, 512),
+                    inputs: truncatedText,
                     options: { wait_for_model: true },
                 }),
                 signal: AbortSignal.timeout(30000),
@@ -143,9 +147,11 @@ export function generateExperienceSummary(data: {
  * Break an experience down into logical semantic chunks for vector storage.
  * 
  * Strategy:
- * 1. Overview Chunk (Company, Role, CTC, Eligibility, General thoughts)
+ * 1. Overview Chunk (Company, Role, CTC, Eligibility, Verdict, Work Model, Course/Batch)
  * 2. Round Chunks (One chunk per interview/test/hackathon round to keep search targeted)
  * 3. Final Thoughts (Tips for juniors, Overall experience)
+ * 
+ * Each chunk carries rich metadata for pre-filtering and display.
  */
 export function chunkExperience(data: {
     companyName: string;
@@ -153,28 +159,60 @@ export function chunkExperience(data: {
     studentName: string;
     ctc?: number;
     placementType?: string;
+    workModel?: string;
     minCGPA?: number;
+    batch?: string;
+    courseBranch?: string;
+    verdict?: string;
+    finalVerdict?: string;
     rounds?: Array<any>;
     tags?: string[];
     tipsForJuniors?: string;
     overallExperience?: string;
-}): Array<{ text: string; metadata: { companyName: string; roleType: string; studentName: string; } }> {
+    resumeShortlisting?: boolean;
+    historyOfBacklogs?: string;
+    standingBacklogs?: string;
+}): Array<{
+    text: string; metadata: {
+        companyName: string;
+        roleType: string;
+        studentName: string;
+        verdict?: string;
+        batch?: string;
+        placementType?: string;
+        workModel?: string;
+        ctc?: number;
+    }
+}> {
 
     const chunks: string[] = [];
+    const resolvedVerdict = data.finalVerdict || data.verdict || undefined;
     const metadata = {
         companyName: data.companyName,
         roleType: data.roleType,
-        studentName: !!data.studentName ? data.studentName : 'Anonymous',
+        studentName: data.studentName || 'Anonymous',
+        verdict: resolvedVerdict,
+        batch: data.batch,
+        placementType: data.placementType,
+        workModel: data.workModel,
+        ctc: data.ctc,
     };
 
-    // 1. Overview Chunk
+    // 1. Overview Chunk — include all identifying details
     const overviewParts = [
         `Student ${metadata.studentName} interviewed at ${metadata.companyName} for a ${metadata.roleType.replace('_', ' ')} role.`,
     ];
+    if (resolvedVerdict) overviewParts.push(`Outcome: The student was ${resolvedVerdict}.`);
     if (data.placementType) overviewParts.push(`Placement Type: ${data.placementType.replace('_', ' ')}.`);
+    if (data.workModel) overviewParts.push(`Work Model: ${data.workModel.replace('_', ' ')}.`);
     if (data.ctc) overviewParts.push(`Offered CTC: ${data.ctc} LPA.`);
+    if (data.batch) overviewParts.push(`Batch: ${data.batch}.`);
+    if (data.courseBranch) overviewParts.push(`Course/Branch: ${data.courseBranch}.`);
     if (data.minCGPA) overviewParts.push(`Eligibility required a minimum CGPA of ${data.minCGPA}.`);
+    if (data.historyOfBacklogs) overviewParts.push(`History of Backlogs: ${data.historyOfBacklogs}.`);
+    if (data.standingBacklogs) overviewParts.push(`Standing Backlogs: ${data.standingBacklogs}.`);
     if (data.tags && data.tags.length > 0) overviewParts.push(`Skills & Topics matching this role: ${data.tags.join(', ')}.`);
+    if (data.resumeShortlisting !== undefined) overviewParts.push(`Resume Shortlisting: ${data.resumeShortlisting ? 'Yes' : 'No'}.`);
 
     chunks.push(overviewParts.join(' '));
 
@@ -192,8 +230,13 @@ export function chunkExperience(data: {
             if (round.problemStatement) roundText += ` \nProblem Statement: ${round.problemStatement}`;
             if (round.strategy) roundText += ` \nStrategy: ${round.strategy}`;
 
+            // GD logic
+            if (roundType === 'gd' && round.topics) roundText += ` \nDiscussion Topics: ${round.topics}`;
+            if (roundType === 'gd' && round.tips) roundText += ` \nTips: ${round.tips}`;
+
             // Test logic
-            if (round.topics) roundText += ` \nTopics: ${Array.isArray(round.topics) ? round.topics.join(', ') : round.topics}`;
+            if (roundType === 'test' && round.topics) roundText += ` \nTopics: ${Array.isArray(round.topics) ? round.topics.join(', ') : round.topics}`;
+            if (round.studySources) roundText += ` \nStudy Sources: ${round.studySources}`;
 
             // Interview logic
             if (round.questions && round.questions.length > 0) {
@@ -226,7 +269,7 @@ export function chunkExperience(data: {
         chunks.push(summaryParts.join(' \n\n'));
     }
 
-    // Map into required format
+    // Map into required format with rich metadata
     return chunks.map(text => ({
         text,
         metadata

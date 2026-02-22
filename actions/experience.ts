@@ -21,6 +21,7 @@ interface CreateExperienceData {
     tipsForJuniors?: string;
     overallExperience?: string;
     finalVerdict?: 'selected' | 'rejected';
+    resumeShortlisting?: boolean;
     rounds?: Array<{
         roundNumber: number;
         roundType: string;
@@ -94,6 +95,7 @@ export async function createExperience(
             tipsForJuniors: data.tipsForJuniors,
             overallExperience: data.overallExperience,
             finalVerdict: data.finalVerdict,
+            resumeShortlisting: data.resumeShortlisting || false,
             rounds: data.rounds || [],
             ...(embedding && { embedding }),
             tags: data.tags || [],
@@ -111,11 +113,18 @@ export async function createExperience(
                 studentName: data.studentId, // Fallback if name is unavailable during creation
                 ctc: data.ctc,
                 placementType: data.placementType,
+                workModel: (data as any).workModel,
                 minCGPA: data.minCGPA,
+                batch: data.batch,
+                courseBranch: data.courseBranch,
+                verdict: derivedVerdict,
+                finalVerdict: data.finalVerdict,
                 rounds: data.rounds,
                 tags: data.tags,
                 tipsForJuniors: data.tipsForJuniors,
-                overallExperience: data.overallExperience
+                overallExperience: data.overallExperience,
+                historyOfBacklogs: data.historyOfBacklogs,
+                standingBacklogs: data.standingBacklogs,
             });
 
             const dbChunks = [];
@@ -175,7 +184,7 @@ export async function getAllExperiences(): Promise<{
 
         // Optimize query by selecting only necessary fields and limiting results
         const experiences = await Experience.find({ status: 'APPROVED' })
-            .select('studentId studentName company role ctc placementType roleType verdict historyOfBacklogs standingBacklogs batch courseBranch minCGPA rounds finalVerdict tipsForJuniors overallExperience tags year createdAt')
+            .select('studentId studentName company role ctc placementType roleType verdict historyOfBacklogs standingBacklogs batch courseBranch minCGPA resumeShortlisting rounds finalVerdict tipsForJuniors overallExperience tags year createdAt')
             .sort({ createdAt: -1 })
             .limit(50) // Reduced from 100 for faster loading
             .lean()

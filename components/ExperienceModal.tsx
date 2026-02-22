@@ -25,6 +25,7 @@ interface ExperienceModalProps {
     roleType?: string;
     historyOfBacklogs?: string;
     standingBacklogs?: string;
+    resumeShortlisting?: boolean;
 }
 
 function getRoundIcon(type: string) {
@@ -99,6 +100,7 @@ export default function ExperienceModal({
     roleType,
     historyOfBacklogs,
     standingBacklogs,
+    resumeShortlisting,
 }: ExperienceModalProps) {
     const [mounted, setMounted] = useState(false);
 
@@ -267,6 +269,12 @@ export default function ExperienceModal({
                                             </span>
                                         </div>
                                     )}
+                                    <div className="flex flex-col">
+                                        <span className="text-xs text-white/40 uppercase">Resume Shortlisting</span>
+                                        <span className="font-medium text-white">
+                                            {resumeShortlisting ? 'Yes' : 'No / Not Mentioned'}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -348,6 +356,16 @@ export default function ExperienceModal({
                                                                 <Lightbulb className="h-3 w-3" /> Strategy Used
                                                             </h5>
                                                             <ExpandableText text={round.strategy} />
+                                                        </div>
+                                                    )}
+
+                                                    {/* Tips (GD) */}
+                                                    {round.tips && (
+                                                        <div className="p-3 rounded-lg bg-orange-500/5 border border-orange-500/10">
+                                                            <h5 className="text-xs font-medium text-orange-300 mb-1 flex items-center gap-1">
+                                                                <Lightbulb className="h-3 w-3" /> Tips
+                                                            </h5>
+                                                            <ExpandableText text={round.tips} />
                                                         </div>
                                                     )}
 

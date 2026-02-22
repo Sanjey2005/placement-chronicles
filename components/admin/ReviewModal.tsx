@@ -50,6 +50,7 @@ interface Experience {
     historyOfBacklogs?: string;
     standingBacklogs?: string;
     minCGPA?: number;
+    resumeShortlisting?: boolean;
     tags?: string[];
     year?: number;
     finalVerdict?: 'selected' | 'rejected';
@@ -187,6 +188,10 @@ export function ReviewModal({ experience, isOpen, onClose, onApprove, onReject, 
                                             <span className="text-xs text-white/40 uppercase">Standing Backlogs</span>
                                             <span className={experience.standingBacklogs === 'Not Allowed' ? 'text-red-400' : 'text-white/80'}>{experience.standingBacklogs || '—'}</span>
                                         </div>
+                                        <div>
+                                            <span className="text-xs text-white/40 uppercase">Resume Shortlisting</span>
+                                            <span className="text-white/80 block">{experience.resumeShortlisting ? 'Yes' : 'No / Not Mentioned'}</span>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
@@ -218,6 +223,12 @@ export function ReviewModal({ experience, isOpen, onClose, onApprove, onReject, 
                                                 <div className="pl-1 pt-2 space-y-2">
                                                     {round.description && <div className="text-sm border-l-2 border-white/10 pl-3"><h5 className="text-xs text-white/40 uppercase mb-0.5">Description</h5><ExpandableText text={round.description} /></div>}
                                                     {round.experience && <div className="text-sm border-l-2 border-white/10 pl-3"><h5 className="text-xs text-white/40 uppercase mb-0.5">Experience & Tasks</h5><ExpandableText text={round.experience} /></div>}
+                                                    {round.problemStatement && <div className="text-sm border-l-2 border-white/10 pl-3"><h5 className="text-xs text-white/40 uppercase mb-0.5">Problem Statement</h5><ExpandableText text={round.problemStatement} /></div>}
+                                                    {round.strategy && <div className="text-sm border-l-2 border-white/10 pl-3"><h5 className="text-xs text-white/40 uppercase mb-0.5">Strategy Used</h5><ExpandableText text={round.strategy} /></div>}
+                                                    {round.topics && <div className="text-sm border-l-2 border-white/10 pl-3"><h5 className="text-xs text-white/40 uppercase mb-0.5">Topics</h5><ExpandableText text={typeof round.topics === 'string' ? round.topics : round.topics.join(', ')} /></div>}
+                                                    {round.tips && <div className="text-sm border-l-2 border-white/10 pl-3"><h5 className="text-xs text-white/40 uppercase mb-0.5">Tips</h5><ExpandableText text={round.tips} /></div>}
+                                                    {round.studySources && <div className="text-sm border-l-2 border-white/10 pl-3"><h5 className="text-xs text-white/40 uppercase mb-0.5">Study Sources</h5><ExpandableText text={typeof round.studySources === 'string' ? round.studySources : round.studySources.join(', ')} /></div>}
+                                                    {round.notes && <div className="text-sm border-l-2 border-white/10 pl-3"><h5 className="text-xs text-white/40 uppercase mb-0.5">Notes</h5><ExpandableText text={round.notes} /></div>}
                                                     {round.questions && round.questions.length > 0 && (
                                                         <div className="mt-2">
                                                             <h5 className="text-xs text-white/40 uppercase mb-1.5">Questions</h5>

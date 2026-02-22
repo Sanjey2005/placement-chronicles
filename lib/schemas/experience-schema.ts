@@ -38,6 +38,14 @@ export const hackathonRoundSchema = z.object({
     strategy: z.string().min(5, 'Please describe your approach/strategy'),
 });
 
+// Group Discussion Round — topics & tips
+export const groupDiscussionRoundSchema = z.object({
+    type: z.literal('gd'),
+    roundNumber: z.number().min(1),
+    topics: z.string().min(5, 'Please describe the GD topic(s)'),
+    tips: z.string().default(''),
+});
+
 // Interview Round — interviewType, questions, notes, duration
 export const interviewRoundSchema = z.object({
     type: z.literal('interview'),
@@ -78,11 +86,13 @@ export const roundSchema = z.discriminatedUnion('type', [
     onlineTestRoundSchema,
     hackathonRoundSchema,
     interviewRoundSchema,
+    groupDiscussionRoundSchema,
 ]);
 
-// Step 2 Schema: Array of rounds
+// Step 2 Schema: Array of rounds + global resume flag
 export const roundBuilderSchema = z.object({
     rounds: z.array(roundSchema).min(1, 'At least one round is required'),
+    resumeShortlisting: z.boolean().default(false),
 });
 
 // ============================================================================
@@ -112,6 +122,7 @@ export type BasicInfo = z.infer<typeof basicInfoSchema>;
 export type OnlineTestRound = z.infer<typeof onlineTestRoundSchema>;
 export type HackathonRound = z.infer<typeof hackathonRoundSchema>;
 export type InterviewRound = z.infer<typeof interviewRoundSchema>;
+export type GroupDiscussionRound = z.infer<typeof groupDiscussionRoundSchema>;
 export type Round = z.infer<typeof roundSchema>;
 export type RoundBuilder = z.infer<typeof roundBuilderSchema>;
 export type Conclusion = z.infer<typeof conclusionSchema>;
@@ -120,7 +131,7 @@ export type ExperienceFormData = z.infer<typeof experienceFormSchema>;
 // ============================================================================
 // Helper: Default Round Templates
 // ============================================================================
-export const getDefaultRound = (type: 'test' | 'hackathon' | 'interview', roundNumber: number): Round => {
+export const getDefaultRound = (type: 'test' | 'hackathon' | 'interview' | 'gd', roundNumber: number): Round => {
     switch (type) {
         case 'test':
             return {
@@ -144,6 +155,13 @@ export const getDefaultRound = (type: 'test' | 'hackathon' | 'interview', roundN
                 questions: [],
                 notes: '',
                 duration: '',
+            };
+        case 'gd':
+            return {
+                type: 'gd',
+                roundNumber,
+                topics: '',
+                tips: '',
             };
     }
 };
