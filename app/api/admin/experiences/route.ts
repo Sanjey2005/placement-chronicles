@@ -143,7 +143,10 @@ export async function PATCH(request: NextRequest) {
                     // 3. Ensure the canonical Company entry exists
                     const canonicalExists = await Company.findOne({ canonicalName });
                     if (!canonicalExists) {
-                        await Company.create({ canonicalName });
+                        await Company.create({ canonicalName, link: moderationResult.companyWebsite || '' });
+                    } else if (!canonicalExists.link && moderationResult.companyWebsite) {
+                        // Backfill link if it was missing
+                        await Company.updateOne({ canonicalName }, { $set: { link: moderationResult.companyWebsite } });
                     }
 
                     // Update the experience object for the response

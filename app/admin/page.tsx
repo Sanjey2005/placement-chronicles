@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
@@ -16,10 +16,14 @@ import {
     RefreshCw,
     Filter,
     Building2,
-    MessageSquare,
     User,
     Sparkles,
+    Pencil,
+    Check,
+    X,
+    MessageSquare,
 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 interface Stats {
@@ -57,6 +61,7 @@ interface Company {
     _id: string;
     name: string;
     aliases: string[];
+    link: string;
     experienceCount: number;
     createdAt: string;
 }
@@ -133,6 +138,50 @@ function StatCard({
     );
 }
 
+// ─── Pagination Component ───────────────────────────────────────────────────
+function PaginationControls({
+    currentPage,
+    totalPages,
+    onPageChange,
+    totalItems,
+    itemName,
+}: {
+    currentPage: number;
+    totalPages: number;
+    onPageChange: (page: number) => void;
+    totalItems: number;
+    itemName: string;
+}) {
+    if (totalPages <= 1) return null;
+
+    return (
+        <div className="flex items-center justify-between px-4 py-3 border-t border-white/10 bg-white/5 rounded-b-xl">
+            <div className="text-sm text-white/50">
+                Showing <span className="text-white font-medium">total {totalItems}</span> {itemName}
+            </div>
+            <div className="flex items-center gap-2">
+                <button
+                    onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/10 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                    Previous
+                </button>
+                <div className="text-sm text-white/60">
+                    Page <span className="text-white">{currentPage}</span> of <span className="text-white">{totalPages}</span>
+                </div>
+                <button
+                    onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1.5 text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/10 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                    Next
+                </button>
+            </div>
+        </div>
+    );
+}
+
 import { ReviewModal } from '@/components/admin/ReviewModal';
 
 // ─── Main Admin Dashboard ───────────────────────────────────────────────────
@@ -156,9 +205,62 @@ export default function AdminDashboard() {
     const [filter, setFilter] = useState<StatusFilter>('ALL');
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'table' | 'logs' | 'companies' | 'feedbacks'>('table'); // Updated type
+    const [activeTab, setActiveTab] = useState<'table' | 'logs' | 'companies' | 'feedbacks'>('table');
     const [reviewExperience, setReviewExperience] = useState<Experience | null>(null);
     const [cleanupLoading, setCleanupLoading] = useState(false);
+    const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
+    const [editLinkValue, setEditLinkValue] = useState('');
+
+    // Pagination & Filter States
+    const [experiencesPage, setExperiencesPage] = useState(1);
+    const [logsPage, setLogsPage] = useState(1);
+    const [logsFilter, setLogsFilter] = useState('ALL');
+    const [companiesPage, setCompaniesPage] = useState(1);
+    const [companiesSearch, setCompaniesSearch] = useState('');
+    const [companiesFilter, setCompaniesFilter] = useState<'ALL' | 'HAS_LINK' | 'MISSING_LINK'>('ALL');
+    const [feedbacksPage, setFeedbacksPage] = useState(1);
+    const ITEMS_PER_PAGE = 20;
+
+    // Derived State Computations
+    const paginatedExperiences = useMemo(() => {
+        return experiences.slice((experiencesPage - 1) * ITEMS_PER_PAGE, experiencesPage * ITEMS_PER_PAGE);
+    }, [experiences, experiencesPage]);
+
+    const filteredLogs = useMemo(() => {
+        if (logsFilter === 'ALL') return logs;
+        return logs.filter(l => l.action === logsFilter);
+    }, [logs, logsFilter]);
+
+    const paginatedLogs = useMemo(() => {
+        return filteredLogs.slice((logsPage - 1) * ITEMS_PER_PAGE, logsPage * ITEMS_PER_PAGE);
+    }, [filteredLogs, logsPage]);
+
+    const filteredCompanies = useMemo(() => {
+        let result = companies;
+        if (companiesFilter === 'HAS_LINK') result = result.filter(c => !!c.link);
+        if (companiesFilter === 'MISSING_LINK') result = result.filter(c => !c.link);
+        if (companiesSearch) {
+            const searchLower = companiesSearch.toLowerCase();
+            result = result.filter(c =>
+                c.name.toLowerCase().includes(searchLower) ||
+                c.aliases.some(a => a.toLowerCase().includes(searchLower))
+            );
+        }
+        return result;
+    }, [companies, companiesFilter, companiesSearch]);
+
+    const paginatedCompanies = useMemo(() => {
+        return filteredCompanies.slice((companiesPage - 1) * ITEMS_PER_PAGE, companiesPage * ITEMS_PER_PAGE);
+    }, [filteredCompanies, companiesPage]);
+
+    const paginatedFeedbacks = useMemo(() => {
+        return feedbacks.slice((feedbacksPage - 1) * ITEMS_PER_PAGE, feedbacksPage * ITEMS_PER_PAGE);
+    }, [feedbacks, feedbacksPage]);
+
+    // Reset pages on filter change
+    useEffect(() => setExperiencesPage(1), [filter]);
+    useEffect(() => setLogsPage(1), [logsFilter]);
+    useEffect(() => setCompaniesPage(1), [companiesFilter, companiesSearch]);
 
     // ── Data Fetching ───────────────────────────────────────────────────
     const fetchStats = useCallback(async () => {
@@ -294,6 +396,29 @@ export default function AdminDashboard() {
         }
     };
 
+    // ── Edit Company Link ───────────────────────────────────────────
+    const handleSaveLink = async (companyId: string) => {
+        try {
+            const res = await fetch('/api/admin/companies', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ companyId, link: editLinkValue }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                toast.success('Company link updated successfully');
+                await fetchCompanies();
+            } else {
+                toast.error(data.error || 'Failed to update link');
+            }
+        } catch {
+            toast.error('Failed to update company link');
+        } finally {
+            setEditingLinkId(null);
+            setEditLinkValue('');
+        }
+    };
+
     // ── Filter Tabs ─────────────────────────────────────────────────────
     const filters: { label: string; value: StatusFilter; count: number }[] = [
         { label: 'All', value: 'ALL', count: stats.total },
@@ -422,14 +547,14 @@ export default function AdminDashboard() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
-                                        {experiences.length === 0 ? (
+                                        {paginatedExperiences.length === 0 ? (
                                             <tr>
                                                 <td colSpan={6} className="px-4 py-12 text-center text-white/40">
                                                     {loading ? 'Loading...' : 'No experiences found'}
                                                 </td>
                                             </tr>
                                         ) : (
-                                            experiences.map((exp) => (
+                                            paginatedExperiences.map((exp: Experience) => (
                                                 <tr key={exp._id} className="hover:bg-white/5 transition-colors">
                                                     <td className="px-4 py-3 text-sm text-white/70 whitespace-nowrap">
                                                         {new Date(exp.createdAt).toLocaleDateString('en-IN', {
@@ -495,6 +620,13 @@ export default function AdminDashboard() {
                                         )}
                                     </tbody>
                                 </table>
+                                <PaginationControls
+                                    currentPage={experiencesPage}
+                                    totalPages={Math.ceil(experiences.length / ITEMS_PER_PAGE)}
+                                    onPageChange={setExperiencesPage}
+                                    totalItems={experiences.length}
+                                    itemName="experiences"
+                                />
                             </div>
                         </motion.div>
                     )}
@@ -506,16 +638,28 @@ export default function AdminDashboard() {
                             animate={{ opacity: 1 }}
                             className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden"
                         >
-                            <div className="px-4 py-3 border-b border-white/10">
-                                <h3 className="text-sm font-semibold text-white/80">Recent Activity</h3>
+                            <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+                                <Select value={logsFilter} onValueChange={setLogsFilter}>
+                                    <SelectTrigger className="w-[140px] h-8 bg-black/50 border border-white/20 rounded-md px-3 text-xs text-white focus:ring-purple-500/50">
+                                        <SelectValue placeholder="All Actions" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-slate-900 border-white/10 text-white">
+                                        <SelectItem value="ALL" className="focus:bg-white/10 focus:text-white cursor-pointer text-xs">All Actions</SelectItem>
+                                        <SelectItem value="APPROVE" className="focus:bg-white/10 focus:text-white cursor-pointer text-xs">Approved</SelectItem>
+                                        <SelectItem value="AUTO_APPROVE" className="focus:bg-white/10 focus:text-white cursor-pointer text-xs">Auto Approved</SelectItem>
+                                        <SelectItem value="REJECT" className="focus:bg-white/10 focus:text-white cursor-pointer text-xs">Rejected</SelectItem>
+                                        <SelectItem value="FLAG" className="focus:bg-white/10 focus:text-white cursor-pointer text-xs">Flagged</SelectItem>
+                                        <SelectItem value="DELETE" className="focus:bg-white/10 focus:text-white cursor-pointer text-xs">Deleted</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                             <div className="divide-y divide-white/5 max-h-[600px] overflow-y-auto">
-                                {logs.length === 0 ? (
+                                {paginatedLogs.length === 0 ? (
                                     <div className="px-4 py-12 text-center text-white/40">
-                                        {loading ? 'Loading...' : 'No activity logs yet'}
+                                        {loading ? 'Loading...' : 'No activity logs found'}
                                     </div>
                                 ) : (
-                                    logs.map((log) => (
+                                    paginatedLogs.map((log: AdminLogEntry) => (
                                         <div key={log._id} className="px-4 py-3 flex items-start gap-3 hover:bg-white/5 transition-colors">
                                             <div className={`mt-0.5 p-1.5 rounded-lg ${log.action === 'APPROVE' || log.action === 'AUTO_APPROVE'
                                                 ? 'bg-emerald-500/20 text-emerald-300'
@@ -565,6 +709,13 @@ export default function AdminDashboard() {
                                     ))
                                 )}
                             </div>
+                            <PaginationControls
+                                currentPage={logsPage}
+                                totalPages={Math.ceil(filteredLogs.length / ITEMS_PER_PAGE)}
+                                onPageChange={setLogsPage}
+                                totalItems={filteredLogs.length}
+                                itemName="logs"
+                            />
                         </motion.div>
                     )}
 
@@ -575,13 +726,33 @@ export default function AdminDashboard() {
                             animate={{ opacity: 1 }}
                             className="space-y-4"
                         >
-                            {/* Clean Companies Button */}
-                            <div className="flex items-center justify-between">
-                                <p className="text-sm text-white/50">{companies.length} companies registered</p>
+                            {/* Actions & Filters */}
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                                <div className="flex items-center gap-3 w-full sm:w-auto">
+                                    <input
+                                        type="text"
+                                        placeholder="Search companies..."
+                                        value={companiesSearch}
+                                        onChange={(e) => setCompaniesSearch(e.target.value)}
+                                        className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50 w-full sm:w-64 placeholder:text-white/30"
+                                    />
+                                    <div className="w-[160px]">
+                                        <Select value={companiesFilter} onValueChange={(val: any) => setCompaniesFilter(val)}>
+                                            <SelectTrigger className="w-full h-10 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white outline-none focus:ring-0">
+                                                <SelectValue placeholder="All Links" />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-slate-900 border-white/10 text-white">
+                                                <SelectItem value="ALL" className="focus:bg-white/10 focus:text-white cursor-pointer text-sm">All Links</SelectItem>
+                                                <SelectItem value="HAS_LINK" className="focus:bg-white/10 focus:text-white cursor-pointer text-sm">Has Link</SelectItem>
+                                                <SelectItem value="MISSING_LINK" className="focus:bg-white/10 focus:text-white cursor-pointer text-sm">Missing Link</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
                                 <button
                                     onClick={handleCleanup}
                                     disabled={cleanupLoading}
-                                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 border border-purple-500/30 rounded-lg transition-all text-sm font-medium text-purple-300 disabled:opacity-50"
+                                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 border border-purple-500/30 rounded-lg transition-all text-sm font-medium text-purple-300 disabled:opacity-50 w-full sm:w-auto justify-center"
                                 >
                                     <Sparkles className={`h-4 w-4 ${cleanupLoading ? 'animate-pulse' : ''}`} />
                                     {cleanupLoading ? 'Cleaning...' : 'Clean Companies'}
@@ -598,20 +769,82 @@ export default function AdminDashboard() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
-                                        {companies.length === 0 ? (
+                                        {paginatedCompanies.length === 0 ? (
                                             <tr>
                                                 <td colSpan={4} className="px-4 py-12 text-center text-white/40">
                                                     {loading ? 'Loading...' : 'No companies found'}
                                                 </td>
                                             </tr>
                                         ) : (
-                                            companies.map((company) => (
+                                            paginatedCompanies.map((company: Company) => (
                                                 <tr key={company._id} className="hover:bg-white/5 transition-colors">
-                                                    <td className="px-4 py-3 text-sm text-white font-medium flex items-center gap-2">
-                                                        <div className="p-1.5 bg-blue-500/10 rounded-lg">
-                                                            <Building2 className="h-4 w-4 text-blue-400" />
+                                                    <td className="px-4 py-3 text-sm text-white font-medium">
+                                                        <div className="flex items-center gap-2">
+                                                            {company.link ? (
+                                                                <div className="w-8 h-8 flex-shrink-0 rounded-md bg-white flex items-center justify-center overflow-hidden border border-white/10">
+                                                                    <img
+                                                                        src={`https://www.google.com/s2/favicons?domain=${company.link}&sz=128`}
+                                                                        alt={`${company.name} logo`}
+                                                                        className="w-full h-full object-contain p-0.5"
+                                                                        onError={(e) => {
+                                                                            // Fallback to Building2 icon on error
+                                                                            const target = e.currentTarget;
+                                                                            target.style.display = 'none';
+                                                                            const parent = target.parentElement;
+                                                                            if (parent) {
+                                                                                parent.classList.remove('bg-white');
+                                                                                parent.classList.add('bg-blue-500/10');
+                                                                                parent.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>';
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="w-8 h-8 flex-shrink-0 p-1.5 bg-blue-500/10 rounded-md flex items-center justify-center">
+                                                                    <Building2 className="h-4 w-4 text-blue-400" />
+                                                                </div>
+                                                            )}
+                                                            <div>
+                                                                {company.name}
+                                                                {editingLinkId === company._id ? (
+                                                                    <div className="flex items-center gap-1.5 mt-1">
+                                                                        <input
+                                                                            type="text"
+                                                                            className="bg-black/50 border border-white/20 rounded px-2 py-0.5 text-xs text-white outline-none focus:border-purple-500/50 w-32"
+                                                                            value={editLinkValue}
+                                                                            onChange={(e) => setEditLinkValue(e.target.value)}
+                                                                            placeholder="domain.com"
+                                                                            autoFocus
+                                                                            onKeyDown={(e) => {
+                                                                                if (e.key === 'Enter') handleSaveLink(company._id);
+                                                                                if (e.key === 'Escape') setEditingLinkId(null);
+                                                                            }}
+                                                                        />
+                                                                        <button onClick={() => handleSaveLink(company._id)} className="p-1 hover:bg-emerald-500/20 text-emerald-400 rounded transition-colors" title="Save">
+                                                                            <Check className="h-3 w-3" />
+                                                                        </button>
+                                                                        <button onClick={() => setEditingLinkId(null)} className="p-1 hover:bg-rose-500/20 text-rose-400 rounded transition-colors" title="Cancel">
+                                                                            <X className="h-3 w-3" />
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="group flex items-center gap-2 mt-0.5">
+                                                                        {company.link ? (
+                                                                            <span className="block text-xs text-white/40 font-normal">{company.link}</span>
+                                                                        ) : (
+                                                                            <span className="block text-xs text-amber-500/50 font-normal italic">No domain set</span>
+                                                                        )}
+                                                                        <button
+                                                                            onClick={() => { setEditingLinkId(company._id); setEditLinkValue(company.link || ''); }}
+                                                                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-white/10 text-white/50 hover:text-white rounded transition-all"
+                                                                            title="Edit Domain"
+                                                                        >
+                                                                            <Pencil className="h-3 w-3" />
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                        {company.name}
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/10 text-white/80 border border-white/10">
@@ -621,7 +854,7 @@ export default function AdminDashboard() {
                                                     <td className="px-4 py-3 text-xs text-white/50">
                                                         {company.aliases.length > 0 ? (
                                                             <div className="flex flex-wrap gap-1">
-                                                                {company.aliases.map((alias, i) => (
+                                                                {company.aliases.map((alias: string, i: number) => (
                                                                     <span key={i} className="px-1.5 py-0.5 bg-white/5 rounded border border-white/5">
                                                                         {alias}
                                                                     </span>
@@ -643,6 +876,13 @@ export default function AdminDashboard() {
                                         )}
                                     </tbody>
                                 </table>
+                                <PaginationControls
+                                    currentPage={companiesPage}
+                                    totalPages={Math.ceil(filteredCompanies.length / ITEMS_PER_PAGE)}
+                                    onPageChange={setCompaniesPage}
+                                    totalItems={filteredCompanies.length}
+                                    itemName="companies"
+                                />
                             </div>
                         </motion.div>
                     )}
@@ -664,14 +904,14 @@ export default function AdminDashboard() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
-                                        {feedbacks.length === 0 ? (
+                                        {paginatedFeedbacks.length === 0 ? (
                                             <tr>
                                                 <td colSpan={3} className="px-4 py-12 text-center text-white/40">
                                                     {loading ? 'Loading...' : 'No feedbacks found'}
                                                 </td>
                                             </tr>
                                         ) : (
-                                            feedbacks.map((feedback) => (
+                                            paginatedFeedbacks.map((feedback: Feedback) => (
                                                 <tr key={feedback._id} className="hover:bg-white/5 transition-colors">
                                                     <td className="px-4 py-3 text-sm text-white/70 whitespace-nowrap align-top w-32">
                                                         {new Date(feedback.createdAt).toLocaleDateString('en-IN', {
@@ -694,6 +934,13 @@ export default function AdminDashboard() {
                                         )}
                                     </tbody>
                                 </table>
+                                <PaginationControls
+                                    currentPage={feedbacksPage}
+                                    totalPages={Math.ceil(feedbacks.length / ITEMS_PER_PAGE)}
+                                    onPageChange={setFeedbacksPage}
+                                    totalItems={feedbacks.length}
+                                    itemName="feedbacks"
+                                />
                             </div>
                         </motion.div>
                     )}

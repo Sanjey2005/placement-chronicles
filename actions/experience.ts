@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import dbConnect from '@/lib/db';
 import Experience, { IExperience } from '@/models/Experience';
+import Company from '@/models/Company';
 import ExperienceChunk from '@/models/ExperienceChunk';
 import { getEmbedding, generateExperienceSummary, chunkExperience } from '@/lib/vector';
 
@@ -177,6 +178,7 @@ export async function createExperience(
 export async function getAllExperiences(): Promise<{
     success: boolean;
     data?: IExperience[];
+    companyLinks?: Record<string, string>;
     error?: string;
 }> {
     try {
@@ -208,9 +210,19 @@ export async function getAllExperiences(): Promise<{
             courseBranch: exp.courseBranch || '',
         }));
 
+        // Fetch company links for logo display
+        const companiesData = await Company.find().select('canonicalName link').lean();
+        const companyLinks: Record<string, string> = {};
+        for (const c of companiesData) {
+            if ((c as any).link) {
+                companyLinks[(c as any).canonicalName] = (c as any).link;
+            }
+        }
+
         return {
             success: true,
             data: serializedExperiences as unknown as IExperience[],
+            companyLinks,
         };
     } catch (error) {
         return {

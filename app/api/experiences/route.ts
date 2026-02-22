@@ -89,6 +89,7 @@ export async function POST(request: NextRequest) {
         let status: 'APPROVED' | 'FLAGGED' | 'PENDING' = 'PENDING';
         let moderationReason: string | null = null;
         let finalCompanyName = validatedData.company; // Default to user input
+        let companyWebsite = ''; // Will be populated by Groq
 
         // ── Check Groq Global Limit (45 RPM) ────────────────────────
         if (groqApiRateLimit) {
@@ -124,6 +125,9 @@ export async function POST(request: NextRequest) {
             // 1. Handle Normalization
             if (moderationResult.canonicalCompanyName) {
                 finalCompanyName = moderationResult.canonicalCompanyName;
+            }
+            if (moderationResult.companyWebsite) {
+                companyWebsite = moderationResult.companyWebsite;
             }
 
             // 2. Handle Safety
@@ -178,7 +182,7 @@ export async function POST(request: NextRequest) {
                             // Ensure canonical Company entry exists
                             const exists = await Company.findOne({ canonicalName: canonical });
                             if (!exists) {
-                                await Company.create({ canonicalName: canonical });
+                                await Company.create({ canonicalName: canonical, link: normResult.companyWebsite || '' });
                             }
                         } else {
                             // Name is already correct, just clear the flag
@@ -205,7 +209,7 @@ export async function POST(request: NextRequest) {
         try {
             const existingCompany = await Company.findOne({ canonicalName: finalCompanyName });
             if (!existingCompany) {
-                await Company.create({ canonicalName: finalCompanyName });
+                await Company.create({ canonicalName: finalCompanyName, link: companyWebsite });
             }
         } catch (companyError) {
             // Don't block submission, just log error conceptually

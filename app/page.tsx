@@ -32,6 +32,7 @@ export const metadata: Metadata = {
 export default async function Home() {
   const result = await getAllExperiences();
   const experiences = result.success ? result.data || [] : [];
+  const companyLinks = result.companyLinks || {};
 
   // Calculate Average CTC
   // We need to convert stipends (per month) into LPA equivalents to get a meaningful average
@@ -141,7 +142,7 @@ export default async function Home() {
               </div>
             </div>
           ) : (
-            <FeedGrid experiences={experiences} companies={companies} batches={batches} />
+            <FeedGrid experiences={experiences} companies={companies} batches={batches} companyLinks={companyLinks} />
           )}
         </main>
 

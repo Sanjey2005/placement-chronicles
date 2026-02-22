@@ -113,7 +113,16 @@ Rules:
             // 2. Ensure canonical Company entry exists
             const canonicalExists = await Company.findOne({ canonicalName: to });
             if (!canonicalExists) {
-                await Company.create({ canonicalName: to });
+                // Try to preserve the link from the source company being merged
+                const sourceCompany = await Company.findOne({ canonicalName: from }).lean();
+                const preservedLink = (sourceCompany as any)?.link || '';
+                await Company.create({ canonicalName: to, link: preservedLink });
+            } else if (!canonicalExists.link) {
+                // If canonical exists but has no link, inherit from source
+                const sourceCompany = await Company.findOne({ canonicalName: from }).lean();
+                if ((sourceCompany as any)?.link) {
+                    await Company.updateOne({ canonicalName: to }, { $set: { link: (sourceCompany as any).link } });
+                }
             }
 
             // 3. Delete the stale alias Company entry
@@ -144,16 +153,79 @@ Rules:
             { $set: { needsCompanyNormalization: false } }
         );
 
+        // ── Phase 6: Backfill missing company links via Groq ────────
+        let linksBackfilled = 0;
+        try {
+            const companiesWithoutLinks = await Company.find({ $or: [{ link: '' }, { link: { $exists: false } }] }).lean();
+
+            if (companiesWithoutLinks.length > 0) {
+                const Groq = (await import('groq-sdk')).default;
+                const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+                const namesForLookup = companiesWithoutLinks.map((c: any) => c.canonicalName);
+
+                const completion = await groq.chat.completions.create({
+                    model: 'llama-3.3-70b-versatile',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: `You are a company website lookup expert. Given a list of company names, return their primary website domains.
+
+Return ONLY valid JSON in this format:
+{
+  "links": {
+    "Company Name": "domain.com",
+    "Another Company": "anothercompany.com"
+  }
+}
+
+Rules:
+- Return ONLY the bare domain (no "https://" or "www." prefix)
+- If you are unsure about a company's website, return an empty string for that company
+- Be accurate — only return domains you are confident about`,
+                        },
+                        {
+                            role: 'user',
+                            content: `Find the website domains for these companies:\n${JSON.stringify(namesForLookup)}`,
+                        },
+                    ],
+                    max_tokens: 1000,
+                    temperature: 0.1,
+                    response_format: { type: 'json_object' },
+                });
+
+                const responseText = completion.choices[0]?.message?.content || '';
+                const parsed = JSON.parse(responseText);
+
+                if (parsed.links && typeof parsed.links === 'object') {
+                    for (const [companyName, domain] of Object.entries(parsed.links)) {
+                        if (domain && typeof domain === 'string' && domain.trim().length > 0) {
+                            const updateResult = await Company.updateOne(
+                                { canonicalName: companyName },
+                                { $set: { link: domain.trim().replace(/^(https?:\/\/)?(www\.)?/, '') } }
+                            );
+                            if (updateResult.matchedCount > 0) {
+                                linksBackfilled++;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (linkError) {
+            console.error('Link backfill error (non-critical):', linkError);
+        }
+
         return NextResponse.json({
             success: true,
             data: {
                 merges,
                 mergedCount,
                 orphansRemoved,
+                linksBackfilled,
             },
             message: mergedCount > 0
-                ? `Cleaned up ${mergedCount} duplicate(s) and removed ${orphansRemoved} orphan(s)`
-                : `No duplicates found. Removed ${orphansRemoved} orphan(s).`,
+                ? `Cleaned up ${mergedCount} duplicate(s), removed ${orphansRemoved} orphan(s), backfilled ${linksBackfilled} link(s)`
+                : `No duplicates found. Removed ${orphansRemoved} orphan(s). Backfilled ${linksBackfilled} link(s).`,
         });
     } catch (error) {
         console.error('Company cleanup error:', error);

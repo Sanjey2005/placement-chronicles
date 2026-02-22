@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
             _id: company._id,
             name: company.canonicalName,
             aliases: company.aliases || [],
+            link: company.link || '',
             experienceCount: countMap.get(company.canonicalName) || 0,
             createdAt: company.createdAt,
         }));
@@ -44,6 +45,30 @@ export async function GET(request: NextRequest) {
             { success: false, error: 'An internal server error occurred while fetching companies' },
             { status: 500 }
         );
+    }
+}
+
+export async function PATCH(request: NextRequest) {
+    if (!requireAdmin(request)) {
+        return NextResponse.json({ success: false, error: 'Forbidden: Admin access only' }, { status: 403 });
+    }
+
+    try {
+        await dbConnect();
+        const { companyId, link } = await request.json();
+
+        if (!companyId) {
+            return NextResponse.json({ success: false, error: 'Company ID is required' }, { status: 400 });
+        }
+
+        // Clean link to bare domain if possible
+        const cleanedLink = (link || '').trim().replace(/^(https?:\/\/)?(www\.)?/, '');
+
+        await Company.findByIdAndUpdate(companyId, { $set: { link: cleanedLink } });
+
+        return NextResponse.json({ success: true, message: 'Link updated successfully' });
+    } catch (error) {
+        return NextResponse.json({ success: false, error: 'Failed to update company link' }, { status: 500 });
     }
 }
 

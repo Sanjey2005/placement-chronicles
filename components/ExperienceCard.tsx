@@ -25,6 +25,7 @@ interface ExperienceCardProps {
     roleType?: string;
     historyOfBacklogs?: string;
     standingBacklogs?: string;
+    hideCompany?: boolean;
 }
 
 function getCookie(name: string): string | null {
@@ -50,6 +51,7 @@ export default function ExperienceCard({
     roleType,
     historyOfBacklogs,
     standingBacklogs,
+    hideCompany = false,
 }: ExperienceCardProps) {
     const [modalOpen, setModalOpen] = useState(false);
     const router = useRouter();
@@ -91,18 +93,34 @@ export default function ExperienceCard({
                     {/* Header */}
                     <div className="flex items-start justify-between mb-3 gap-3">
                         <div className="flex-1 min-w-0">
-                            <h3 className="text-xl font-bold text-white mb-1 flex items-center gap-2 truncate">
-                                <Building2 className="h-5 w-5 text-blue-400 shrink-0" />
-                                <span className="truncate">{company}</span>
-                            </h3>
-                            <p className="text-sm text-white/60 flex items-center gap-2 truncate">
-                                <Briefcase className="h-3.5 w-3.5 shrink-0" />
-                                <span className="truncate">{role}</span>
-                            </p>
-                            {studentName && (
-                                <p className="text-xs text-white/40 mt-1 ml-[22px]">
-                                    by {studentName}
-                                </p>
+                            {hideCompany ? (
+                                <>
+                                    <h3 className="text-xl font-bold text-white mb-1 flex items-center gap-2 truncate">
+                                        <Briefcase className="h-5 w-5 text-violet-400 shrink-0" />
+                                        <span className="truncate">{role}</span>
+                                    </h3>
+                                    {studentName && (
+                                        <p className="text-xs text-white/40 mt-1 ml-[22px]">
+                                            by {studentName}
+                                        </p>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    <h3 className="text-xl font-bold text-white mb-1 flex items-center gap-2 truncate">
+                                        <Building2 className="h-5 w-5 text-blue-400 shrink-0" />
+                                        <span className="truncate">{company}</span>
+                                    </h3>
+                                    <p className="text-sm text-white/60 flex items-center gap-2 truncate">
+                                        <Briefcase className="h-3.5 w-3.5 shrink-0" />
+                                        <span className="truncate">{role}</span>
+                                    </p>
+                                    {studentName && (
+                                        <p className="text-xs text-white/40 mt-1 ml-[22px]">
+                                            by {studentName}
+                                        </p>
+                                    )}
+                                </>
                             )}
                         </div>
                         <div className="text-right shrink-0">

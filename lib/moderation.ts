@@ -47,6 +47,7 @@ interface ModerationResult {
     isSafe: boolean;
     reason: string;
     canonicalCompanyName?: string;
+    companyWebsite?: string;
 }
 
 /**
@@ -94,15 +95,20 @@ DO THREE THINGS:
    - Valid roles are job titles like: "Software Engineer", "Data Analyst", "Junior Analyst", "SDE Intern", "Business Analyst", "Consultant", "Research Associate", etc.
    - If the role looks like a degree/course instead of a job title, set isSafe to false with reason "Role field contains a degree/course name instead of a job title".
 
+4. WEBSITE LOOKUP: Determine the company's primary website domain (e.g., "google.com", "jpmorgan.com", "amazon.com").
+   - Return ONLY the bare domain without "https://" or "www." prefixes.
+   - If you are unsure, return an empty string.
+
 Return ONLY valid JSON:
 {
   "isSafe": boolean,
   "reason": "Short explanation of safety verdict",
-  "canonicalCompanyName": "Official Company Name"
+  "canonicalCompanyName": "Official Company Name",
+  "companyWebsite": "domain.com"
 }
 
-If safe: { "isSafe": true, "reason": "Content is appropriate", "canonicalCompanyName": "Google" }
-If unsafe: { "isSafe": false, "reason": "Contains hate speech", "canonicalCompanyName": "Google" }`,
+If safe: { "isSafe": true, "reason": "Content is appropriate", "canonicalCompanyName": "Google", "companyWebsite": "google.com" }
+If unsafe: { "isSafe": false, "reason": "Contains hate speech", "canonicalCompanyName": "Google", "companyWebsite": "google.com" }`,
                 },
                 {
                     role: 'user',
@@ -123,13 +129,15 @@ If unsafe: { "isSafe": false, "reason": "Contains hate speech", "canonicalCompan
                 isSafe: Boolean(parsed.isSafe),
                 reason: parsed.reason || 'No reason provided',
                 canonicalCompanyName: enforceCanonicalName(parsed.canonicalCompanyName || data.company),
+                companyWebsite: parsed.companyWebsite || '',
             };
         } catch (parseError) {
             console.error('Json parse error in moderation:', parseError);
             return {
                 isSafe: false,
                 reason: 'AI response malformed - Manual Review Required',
-                canonicalCompanyName: enforceCanonicalName(data.company)
+                canonicalCompanyName: enforceCanonicalName(data.company),
+                companyWebsite: '',
             };
         }
 
@@ -140,7 +148,8 @@ If unsafe: { "isSafe": false, "reason": "Contains hate speech", "canonicalCompan
         return {
             isSafe: false,
             reason: 'AI Service Unavailable - Manual Review Required',
-            canonicalCompanyName: enforceCanonicalName(data.company)
+            canonicalCompanyName: enforceCanonicalName(data.company),
+            companyWebsite: '',
         };
     }
 }

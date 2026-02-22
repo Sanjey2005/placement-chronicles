@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 export interface ICompany extends Document {
     canonicalName: string;
     aliases: string[];
+    link: string;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -19,6 +20,10 @@ const CompanySchema = new Schema<ICompany>(
         aliases: {
             type: [String],
             default: [],
+        },
+        link: {
+            type: String,
+            default: '',
         },
     },
     {
