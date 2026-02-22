@@ -13,7 +13,8 @@ const ECAMPUS_POST_URL = 'https://ecampus.psgtech.ac.in/studzone';
  */
 export async function POST(request: NextRequest) {
     try {
-        const { rollno, password } = await request.json();
+        const { rollno: rawRollno, password } = await request.json();
+        const rollno = rawRollno?.trim().toUpperCase();
 
         if (!rollno || !password) {
             return NextResponse.json(
@@ -41,8 +42,9 @@ export async function POST(request: NextRequest) {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             },
+            cache: 'no-store',
             redirect: 'follow',
-            signal: AbortSignal.timeout(15000),
+            signal: AbortSignal.timeout(20000), // Increased to 20s
         });
 
         if (!loginPageRes.ok) {
@@ -96,18 +98,28 @@ export async function POST(request: NextRequest) {
             },
             body: formBody.toString(),
             redirect: 'manual',
-            signal: AbortSignal.timeout(15000),
+            signal: AbortSignal.timeout(20000), // Increased to 20s
         });
 
         // ── Step 3: Detect success ──────────────────────────────────
         const status = loginRes.status;
         const location = loginRes.headers.get('location') || '';
 
-        if (status === 302 && location.includes('/studzone/Home/Menu')) {
+        // Successful login usually redirects to /studzone/Home/Menu
+        // But we allow anything starting with /studzone/ as a success if it's a 302
+        if (status === 302 && (location.includes('/studzone/Home') || location.includes('/studzone/Default'))) {
             return NextResponse.json({
                 success: true,
                 message: 'Login successful',
                 role: 'USER',
+            });
+        }
+
+        // If it redirects to login again, it failed
+        if (status === 302 && location.includes('Login/StudLogin')) {
+            return NextResponse.json({
+                success: false,
+                error: 'Invalid roll number or password',
             });
         }
 
@@ -122,7 +134,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
             success: false,
-            error: 'Invalid roll number or password',
+            error: 'Invalid roll number or password or account requires manual eCampus login (e.g. password change)',
         });
 
     } catch (error: any) {

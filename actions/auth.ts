@@ -18,8 +18,9 @@ interface LoginResponse {
  */
 export async function login(formData: FormData): Promise<LoginResponse> {
     try {
-        const username = formData.get('username') as string;
+        const rawUsername = formData.get('username') as string;
         const password = formData.get('password') as string;
+        const username = rawUsername?.trim().toUpperCase();
 
         if (!username || !password) {
             return {

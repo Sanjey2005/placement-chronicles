@@ -15,6 +15,7 @@ interface Message {
     sources?: Array<{
         company: string;
         role: string;
+        student?: string;
         similarity: number;
     }>;
 }
@@ -76,13 +77,19 @@ export default function ChatPage() {
         }]);
 
         try {
+            // Build full conversation history (last 10 messages) for multi-turn context
+            const allMessages = [...messages, { role: 'user' as const, content: messageText }];
+            const historyToSend = allMessages
+                .slice(-10)
+                .map(m => ({ role: m.role, content: m.content }));
+
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    messages: [{ role: 'user', content: messageText }]
+                    messages: historyToSend
                 }),
             });
 
@@ -287,7 +294,7 @@ export default function ChatPage() {
                                                         <div className="space-y-1">
                                                             {message.sources.map((source, sIdx) => (
                                                                 <div key={sIdx} className="text-xs text-white/80">
-                                                                    • {source.company} - {source.role} ({Math.round(source.similarity * 100)}% match)
+                                                                    • {source.company} - {source.role}{source.student ? ` (${source.student})` : ''}{source.similarity > 0 ? ` — ${Math.round(source.similarity * 100)}% match` : ''}
                                                                 </div>
                                                             ))}
                                                         </div>

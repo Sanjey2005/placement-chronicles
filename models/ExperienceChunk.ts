@@ -11,6 +11,11 @@ export interface IExperienceChunk extends Document {
         companyName: string;
         roleType: string;
         studentName: string;
+        verdict?: string;
+        batch?: string;
+        placementType?: string;
+        workModel?: string;
+        ctc?: number;
     };
     createdAt: Date;
     updatedAt: Date;
@@ -48,6 +53,22 @@ const ExperienceChunkSchema = new Schema<IExperienceChunk>(
             studentName: {
                 type: String,
                 required: true,
+            },
+            verdict: {
+                type: String,
+                index: true,
+            },
+            batch: {
+                type: String,
+            },
+            placementType: {
+                type: String,
+            },
+            workModel: {
+                type: String,
+            },
+            ctc: {
+                type: Number,
             },
         },
     },
