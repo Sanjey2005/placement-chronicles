@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
         const adminUser = process.env.ADMIN_USERNAME;
         const adminPass = process.env.ADMIN_PASSWORD;
 
-        if (adminUser && adminPass && rollno === adminUser && password === adminPass) {
+        if (adminUser && adminPass && rollno === adminUser.toUpperCase() && password === adminPass) {
             return NextResponse.json({
                 success: true,
                 message: 'Admin login successful',
