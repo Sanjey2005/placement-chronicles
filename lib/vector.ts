@@ -4,12 +4,12 @@
  * Uses HUGGINGFACE_API_KEY from .env.local
  */
 
+import { HfInference } from '@huggingface/inference';
+
 const HF_API_KEY = process.env.HUGGINGFACE_API_KEY || '';
-const HF_EMBEDDING_URL =
-    'https://router.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2';
 
 /**
- * Generate vector embedding using Hugging Face Inference API
+ * Generate vector embedding using Hugging Face Inference SDK
  */
 export async function getEmbedding(text: string): Promise<number[]> {
     if (!HF_API_KEY) {
@@ -17,51 +17,31 @@ export async function getEmbedding(text: string): Promise<number[]> {
         return [];
     }
 
-    const maxRetries = 3;
-    let delay = 3000;
+    const hf = new HfInference(HF_API_KEY);
 
-    // The model tokenizer handles truncation internally (512 tokens ≠ 512 chars).
+    // The model tokenizer handles truncation internally.
     // Pass up to 2000 chars to preserve detail from longer round descriptions.
     const truncatedText = text.substring(0, 2000);
 
+    const maxRetries = 3;
+    let delay = 3000;
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            const response = await fetch(HF_EMBEDDING_URL, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${HF_API_KEY}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    inputs: truncatedText,
-                    options: { wait_for_model: true },
-                }),
-                signal: AbortSignal.timeout(30000),
+            const result = await hf.featureExtraction({
+                model: 'sentence-transformers/all-MiniLM-L6-v2',
+                inputs: truncatedText,
             });
 
-            if (response.status === 503) {
-                console.log(`⏳ HF model loading (attempt ${attempt}/${maxRetries}), waiting ${delay}ms...`);
-                await new Promise(resolve => setTimeout(resolve, delay));
-                delay *= 2;
-                continue;
-            }
-
-            if (!response.ok) {
-                const errorText = await response.text().catch(() => '');
-                throw new Error(`HF API ${response.status}: ${errorText.substring(0, 200)}`);
-            }
-
-            const result = await response.json();
-
-            // HF returns the embedding directly as an array of numbers
-            const vector = Array.isArray(result[0]) ? result[0] : result;
+            // HF returns the embedding directly as an array of numbers or nested depending on input shape
+            const vector = Array.isArray(result) && Array.isArray(result[0]) ? result[0] : result;
 
             if (!Array.isArray(vector) || vector.length === 0) {
                 throw new Error('Invalid embedding response format');
             }
 
             console.log(`✅ Embedding generated (${vector.length}d)`);
-            return vector;
+            return vector as number[];
         } catch (error: any) {
             if (attempt === maxRetries) {
                 console.error('❌ Embedding failed after retries:', error.message);
