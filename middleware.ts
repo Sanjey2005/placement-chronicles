@@ -77,7 +77,15 @@ export async function middleware(request: NextRequest) {
 
     // If trying to access any non-public route without auth token
     if (!isPublicRoute && !authToken) {
-        // Redirect to login
+        // If it's an API route, return 401 instead of redirecting
+        // to avoid 405 Method Not Allowed on POST/PATCH/DELETE requests
+        if (pathname.startsWith('/api')) {
+            return NextResponse.json(
+                { success: false, error: 'Session expired or not authenticated' },
+                { status: 401 }
+            );
+        }
+        // Redirect to login for pages
         const loginUrl = new URL('/login', request.url);
         return NextResponse.redirect(loginUrl);
     }

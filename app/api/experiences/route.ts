@@ -265,6 +265,7 @@ export async function POST(request: NextRequest) {
             batch: validatedData.batch,
             courseBranch: validatedData.courseBranch,
             minCGPA: validatedData.minCGPA,
+            resumeShortlisting: validatedData.resumeShortlisting,
             rounds: validatedData.rounds,
             finalVerdict: validatedData.finalVerdict,
             tipsForJuniors: validatedData.tipsForJuniors,

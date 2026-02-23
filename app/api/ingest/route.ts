@@ -11,6 +11,9 @@ const systemPrompt = `You are an expert Data Extraction AI. Convert the raw inte
 Follow these rules for categorizing rounds:
 
 ### 1. ROUND TYPES & SCHEMA
+- **If "Resume Shortlisting" / "Profile Screening":**
+  Do NOT create a round for this. Instead, set "resumeShortlisting": true in the root JSON body.
+
 - **If "Online Test" / "Aptitude" / "MCQ" / "Coding Test":**
   Return: { "type": "test", "roundNumber": #, "topics": "List topics (DSA, OS, etc)", "studySources": "Extract URLs or book names if mentioned, otherwise empty string" }
 
@@ -54,6 +57,7 @@ Follow these rules for categorizing rounds:
   "minCGPA": <number e.g. 7.5, 0 if not mentioned>,
   "historyOfBacklogs": "Allowed" | "Not Allowed" (default "Allowed" if not mentioned),
   "standingBacklogs": "Allowed" | "Not Allowed" (default "Not Allowed" if not mentioned),
+  "resumeShortlisting": <boolean, true if they had a resume shortlisting round, else false>,
   "rounds": [ ...mixed types from above... ],
   "overallExperience": "the overall experience narrative",
   "tipsForJuniors": "tips mentioned for juniors",
@@ -163,6 +167,7 @@ export async function POST(request: NextRequest) {
             minCGPA: typeof parsedData.minCGPA === 'number' ? parsedData.minCGPA : parseFloat(parsedData.minCGPA) || 0,
             historyOfBacklogs: (parsedData.historyOfBacklogs === 'Not Allowed' || parsedData.historyOfBacklogs === false) ? 'Not Allowed' : 'Allowed',
             standingBacklogs: (parsedData.standingBacklogs === 'Allowed' || parsedData.standingBacklogs === true) ? 'Allowed' : 'Not Allowed',
+            resumeShortlisting: !!parsedData.resumeShortlisting,
             rounds: Array.isArray(parsedData.rounds) ? parsedData.rounds.map((round: any, index: number) => {
                 const roundNumber = round.roundNumber || index + 1;
 

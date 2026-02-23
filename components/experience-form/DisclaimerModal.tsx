@@ -267,6 +267,12 @@ export default function DisclaimerModal({
                                             </span>
                                         </div>
                                     )}
+                                    <div className="flex flex-col">
+                                        <span className="text-xs text-white/40 uppercase">Resume Shortlisting</span>
+                                        <span className="font-medium text-white">
+                                            {data.resumeShortlisting ? 'Yes' : 'No / Not Mentioned'}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
 

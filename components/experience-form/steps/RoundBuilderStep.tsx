@@ -29,23 +29,24 @@ export default function RoundBuilderStep({ form }: RoundBuilderStepProps) {
             </div>
 
             {/* Resume Shortlisting Checkbox */}
-            <div className="flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors cursor-pointer" onClick={() => {
-                const isChecked = form.getValues('resumeShortlisting');
-                form.setValue('resumeShortlisting', !isChecked, { shouldValidate: true, shouldDirty: true });
-            }}>
-                <div className="flex items-center justify-center min-w-6 h-6 rounded border border-white/20 bg-black/20">
+            <label className="flex items-center gap-4 p-4 bg-white/[0.03] border border-white/10 rounded-xl hover:bg-white/[0.06] transition-colors cursor-pointer group">
+                <div className="relative flex items-center justify-center shrink-0">
                     <input
                         type="checkbox"
                         {...form.register('resumeShortlisting')}
-                        className="w-4 h-4 text-purple-600 rounded bg-transparent border-transparent focus:ring-0 cursor-pointer accent-purple-500"
-                        onClick={(e) => e.stopPropagation()}
+                        className="peer h-5 w-5 rounded border-white/30 bg-white/5 text-violet-500 focus:ring-violet-500 focus:ring-offset-0 cursor-pointer transition-all appearance-none checked:bg-violet-500 checked:border-violet-500"
                     />
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity">
+                        <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
                 </div>
                 <div>
-                    <h3 className="text-white font-medium">Resume Shortlisting</h3>
-                    <p className="text-xs text-white/50">Check this if there was a resume screening round before interviews/tests</p>
+                    <h3 className="text-white font-medium group-hover:text-violet-300 transition-colors">Resume Shortlisting</h3>
+                    <p className="text-xs text-white/50 group-hover:text-white/70 transition-colors">Check this if there was a resume screening round before interviews/tests</p>
                 </div>
-            </div>
+            </label>
 
             {/* Add Round Buttons */}
             <div className="flex flex-wrap gap-3">
