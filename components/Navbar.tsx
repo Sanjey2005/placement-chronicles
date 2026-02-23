@@ -53,8 +53,8 @@ export default function Navbar() {
     };
 
     return (
-        <header className="relative z-10 border-b border-white/10 bg-black/20 backdrop-blur-sm">
-            <div className="max-w-7xl mx-auto px-6 py-4">
+        <header className="relative z-50 border-b border-white/10 bg-black/20 backdrop-blur-sm">
+            <div className="max-w-7xl mx-auto px-6 py-4 relative">
                 <div className="flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-3 group">
                         <Image
@@ -134,7 +134,7 @@ export default function Navbar() {
 
                 {/* Mobile Navigation Dropdown */}
                 {isMobileMenuOpen && (
-                    <nav className="sm:hidden mt-4 flex flex-col gap-3 py-4 border-t border-white/10 animate-in slide-in-from-top-2 opacity-0 fade-in duration-200 fill-mode-forwards">
+                    <nav className="sm:hidden absolute top-[100%] left-0 w-full flex flex-col gap-3 p-4 border-b border-white/10 bg-slate-950/95 backdrop-blur-xl animate-in slide-in-from-top-2 opacity-0 fade-in duration-200 fill-mode-forwards shadow-2xl">
                         {pathname !== '/' && (
                             <Link href="/" className="w-full">
                                 <button className="w-full justify-center flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 rounded-lg text-white transition-all">
