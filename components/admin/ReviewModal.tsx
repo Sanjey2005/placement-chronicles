@@ -27,7 +27,8 @@ import {
     Lightbulb,
     Star,
     ChevronDown,
-    ChevronUp
+    ChevronUp,
+    Info
 } from 'lucide-react';
 import { formatCompensation } from '@/lib/utils';
 
@@ -179,7 +180,21 @@ export function ReviewModal({ experience, isOpen, onClose, onApprove, onReject, 
                                 <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
                                     <h3 className="text-xs font-semibold text-white/40 uppercase flex items-center gap-2"><GraduationCap className="h-3.5 w-3.5" /> Eligibility</h3>
                                     <div className="grid grid-cols-2 gap-4 text-sm">
-                                        <div><span className="text-white/50 block text-xs">Min CGPA</span>{experience.minCGPA || '—'}</div>
+                                        <div>
+                                            <span className="text-white/50 block text-xs">Min CGPA</span>
+                                            <span className="text-white font-medium flex items-center gap-1.5">
+                                                {experience.minCGPA ?? '—'}
+                                                {experience.minCGPA === 0 && (
+                                                    <div className="group relative pr-4">
+                                                        <Info className="h-3.5 w-3.5 text-white/40 hover:text-white/80 cursor-help transition-colors" />
+                                                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-slate-800 text-xs text-white rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-xl border border-white/10 z-50 text-center pointer-events-none">
+                                                            0 usually means there was no minimum CGPA requirement or it was not mentioned.
+                                                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </span>
+                                        </div>
                                         <div>
                                             <span className="text-xs text-white/40 uppercase">History of Backlogs</span>
                                             <span className={experience.historyOfBacklogs === 'Not Allowed' ? 'text-red-400' : 'text-white/80'}>{experience.historyOfBacklogs || '—'}</span>

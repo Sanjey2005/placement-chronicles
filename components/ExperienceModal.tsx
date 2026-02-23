@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Building2, Briefcase, IndianRupee, GraduationCap, Clock, MessageSquare, Lightbulb, Star } from 'lucide-react';
+import { X, Building2, Briefcase, IndianRupee, GraduationCap, Clock, MessageSquare, Lightbulb, Star, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCompensation } from '@/lib/utils';
 
@@ -250,7 +250,18 @@ export default function ExperienceModal({
                                     {minCGPA !== undefined && (
                                         <div className="flex flex-col">
                                             <span className="text-xs text-white/40 uppercase">Minimum CGPA</span>
-                                            <span className="text-white font-medium">{minCGPA}</span>
+                                            <span className="text-white font-medium flex items-center gap-1.5">
+                                                {minCGPA}
+                                                {minCGPA === 0 && (
+                                                    <div className="group relative pr-4">
+                                                        <Info className="h-3.5 w-3.5 text-white/40 hover:text-white/80 cursor-help transition-colors" />
+                                                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-slate-800 text-xs text-white rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-xl border border-white/10 z-50 text-center pointer-events-none">
+                                                            0 usually means there was no minimum CGPA requirement or it was not mentioned.
+                                                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </span>
                                         </div>
                                     )}
                                     {historyOfBacklogs && (
