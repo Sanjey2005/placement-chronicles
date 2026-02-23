@@ -64,7 +64,7 @@ export async function moderateExperience(data: any, existingCompanies: string[] 
         const textToModerate = JSON.stringify(data, null, 2);
 
         const completion = await groq.chat.completions.create({
-            model: 'llama-3.3-70b-versatile',
+            model: 'llama-3.1-8b-instant',
             messages: [
                 {
                     role: 'system',

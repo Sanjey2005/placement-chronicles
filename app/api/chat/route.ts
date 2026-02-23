@@ -94,7 +94,7 @@ Only include a field value if the user explicitly mentions it. Otherwise set it 
                     },
                     { role: 'user', content: userMessage }
                 ],
-                model: 'llama-3.3-70b-versatile',
+                model: 'llama-3.1-8b-instant',
                 temperature: 0,
                 response_format: { type: 'json_object' }
             });
