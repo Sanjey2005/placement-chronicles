@@ -479,18 +479,41 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                         <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl backdrop-blur-sm">
                             <p className="text-red-400 text-sm font-semibold">Please fix the following errors:</p>
                             <ul className="mt-2 text-sm text-red-300/80 list-disc list-inside space-y-1">
-                                {Object.entries(errors).map(([key, error]) => {
-                                    if (key === 'rounds' && Array.isArray(error)) {
-                                        return error.map((roundError: any, index: number) => {
-                                            if (!roundError) return null;
-                                            return Object.entries(roundError).map(([roundKey, specificError]: [string, any]) => (
-                                                <li key={`round-${index}-${roundKey}`}>
-                                                    Round {index + 1} ({roundKey}): {specificError?.message || specificError}
-                                                </li>
-                                            ));
-                                        });
-                                    }
-                                    return <li key={key}>{error?.message || String(error)}</li>;
+                                {Object.entries(errors).flatMap(([key, error]) => {
+                                    // Helper function to safely extract messages from any nested error structure
+                                    const extractMessages = (errObj: any, prefix = ''): React.ReactNode[] => {
+                                        if (!errObj) return [];
+
+                                        // Base case: we found a concrete string message
+                                        if (typeof errObj === 'string') return [errObj];
+                                        if (errObj.message && typeof errObj.message === 'string') {
+                                            return [`${prefix ? prefix + ': ' : ''}${errObj.message}`];
+                                        }
+
+                                        // Recursive case: Array of errors (like rounds[] or questions[])
+                                        if (Array.isArray(errObj)) {
+                                            return errObj.flatMap((item, idx) =>
+                                                extractMessages(item, `${prefix} ${idx + 1}`.trim())
+                                            );
+                                        }
+
+                                        // Recursive case: Nested object (like a specific round object)
+                                        if (typeof errObj === 'object') {
+                                            return Object.entries(errObj).flatMap(([childKey, childErr]) =>
+                                                extractMessages(childErr, `${prefix} (${childKey})`.trim())
+                                            );
+                                        }
+
+                                        return [];
+                                    };
+
+                                    // For 'rounds', let's make the prefix cleaner
+                                    const basePrefix = key === 'rounds' ? 'Round' : key;
+                                    const messages = extractMessages(error, basePrefix);
+
+                                    return messages.map((msg, i) => (
+                                        <li key={`${key}-${i}`}>{msg}</li>
+                                    ));
                                 })}
                             </ul>
                         </div>
@@ -508,6 +531,6 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
