@@ -4,13 +4,7 @@ import { get } from '@vercel/edge-config';
 import { globalApiRateLimit } from './lib/ratelimit';
 
 // Public routes that don't require authentication (SEO: /about is crawlable)
-const publicRoutes = ['/login', '/about', '/api/auth'];
-
-// Protected routes that explicitly require authentication
-const protectedRoutes = ['/share-experience', '/chat'];
-
-// Protected API routes
-const protectedApiRoutes = ['/api/chat', '/api/ingest', '/api/experiences'];
+const publicRoutes = ['/login', '/about', '/api/auth', '/api/feedback', '/robots.txt', '/sitemap.xml'];
 
 // Admin-only routes
 const adminRoutes = ['/admin'];
@@ -70,12 +64,6 @@ export async function middleware(request: NextRequest) {
     // Check if the route is public
     const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
 
-    // Check if the route is explicitly protected
-    const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
-
-    // Check if it's a protected API route
-    const isProtectedApiRoute = protectedApiRoutes.some(route => pathname.startsWith(route));
-
     // Check if it's an admin route
     const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route));
     const isAdminApiRoute = adminApiRoutes.some(route => pathname.startsWith(route));
@@ -118,8 +106,8 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next();
     }
 
-    // If trying to access a protected route without auth token
-    if ((isProtectedRoute || isProtectedApiRoute) && !authToken) {
+    // If trying to access any non-public route without auth token
+    if (!isPublicRoute && !authToken) {
         // Redirect to login
         const loginUrl = new URL('/login', request.url);
         return NextResponse.redirect(loginUrl);
