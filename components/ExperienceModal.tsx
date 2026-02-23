@@ -171,16 +171,16 @@ export default function ExperienceModal({
                             <X className="h-5 w-5" />
                         </button>
 
-                        <div className="p-8">
+                        <div className="p-5 sm:p-8">
                             {/* ── Header ── */}
                             <div className="mb-6">
-                                <div className="flex items-start justify-between gap-4 pr-10">
+                                <div className="flex flex-col sm:flex-row items-start justify-between gap-4 sm:pr-10">
                                     <div>
                                         <h2 className="text-3xl font-bold text-white flex items-center gap-3">
                                             <Building2 className="h-7 w-7 text-blue-400 shrink-0" />
                                             {company}
                                         </h2>
-                                        <p className="text-lg text-white/70 mt-1 flex items-center gap-2 ml-10">
+                                        <p className="text-lg text-white/70 mt-1 flex items-center gap-2 sm:ml-10 ml-0">
                                             <Briefcase className="h-4 w-4" />
                                             {role}
                                         </p>
@@ -194,7 +194,7 @@ export default function ExperienceModal({
                                 </div>
 
                                 {/* Meta pills */}
-                                <div className="flex flex-wrap gap-2 mt-4 ml-10">
+                                <div className="flex flex-wrap gap-2 mt-4 sm:ml-10 ml-0">
                                     {studentName && (
                                         <span className="px-3 py-1 text-xs font-medium rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/25">
                                             👤 {studentName}
@@ -226,7 +226,7 @@ export default function ExperienceModal({
                                         </span>
                                     )}
                                 </div>
-                                <div className="flex flex-wrap gap-2 mt-2 ml-10">
+                                <div className="flex flex-wrap gap-2 mt-2 sm:ml-10 ml-0">
                                     {(historyOfBacklogs === 'Allowed') && (
                                         <span className="px-3 py-1 text-xs font-medium rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
                                             History of Backlogs: Allowed

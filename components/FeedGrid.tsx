@@ -112,8 +112,8 @@ export default function FeedGrid({ experiences, companies, batches, companyLinks
     return (
         <div className="space-y-6">
             {/* Global Filter Bar */}
-            <div className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl">
-                <div className="flex flex-wrap items-center gap-4">
+            <div className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-xl border border-white/10 rounded-xl p-4 shadow-2xl mb-6">
+                <div className="flex overflow-x-auto sm:flex-wrap items-center gap-4 pb-2 sm:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                     {/* Search */}
                     <div className="flex-1 min-w-[200px]">
                         <input

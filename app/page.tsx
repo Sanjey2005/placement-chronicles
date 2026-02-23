@@ -68,12 +68,12 @@ export default async function Home() {
         <Navbar />
 
         {/* Hero Section */}
-        <section className="relative z-10 max-w-7xl mx-auto px-6 py-12">
+        <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-12">
           <div className="text-center mb-12">
-            <h2 className="text-5xl font-bold text-white mb-4 tracking-tight">
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 tracking-tight">
               Real Interview Experiences
             </h2>
-            <p className="text-white/70 text-xl">
+            <p className="text-white/70 text-lg sm:text-xl">
               Learn from students who've been there, done that
             </p>
           </div>
@@ -123,10 +123,10 @@ export default async function Home() {
         </section>
 
         {/* Experience Feed */}
-        <main className="relative z-10 max-w-7xl mx-auto px-6 py-8">
+        <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-8">
           {experiences.length === 0 ? (
             <div className="text-center py-20">
-              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-12 max-w-md mx-auto">
+              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-8 sm:p-12 max-w-md mx-auto">
                 <BookOpen className="h-12 w-12 text-white/50 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-white mb-2">
                   No Experiences Yet
