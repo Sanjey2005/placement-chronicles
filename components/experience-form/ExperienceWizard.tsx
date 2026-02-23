@@ -479,9 +479,19 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                         <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl backdrop-blur-sm">
                             <p className="text-red-400 text-sm font-semibold">Please fix the following errors:</p>
                             <ul className="mt-2 text-sm text-red-300/80 list-disc list-inside space-y-1">
-                                {Object.entries(errors).map(([key, error]) => (
-                                    <li key={key}>{error.message}</li>
-                                ))}
+                                {Object.entries(errors).map(([key, error]) => {
+                                    if (key === 'rounds' && Array.isArray(error)) {
+                                        return error.map((roundError: any, index: number) => {
+                                            if (!roundError) return null;
+                                            return Object.entries(roundError).map(([roundKey, specificError]: [string, any]) => (
+                                                <li key={`round-${index}-${roundKey}`}>
+                                                    Round {index + 1} ({roundKey}): {specificError?.message || specificError}
+                                                </li>
+                                            ));
+                                        });
+                                    }
+                                    return <li key={key}>{error?.message || String(error)}</li>;
+                                })}
                             </ul>
                         </div>
                     )}

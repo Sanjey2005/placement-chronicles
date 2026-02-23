@@ -104,34 +104,6 @@ export default function ConclusionStep({ form }: ConclusionStepProps) {
                 )}
             </div>
 
-            {/* Review Summary */}
-            <div className="mt-6 p-6 bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-white/20 rounded-xl">
-                <h3 className="text-lg font-bold text-white mb-3">Review Your Submission</h3>
-                <div className="space-y-2 text-sm">
-                    <p className="text-white/80">
-                        <span className="font-semibold">Company:</span> {formData.company || 'Not provided'}
-                    </p>
-                    <p className="text-white/80">
-                        <span className="font-semibold">Role:</span> {formData.role || 'Not provided'}
-                    </p>
-                    <p className="text-white/80">
-                        <span className="font-semibold">CTC:</span> {formData.ctc ? `${formData.ctc} LPA` : 'Not provided'}
-                    </p>
-                    <p className="text-white/80">
-                        <span className="font-semibold">Batch:</span> {formData.batch || 'Not provided'}
-                    </p>
-                    <p className="text-white/80">
-                        <span className="font-semibold">Rounds:</span> {formData.rounds?.length || 0} round(s)
-                    </p>
-                    <p className="text-white/80">
-                        <span className="font-semibold">Status:</span>{' '}
-                        {verdictOptions.find((v) => v.value === finalVerdict)?.label || 'Not selected'}
-                    </p>
-                </div>
-                <p className="mt-4 text-xs text-white/60">
-                    Everything looks good? Click "Submit Experience" below!
-                </p>
-            </div>
         </div>
     );
 }
