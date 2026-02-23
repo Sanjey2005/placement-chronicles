@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { get } from '@vercel/edge-config';
 import { globalApiRateLimit } from './lib/ratelimit';
 
 // Public routes that don't require authentication (SEO: /about is crawlable)
@@ -11,36 +10,6 @@ const adminRoutes = ['/admin'];
 const adminApiRoutes = ['/api/admin'];
 
 export async function middleware(request: NextRequest) {
-    // --- EDGE CONFIG PROTECTION (placement-chronicles-store) ---
-    // Skip entirely if EDGE_CONFIG is not set (local dev, or not configured on Vercel)
-    if (process.env.EDGE_CONFIG) {
-        try {
-            const maintenanceMode = await get('maintenance_mode');
-            if (maintenanceMode) {
-                return NextResponse.json(
-                    { error: 'Site is temporarily down for maintenance. Please try again later.' },
-                    { status: 503 }
-                );
-            }
-
-            const blockedIps = await get('blocked_ips') as string[] | undefined;
-            if (blockedIps && Array.isArray(blockedIps)) {
-                const ip = request.headers.get('x-real-ip') || request.headers.get('x-forwarded-for') || 'Unknown IP';
-
-                if (blockedIps.includes(ip)) {
-                    return NextResponse.json(
-                        { error: 'Access Denied: Your IP has been blocked due to suspicious activity.' },
-                        { status: 403 }
-                    );
-                }
-            }
-        } catch (error) {
-            // Fail open if edge config fetch fails
-            console.warn('Edge Config fetch failed:', error);
-        }
-    }
-    // --- END EDGE CONFIG PROTECTION ---
-
     const { pathname } = request.nextUrl;
 
     // --- GENERIC API RATE LIMITING (Upstash Redis) ---
