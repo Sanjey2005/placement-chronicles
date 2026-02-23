@@ -255,9 +255,9 @@ export default function ExperienceModal({
                                                 {minCGPA === 0 && (
                                                     <div className="group relative pr-4">
                                                         <Info className="h-3.5 w-3.5 text-white/40 hover:text-white/80 cursor-help transition-colors" />
-                                                        <div className="absolute left-0 bottom-full mb-2 w-48 p-2 bg-slate-800 text-xs text-white rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-xl border border-white/10 z-[100] text-center pointer-events-none transform -translate-x-[calc(50%-8px)]">
+                                                        <div className="absolute left-0 bottom-full mb-2 w-48 p-2 bg-slate-800 text-xs text-white rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-xl border border-white/10 z-[100] text-left pointer-events-none -translate-x-2">
                                                             0 usually means there was no minimum CGPA requirement or it was not mentioned.
-                                                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+                                                            <div className="absolute top-full left-[11px] border-4 border-transparent border-t-slate-800" />
                                                         </div>
                                                     </div>
                                                 )}
