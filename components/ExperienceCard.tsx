@@ -25,6 +25,7 @@ interface ExperienceCardProps {
     roleType?: string;
     historyOfBacklogs?: string;
     standingBacklogs?: string;
+    resumeShortlisting?: boolean;
     hideCompany?: boolean;
 }
 
@@ -51,6 +52,7 @@ export default function ExperienceCard({
     roleType,
     historyOfBacklogs,
     standingBacklogs,
+    resumeShortlisting,
     hideCompany = false,
 }: ExperienceCardProps) {
     const [modalOpen, setModalOpen] = useState(false);
@@ -214,6 +216,7 @@ export default function ExperienceCard({
                 roleType={roleType}
                 historyOfBacklogs={historyOfBacklogs}
                 standingBacklogs={standingBacklogs}
+                resumeShortlisting={resumeShortlisting}
             />
         </>
     );

@@ -274,6 +274,7 @@ export default function CompanyDetailPanel({ companyName, experiences, logoUrl, 
                                     overallExperience={exp.overallExperience}
                                     placementType={exp.placementType}
                                     roleType={exp.roleType}
+                                    resumeShortlisting={exp.resumeShortlisting}
                                     hideCompany
                                 />
                             </motion.div>
