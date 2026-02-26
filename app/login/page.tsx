@@ -24,7 +24,7 @@ export default function LoginPage() {
         const username = (formData.get('username') as string).trim();
 
         if (!ROLL_REGEX.test(username)) {
-            toast.error('Invalid roll number. Expected format: e.g. 23pw41, 21pc30, 25pd37, 23pt12');
+            toast.error('Access Denied');
             return;
         }
 
