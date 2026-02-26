@@ -22,6 +22,8 @@ import {
     Check,
     X,
     MessageSquare,
+    Eye,
+    EyeOff,
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -62,6 +64,7 @@ interface Company {
     name: string;
     aliases: string[];
     link: string;
+    isHidden: boolean;
     experienceCount: number;
     createdAt: string;
 }
@@ -419,6 +422,26 @@ export default function AdminDashboard() {
         }
     };
 
+    // ── Toggle Company Visibility ───────────────────────────────────
+    const handleToggleVisibility = async (companyId: string, currentlyHidden: boolean) => {
+        try {
+            const res = await fetch('/api/admin/companies', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ companyId, isHidden: !currentlyHidden }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                toast.success(currentlyHidden ? 'Company is now visible on home page' : 'Company hidden from home page');
+                await fetchCompanies();
+            } else {
+                toast.error(data.error || 'Failed to update visibility');
+            }
+        } catch {
+            toast.error('Failed to toggle company visibility');
+        }
+    };
+
     // ── Filter Tabs ─────────────────────────────────────────────────────
     const filters: { label: string; value: StatusFilter; count: number }[] = [
         { label: 'All', value: 'ALL', count: stats.total },
@@ -764,7 +787,7 @@ export default function AdminDashboard() {
                                         <tr className="border-b border-white/10">
                                             <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">Company Name</th>
                                             <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">Experiences</th>
-                                            <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">Aliases</th>
+                                            <th className="text-center px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">Visible</th>
                                             <th className="text-right px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">First Seen</th>
                                         </tr>
                                     </thead>
@@ -851,18 +874,18 @@ export default function AdminDashboard() {
                                                             {company.experienceCount}
                                                         </span>
                                                     </td>
-                                                    <td className="px-4 py-3 text-xs text-white/50">
-                                                        {company.aliases.length > 0 ? (
-                                                            <div className="flex flex-wrap gap-1">
-                                                                {company.aliases.map((alias: string, i: number) => (
-                                                                    <span key={i} className="px-1.5 py-0.5 bg-white/5 rounded border border-white/5">
-                                                                        {alias}
-                                                                    </span>
-                                                                ))}
-                                                            </div>
-                                                        ) : (
-                                                            '—'
-                                                        )}
+                                                    <td className="px-4 py-3 text-center">
+                                                        <button
+                                                            onClick={() => handleToggleVisibility(company._id, company.isHidden)}
+                                                            title={company.isHidden ? 'Hidden from home page – click to show' : 'Visible on home page – click to hide'}
+                                                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${company.isHidden
+                                                                    ? 'bg-rose-500/15 border-rose-500/25 text-rose-400 hover:bg-rose-500/25'
+                                                                    : 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/25'
+                                                                }`}
+                                                        >
+                                                            {company.isHidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                                                            {company.isHidden ? 'Hidden' : 'Visible'}
+                                                        </button>
                                                     </td>
                                                     <td className="px-4 py-3 text-right text-xs text-white/40 font-mono">
                                                         {new Date(company.createdAt).toLocaleDateString('en-IN', {

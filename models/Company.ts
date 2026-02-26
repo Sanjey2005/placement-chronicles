@@ -4,6 +4,7 @@ export interface ICompany extends Document {
     canonicalName: string;
     aliases: string[];
     link: string;
+    isHidden: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -24,6 +25,10 @@ const CompanySchema = new Schema<ICompany>(
         link: {
             type: String,
             default: '',
+        },
+        isHidden: {
+            type: Boolean,
+            default: false,
         },
     },
     {

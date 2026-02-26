@@ -210,18 +210,27 @@ export async function getAllExperiences(): Promise<{
             courseBranch: exp.courseBranch || '',
         }));
 
-        // Fetch company links for logo display
-        const companiesData = await Company.find().select('canonicalName link').lean();
+        // Fetch company data for logo display and visibility filtering
+        const companiesData = await Company.find().select('canonicalName link isHidden').lean();
         const companyLinks: Record<string, string> = {};
+        const hiddenCompanies = new Set<string>();
         for (const c of companiesData) {
             if ((c as any).link) {
                 companyLinks[(c as any).canonicalName] = (c as any).link;
             }
+            if ((c as any).isHidden) {
+                hiddenCompanies.add((c as any).canonicalName);
+            }
         }
+
+        // Filter out experiences from hidden companies
+        const visibleExperiences = serializedExperiences.filter(
+            exp => !hiddenCompanies.has(exp.company || '')
+        );
 
         return {
             success: true,
-            data: serializedExperiences as unknown as IExperience[],
+            data: visibleExperiences as unknown as IExperience[],
             companyLinks,
         };
     } catch (error) {

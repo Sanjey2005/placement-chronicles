@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
             name: company.canonicalName,
             aliases: company.aliases || [],
             link: company.link || '',
+            isHidden: company.isHidden || false,
             experienceCount: countMap.get(company.canonicalName) || 0,
             createdAt: company.createdAt,
         }));
@@ -55,20 +56,31 @@ export async function PATCH(request: NextRequest) {
 
     try {
         await dbConnect();
-        const { companyId, link } = await request.json();
+        const body = await request.json();
+        const { companyId, link, isHidden } = body;
 
         if (!companyId) {
             return NextResponse.json({ success: false, error: 'Company ID is required' }, { status: 400 });
         }
 
-        // Clean link to bare domain if possible
-        const cleanedLink = (link || '').trim().replace(/^(https?:\/\/)?(www\.)?/, '');
+        // Build update object
+        const update: Record<string, any> = {};
 
-        await Company.findByIdAndUpdate(companyId, { $set: { link: cleanedLink } });
+        if (link !== undefined) {
+            // Clean link to bare domain if possible
+            const cleanedLink = (link || '').trim().replace(/^(https?:\/\/)?(www\.)?/, '');
+            update.link = cleanedLink;
+        }
 
-        return NextResponse.json({ success: true, message: 'Link updated successfully' });
+        if (isHidden !== undefined) {
+            update.isHidden = Boolean(isHidden);
+        }
+
+        await Company.findByIdAndUpdate(companyId, { $set: update });
+
+        return NextResponse.json({ success: true, message: 'Company updated successfully' });
     } catch (error) {
-        return NextResponse.json({ success: false, error: 'Failed to update company link' }, { status: 500 });
+        return NextResponse.json({ success: false, error: 'Failed to update company' }, { status: 500 });
     }
 }
 
