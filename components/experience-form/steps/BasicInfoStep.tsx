@@ -124,19 +124,11 @@ export default function BasicInfoStep({ form }: BasicInfoStepProps) {
                         <SelectTrigger className="w-full px-4 py-3 h-auto bg-white/10 border-white/20 text-white focus:ring-blue-500">
                             <SelectValue placeholder="Select Course & Branch" />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-900 border-white/10 text-white h-64">
-                            <SelectItem value="B.Tech CSE" className="focus:bg-white/10 focus:text-white cursor-pointer">B.Tech CSE</SelectItem>
-                            <SelectItem value="B.Tech IT" className="focus:bg-white/10 focus:text-white cursor-pointer">B.Tech IT</SelectItem>
-                            <SelectItem value="B.Tech ECE" className="focus:bg-white/10 focus:text-white cursor-pointer">B.Tech ECE</SelectItem>
-                            <SelectItem value="B.Tech EEE" className="focus:bg-white/10 focus:text-white cursor-pointer">B.Tech EEE</SelectItem>
-                            <SelectItem value="B.Tech Mech" className="focus:bg-white/10 focus:text-white cursor-pointer">B.Tech Mech</SelectItem>
+                        <SelectContent className="bg-slate-900 border-white/10 text-white">
                             <SelectItem value="M.Sc Software Systems" className="focus:bg-white/10 focus:text-white cursor-pointer">M.Sc Software Systems</SelectItem>
-                            <SelectItem value="M.Sc Theoretical Computer Science" className="focus:bg-white/10 focus:text-white cursor-pointer">M.Sc Theoretical Computer Science</SelectItem>
                             <SelectItem value="M.Sc Data Science" className="focus:bg-white/10 focus:text-white cursor-pointer">M.Sc Data Science</SelectItem>
                             <SelectItem value="M.Sc Cyber Security" className="focus:bg-white/10 focus:text-white cursor-pointer">M.Sc Cyber Security</SelectItem>
-                            <SelectItem value="MCA" className="focus:bg-white/10 focus:text-white cursor-pointer">MCA</SelectItem>
-                            <SelectItem value="MBA" className="focus:bg-white/10 focus:text-white cursor-pointer">MBA</SelectItem>
-                            <SelectItem value="Other" className="focus:bg-white/10 focus:text-white cursor-pointer">Other</SelectItem>
+                            <SelectItem value="M.Sc Theoretical Computer Science" className="focus:bg-white/10 focus:text-white cursor-pointer">M.Sc Theoretical Computer Science</SelectItem>
                         </SelectContent>
                     </Select>
                     {errors.courseBranch && (

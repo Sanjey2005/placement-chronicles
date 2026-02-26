@@ -15,24 +15,30 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
+    const ROLL_REGEX = /^\d{2}(pw|pd|pc|pt)\d{2}$/i;
+
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
+
+        const formData = new FormData(e.currentTarget);
+        const username = (formData.get('username') as string).trim();
+
+        if (!ROLL_REGEX.test(username)) {
+            toast.error('Invalid roll number. Expected format: e.g. 23pw41, 21pc30, 25pd37, 23pt12');
+            return;
+        }
+
         setLoading(true);
 
         try {
-            const formData = new FormData(e.currentTarget);
-            const username = formData.get('username') as string;
             const result = await login(formData);
 
             if (result.success) {
-                // Remove disclaimer flag so it shows on every login
-                sessionStorage.removeItem('disclaimerShown');
-
-                // Set session cookie with role info
                 const isAdmin = result.role === 'ADMIN';
 
                 toast.success(isAdmin ? 'Admin login successful! Redirecting...' : 'Login successful! Redirecting...');
-                router.push(isAdmin ? '/admin' : '/');
+                // Redirect with ?disclaimer=1 so the modal always fires reliably
+                router.push(isAdmin ? '/admin?disclaimer=1' : '/?disclaimer=1');
             } else {
                 toast.error(result.error || 'Login failed');
             }

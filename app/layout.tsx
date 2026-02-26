@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/next";
@@ -125,7 +126,9 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         {children}
-        <DisclaimerModal />
+        <Suspense fallback={null}>
+          <DisclaimerModal />
+        </Suspense>
         <Toaster />
         <Analytics />
       </body>
