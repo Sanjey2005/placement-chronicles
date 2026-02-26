@@ -15,18 +15,11 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
-    const ROLL_REGEX = /^\d{2}(pw|pd|pc|pt)\d{2}$/i;
-
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
 
         const formData = new FormData(e.currentTarget);
         const username = (formData.get('username') as string).trim();
-
-        if (!ROLL_REGEX.test(username)) {
-            toast.error('Access Denied');
-            return;
-        }
 
         setLoading(true);
 

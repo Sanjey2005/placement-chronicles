@@ -35,6 +35,14 @@ export async function POST(request: NextRequest) {
             });
         }
 
+        const ROLL_REGEX = /^\d{2}(pw|pd|pc|pt)\d{2}$/i;
+        if (!ROLL_REGEX.test(rollno)) {
+            return NextResponse.json(
+                { success: false, error: 'Access Denied' },
+                { status: 403 }
+            );
+        }
+
         // ── Step 1: GET the login page ──────────────────────────────
         const loginPageRes = await fetch(ECAMPUS_LOGIN_URL, {
             method: 'GET',
