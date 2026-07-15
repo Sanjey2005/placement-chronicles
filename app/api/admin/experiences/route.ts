@@ -5,6 +5,7 @@ import Company from '@/models/Company';
 import AdminLog from '@/models/AdminLog';
 import { requireAdmin } from '@/lib/auth-check';
 import { moderateExperience } from '@/lib/moderation';
+import { rebuildChunksForExperience, deleteChunksForExperience } from '@/lib/chunks';
 
 // GET: Fetch experiences with optional status filter
 export async function GET(request: NextRequest) {
@@ -163,6 +164,20 @@ export async function PATCH(request: NextRequest) {
             }
         }
 
+        // ── RAG chunks: approved experiences enter the corpus, others leave ──
+        // Re-fetch after the normalization block so chunks carry the canonical
+        // company name. Non-blocking so moderation never fails on an HF outage.
+        try {
+            if (newStatus === 'APPROVED') {
+                const fresh = await Experience.findById(id).lean();
+                if (fresh) await rebuildChunksForExperience(fresh);
+            } else {
+                await deleteChunksForExperience(id);
+            }
+        } catch (chunkError) {
+            console.error('Chunk sync failed (recover via backfill):', chunkError);
+        }
+
         // Create admin log entry
         await AdminLog.create({
             action: action.toUpperCase(),
@@ -213,6 +228,7 @@ export async function DELETE(request: NextRequest) {
 
         // PERMANENT DELETE: Remove document immediately (no backups)
         await Experience.findByIdAndDelete(id);
+        await deleteChunksForExperience(id);
 
         // Create admin log entry
         await AdminLog.create({

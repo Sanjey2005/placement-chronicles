@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 import dbConnect from '@/lib/db';
 import ExperienceChunk from '@/models/ExperienceChunk';
+import Company from '@/models/Company';
 import { getEmbedding, cosineSimilarity } from '@/lib/vector';
 import { chatRateLimiter } from '@/lib/redis';
 import { stripHtmlTags } from '@/lib/sanitize';
@@ -11,13 +12,32 @@ const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY,
 });
 
+const SSE_HEADERS = {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+};
+
+// Anchored, case-insensitive exact match (avoids "Micro" matching Microsoft AND Micron)
+function exactMatch(s: string): RegExp {
+    return new RegExp(`^${s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+}
+
+// Static SSE response in the same two-event shape the streaming path emits,
+// so the /chat client works unchanged.
+function sseText(text: string): Response {
+    const body =
+        `data: ${JSON.stringify({ text })}\n\n` +
+        `data: ${JSON.stringify({ sources: [], done: true })}\n\n`;
+    return new Response(body, { headers: SSE_HEADERS });
+}
+
 export async function POST(request: NextRequest) {
     try {
         // Parse request body
         const body = await request.json();
         const { messages } = body;
 
-        // Support both single message (legacy) and messages array format
         let userMessage: string;
         let conversationHistory: Array<{ role: string; content: string }> = [];
 
@@ -29,11 +49,9 @@ export async function POST(request: NextRequest) {
                 .slice(-10)
                 .filter((m: any) => m.role && m.content)
                 .map((m: any) => ({ role: m.role, content: m.content }));
-        } else if (body.message) {
-            userMessage = body.message;
         } else {
             return NextResponse.json(
-                { error: 'Messages array or message string is required' },
+                { error: 'Messages array is required' },
                 { status: 400 }
             );
         }
@@ -71,28 +89,41 @@ export async function POST(request: NextRequest) {
         // Connect to database
         await dbConnect();
 
-        // Step 1: Multi-field Entity Extraction
-        // Extract company, role, verdict, and topic from the user's question in one call
+        // Step 1: Entity extraction + query rewriting in a single 8b call.
+        // The conversation context lets follow-ups like "what about the HR round?"
+        // resolve into a standalone search query mentioning the company.
         let extractedCompany: string | null = null;
         let extractedRole: string | null = null;
         let extractedVerdict: string | null = null;
         let extractedTopic: string | null = null;
+        let searchQuery = userMessage;
         try {
+            const recentTurns = conversationHistory
+                .slice(-6)
+                .map(m => `${m.role}: ${m.content.substring(0, 300)}`)
+                .join('\n');
+
             const extractResponse = await groq.chat.completions.create({
                 messages: [
                     {
                         role: 'system',
-                        content: `Extract structured intent from a student's question about placement/interview experiences.
+                        content: `Extract structured intent from a student's question about placement/interview experiences, using the conversation for context.
 Return ONLY a JSON object with these fields:
 {
   "companyName": "extracted company name or null",
   "roleType": "FULL_TIME or INTERNSHIP or SUMMER_INTERNSHIP or null",
   "verdict": "selected or rejected or null",
-  "topic": "extracted technical topic like DSA, System Design, HR, etc. or null"
+  "topic": "extracted technical topic like DSA, System Design, HR, etc. or null",
+  "searchQuery": "the current question restated as a standalone search query, with any company/topic/pronoun references resolved from the conversation"
 }
-Only include a field value if the user explicitly mentions it. Otherwise set it to null.`
+For companyName/roleType/verdict/topic: only set a value if it is explicit in the question or clearly carried over from the conversation. Otherwise set it to null.`
                     },
-                    { role: 'user', content: userMessage }
+                    {
+                        role: 'user',
+                        content: recentTurns
+                            ? `Conversation so far:\n${recentTurns}\n\nCurrent question: ${userMessage}`
+                            : userMessage
+                    }
                 ],
                 model: 'llama-3.1-8b-instant',
                 temperature: 0,
@@ -106,15 +137,18 @@ Only include a field value if the user explicitly mentions it. Otherwise set it 
                 extractedRole = parsed.roleType || null;
                 extractedVerdict = parsed.verdict || null;
                 extractedTopic = parsed.topic || null;
+                if (typeof parsed.searchQuery === 'string' && parsed.searchQuery.trim()) {
+                    searchQuery = parsed.searchQuery.trim();
+                }
             }
         } catch (extractErr) {
-            // Silently fail entity extraction — retrieval continues without pre-filtering
+            // Silently fail entity extraction — retrieval continues on the raw message
         }
 
-        // Step 2: Generate embedding for user's message
+        // Step 2: Embed the (rewritten) search query
         let queryEmbedding: number[] = [];
         try {
-            queryEmbedding = await getEmbedding(userMessage);
+            queryEmbedding = await getEmbedding(searchQuery);
         } catch (embeddingError) {
             console.log('⚠️ Embedding generation failed, will use text fallback');
         }
@@ -125,30 +159,37 @@ Only include a field value if the user explicitly mentions it. Otherwise set it 
         // Only use company name as a hard filter (it exists on all chunks).
         // Verdict and roleType are used as re-ranking boosts, not hard filters,
         // because existing chunks may not have these metadata fields.
+        // Resolve the extracted name against the Company collection (canonical
+        // name or alias) and match exactly — no partial-prefix false positives.
         const companyFilter: any = {};
+        let companyName: string | null = null;
         if (extractedCompany) {
-            companyFilter['metadata.companyName'] = {
-                $regex: new RegExp(extractedCompany.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')
-            };
+            const rx = exactMatch(extractedCompany);
+            const known = await Company.findOne({
+                $or: [{ canonicalName: rx }, { aliases: rx }],
+            }).lean();
+            companyName = known?.canonicalName ?? extractedCompany;
+            companyFilter['metadata.companyName'] = exactMatch(companyName);
         }
 
-        console.log(`🔍 RAG Query: "${userMessage}"`);
-        console.log(`🏢 Extracted: company=${extractedCompany}, role=${extractedRole}, verdict=${extractedVerdict}, topic=${extractedTopic}`);
+        console.log(`🔍 RAG Query: "${userMessage}" → search: "${searchQuery}"`);
+        console.log(`🏢 Extracted: company=${extractedCompany}→${companyName}, role=${extractedRole}, verdict=${extractedVerdict}, topic=${extractedTopic}`);
 
         if (queryEmbedding.length > 0) {
-            // Vector-based retrieval with cosine similarity
-            const vectorFilter = { ...companyFilter, embedding: { $exists: true, $ne: null } };
+            // Vector-based retrieval with cosine similarity.
+            // ponytail: brute-force cosine over all embedded chunks — corpus is
+            // FIFO-capped (~5k experiences). Upgrade to Atlas $vectorSearch
+            // (see mongodb-vector-index.json) if chunk count outgrows that.
+            const vectorFilter = { ...companyFilter, 'embedding.0': { $exists: true } };
 
-            // Fetch candidate chunks (expanded pool for better recall)
             const candidateChunks = await ExperienceChunk.find(vectorFilter)
                 .select('text metadata embedding')
-                .lean()
-                .limit(200);
+                .lean();
 
             console.log(`📦 Vector candidates found: ${candidateChunks.length} (filter: ${JSON.stringify(vectorFilter)})`);
 
-            // Tuned similarity threshold for better recall
-            const SIMILARITY_THRESHOLD = 0.30;
+            // MiniLM cosine scores cluster narrowly; 0.30 admits noise
+            const SIMILARITY_THRESHOLD = 0.45;
 
             scoredChunks = candidateChunks
                 .map((chunk: any) => {
@@ -177,10 +218,12 @@ Only include a field value if the user explicitly mentions it. Otherwise set it 
             }
         }
 
-        // Step 3b: Text-based fallback when vector search returns no/few results
-        if (scoredChunks.length < 3) {
+        // Step 3b: Text-based fallback ONLY when embedding is unavailable
+        // (HF outage / missing key) — never to pad good vector results with
+        // keyword noise. Stays scoped to the company filter.
+        if (queryEmbedding.length === 0) {
             const searchTerms: string[] = [];
-            if (extractedCompany) searchTerms.push(extractedCompany);
+            if (companyName) searchTerms.push(companyName);
             if (extractedTopic) searchTerms.push(extractedTopic);
 
             // Extract key words from the user message (words > 3 chars, skip stop words)
@@ -200,8 +243,8 @@ Only include a field value if the user explicitly mentions it. Otherwise set it 
                     .map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
                     .join('|');
 
-                // Text fallback does NOT use metadata filters — search broadly
                 const textFilter: any = {
+                    ...companyFilter,
                     text: { $regex: new RegExp(regexPattern, 'i') }
                 };
 
@@ -226,19 +269,15 @@ Only include a field value if the user explicitly mentions it. Otherwise set it 
             }
         }
 
-        // Step 3c: Broadest fallback — if still nothing, grab any chunks from the DB
+        // Step 3c: Nothing relevant found — say so honestly instead of feeding
+        // arbitrary chunks to a context-only prompt.
         if (scoredChunks.length === 0) {
-            console.log('🔄 Broadest fallback: fetching any available chunks');
-            const anyChunks = await ExperienceChunk.find({})
-                .select('text metadata')
-                .lean()
-                .limit(5);
-
-            console.log(`🔄 Broadest fallback results: ${anyChunks.length}`);
-            scoredChunks = anyChunks.map((chunk: any) => ({
-                ...chunk,
-                similarity: 0,
-            }));
+            console.log('🚫 No relevant chunks — returning honest no-data reply');
+            return sseText(
+                companyName
+                    ? `I don't have any experiences for **${companyName}** in my database yet. Try asking about another company, or check back later as more experiences are added.`
+                    : `I don't have specific experiences about that in my database yet. Try asking about a specific company or topic covered on the site.`
+            );
         }
 
         console.log(`📊 Final chunk count for LLM: ${scoredChunks.length}`);
@@ -349,13 +388,7 @@ INSTRUCTIONS:
         });
 
         // Return streaming response
-        return new Response(stream, {
-            headers: {
-                'Content-Type': 'text/event-stream',
-                'Cache-Control': 'no-cache',
-                'Connection': 'keep-alive',
-            },
-        });
+        return new Response(stream, { headers: SSE_HEADERS });
     } catch (error) {
         return NextResponse.json(
             {

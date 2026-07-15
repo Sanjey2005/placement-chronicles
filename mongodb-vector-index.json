@@ -6,24 +6,20 @@
       {
         "type": "vector",
         "path": "embedding",
-        "numDimensions": 768,
+        "numDimensions": 384,
         "similarity": "cosine"
       },
       {
         "type": "filter",
-        "path": "company"
+        "path": "metadata.companyName"
       },
       {
         "type": "filter",
-        "path": "role"
+        "path": "metadata.verdict"
       },
       {
         "type": "filter",
-        "path": "year"
-      },
-      {
-        "type": "filter",
-        "path": "tags"
+        "path": "metadata.roleType"
       }
     ]
   }

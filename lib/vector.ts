@@ -78,52 +78,6 @@ export function cosineSimilarity(vecA: number[], vecB: number[]): number {
 }
 
 /**
- * Generate a text summary from experience data for embedding
- */
-export function generateExperienceSummary(data: {
-    company: string;
-    role: string;
-    ctc?: number;
-    rounds?: Array<{
-        roundType: string;
-        questions: string[];
-        description?: string;
-    }>;
-    tags?: string[];
-}): string {
-    const parts: string[] = [];
-
-    parts.push(`Interview experience at ${data.company} for ${data.role} position.`);
-
-    if (data.ctc) {
-        parts.push(`CTC: ${data.ctc} LPA.`);
-    }
-
-    if (data.rounds && data.rounds.length > 0) {
-        parts.push(`Interview process consisted of ${data.rounds.length} rounds:`);
-
-        data.rounds.forEach((round, index) => {
-            parts.push(`Round ${index + 1} (${round.roundType}):`);
-
-            if (round.description) {
-                parts.push(round.description);
-            }
-
-            if (round.questions && round.questions.length > 0) {
-                parts.push('Questions asked:');
-                round.questions.forEach((q) => parts.push(`- ${q}`));
-            }
-        });
-    }
-
-    if (data.tags && data.tags.length > 0) {
-        parts.push(`Skills/Topics: ${data.tags.join(', ')}`);
-    }
-
-    return parts.join(' ');
-}
-
-/**
  * Break an experience down into logical semantic chunks for vector storage.
  * 
  * Strategy:

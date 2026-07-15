@@ -3,6 +3,8 @@ import dbConnect from '@/lib/db';
 import Experience from '@/models/Experience';
 import Company from '@/models/Company';
 import { getEmbedding } from '@/lib/vector';
+import { rebuildChunksForExperience, deleteChunksForExperience } from '@/lib/chunks';
+import ExperienceChunk from '@/models/ExperienceChunk';
 import { experienceFormSchema } from '@/lib/schemas/experience-schema';
 import AdminLog from '@/models/AdminLog';
 import { escapeRegex, sanitizeObject } from '@/lib/sanitize';
@@ -169,6 +171,11 @@ export async function POST(request: NextRequest) {
                                 company: canonical,
                                 needsCompanyNormalization: false,
                             });
+                            // Keep RAG chunk metadata in sync with the rename
+                            await ExperienceChunk.updateMany(
+                                { experienceId: pendingId },
+                                { $set: { 'metadata.companyName': canonical } }
+                            );
 
                             // Remove stale alias Company entry if unused
                             const aliasCount = await Experience.countDocuments({
@@ -224,6 +231,7 @@ export async function POST(request: NextRequest) {
             const oldest = await Experience.findOne({ status: { $ne: 'ARCHIVED' } }).sort({ createdAt: 1 });
             if (oldest) {
                 await Experience.findByIdAndUpdate(oldest._id, { status: 'ARCHIVED' });
+                await deleteChunksForExperience(oldest._id);
                 const archivedCount = await Experience.countDocuments({ status: 'ARCHIVED' });
                 if (archivedCount >= 5) {
                     const archivedData = await Experience.find({ status: 'ARCHIVED' }).lean();
@@ -278,6 +286,17 @@ export async function POST(request: NextRequest) {
         });
 
         const savedExperience = await experience.save();
+
+        // ── RAG chunks: auto-approved submissions enter the corpus now ──
+        // Non-blocking: an HF outage must never fail the submission; a
+        // backfill rerun recovers any missed chunks.
+        if (status === 'APPROVED') {
+            try {
+                await rebuildChunksForExperience(savedExperience);
+            } catch (chunkError) {
+                console.error('Chunk creation failed (recover via backfill):', chunkError);
+            }
+        }
 
         // ── Activity Log: Record submission + moderation outcome ──
         try {
