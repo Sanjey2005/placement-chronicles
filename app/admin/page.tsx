@@ -85,8 +85,8 @@ function StatusBadge({ status }: { status: string }) {
             icon: <AlertTriangle className="h-3 w-3" />,
         },
         APPROVED: {
-            bg: 'bg-emerald-100 border-emerald-200',
-            text: 'text-emerald-700',
+            bg: 'bg-success-container border-transparent',
+            text: 'text-on-success-container',
             icon: <CheckCircle2 className="h-3 w-3" />,
         },
         REJECTED: {
@@ -111,13 +111,11 @@ function StatCard({
     title,
     value,
     icon,
-    gradient,
     delay,
 }: {
     title: string;
     value: number;
     icon: React.ReactNode;
-    gradient: string;
     delay: number;
 }) {
     return (
@@ -125,15 +123,14 @@ function StatCard({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay, duration: 0.4 }}
-            className={`relative overflow-hidden rounded-xl border border-outline-variant bg-surface-container p-6`}
+            className="rounded-xl border border-outline-variant bg-surface-container p-6"
         >
-            <div className={`absolute inset-0 opacity-10 bg-gradient-to-br ${gradient}`} />
-            <div className="relative flex items-center justify-between">
+            <div className="flex items-center justify-between">
                 <div>
                     <p className="text-sm text-muted-foreground font-medium">{title}</p>
                     <p className="text-3xl font-bold text-foreground mt-1">{value}</p>
                 </div>
-                <div className={`p-3 rounded-xl bg-gradient-to-br ${gradient}`}>
+                <div className="p-3 rounded-xl bg-surface-container-high text-muted-foreground">
                     {icon}
                 </div>
             </div>
@@ -480,10 +477,10 @@ export default function AdminDashboard() {
 
                     {/* Stats Cards */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                        <StatCard title="Total Experiences" value={stats.total} icon={<BarChart3 className="h-5 w-5 text-white" />} gradient="from-blue-500 to-cyan-500" delay={0} />
-                        <StatCard title="Pending Review" value={stats.pending} icon={<Clock className="h-5 w-5 text-white" />} gradient="from-amber-500 to-orange-500" delay={0.1} />
-                        <StatCard title="Flagged Items" value={stats.flagged} icon={<AlertTriangle className="h-5 w-5 text-white" />} gradient="from-red-500 to-rose-500" delay={0.2} />
-                        <StatCard title="Approved" value={stats.approved} icon={<CheckCircle2 className="h-5 w-5 text-white" />} gradient="from-emerald-500 to-green-500" delay={0.3} />
+                        <StatCard title="Total Experiences" value={stats.total} icon={<BarChart3 className="h-5 w-5" />} delay={0} />
+                        <StatCard title="Pending Review" value={stats.pending} icon={<Clock className="h-5 w-5" />} delay={0.1} />
+                        <StatCard title="Flagged Items" value={stats.flagged} icon={<AlertTriangle className="h-5 w-5" />} delay={0.2} />
+                        <StatCard title="Approved" value={stats.approved} icon={<CheckCircle2 className="h-5 w-5" />} delay={0.3} />
                     </div>
 
                     {/* Tab Switcher */}
@@ -611,7 +608,7 @@ export default function AdminDashboard() {
                                                                 <button
                                                                     onClick={() => handleAction(exp._id, 'APPROVE')}
                                                                     disabled={actionLoading === exp._id}
-                                                                    className="px-2.5 py-1 text-xs font-medium bg-emerald-100 hover:bg-emerald-200 text-emerald-700 border border-emerald-200 rounded-md transition-all disabled:opacity-50"
+                                                                    className="px-2.5 py-1 text-xs font-medium bg-success-container hover:bg-success-container/70 text-on-success-container border border-transparent rounded-md transition-all disabled:opacity-50"
                                                                 >
                                                                     Approve
                                                                 </button>
@@ -682,7 +679,7 @@ export default function AdminDashboard() {
                                     paginatedLogs.map((log: AdminLogEntry) => (
                                         <div key={log._id} className="px-4 py-3 flex items-start gap-3 hover:bg-surface-container-high transition-colors">
                                             <div className={`mt-0.5 p-1.5 rounded-lg ${log.action === 'APPROVE' || log.action === 'AUTO_APPROVE'
-                                                ? 'bg-emerald-100 text-emerald-700'
+                                                ? 'bg-success-container text-on-success-container'
                                                 : log.action === 'REJECT'
                                                     ? 'bg-error-container text-on-error-container'
                                                     : log.action === 'DELETE'
@@ -701,7 +698,7 @@ export default function AdminDashboard() {
                                                 <p className="text-sm text-muted-foreground">
                                                     <span className="font-medium text-foreground">{log.adminId}</span>
                                                     {' '}
-                                                    <span className={`font-semibold ${log.action === 'APPROVE' || log.action === 'AUTO_APPROVE' ? 'text-emerald-700' :
+                                                    <span className={`font-semibold ${log.action === 'APPROVE' || log.action === 'AUTO_APPROVE' ? 'text-on-success-container' :
                                                         log.action === 'REJECT' ? 'text-on-error-container' :
                                                             log.action === 'DELETE' ? 'text-on-error-container' :
                                                                 log.action === 'FLAG' ? 'text-secondary-foreground' : 'text-muted-foreground'
@@ -840,7 +837,7 @@ export default function AdminDashboard() {
                                                                                 if (e.key === 'Escape') setEditingLinkId(null);
                                                                             }}
                                                                         />
-                                                                        <button onClick={() => handleSaveLink(company._id)} className="p-1 hover:bg-emerald-200 text-emerald-700 rounded transition-colors" title="Save">
+                                                                        <button onClick={() => handleSaveLink(company._id)} className="p-1 hover:bg-success-container/70 text-on-success-container rounded transition-colors" title="Save">
                                                                             <Check className="h-3 w-3" />
                                                                         </button>
                                                                         <button onClick={() => setEditingLinkId(null)} className="p-1 hover:bg-error-container/70 text-on-error-container rounded transition-colors" title="Cancel">
@@ -852,7 +849,7 @@ export default function AdminDashboard() {
                                                                         {company.link ? (
                                                                             <span className="block text-xs text-outline font-normal">{company.link}</span>
                                                                         ) : (
-                                                                            <span className="block text-xs text-amber-500/50 font-normal italic">No domain set</span>
+                                                                            <span className="block text-xs text-muted-foreground font-normal italic">No domain set</span>
                                                                         )}
                                                                         <button
                                                                             onClick={() => { setEditingLinkId(company._id); setEditLinkValue(company.link || ''); }}
@@ -877,7 +874,7 @@ export default function AdminDashboard() {
                                                             title={company.isHidden ? 'Hidden from home page – click to show' : 'Visible on home page – click to hide'}
                                                             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${company.isHidden
                                                                     ? 'bg-error-container border-transparent text-on-error-container hover:bg-error-container/70'
-                                                                    : 'bg-emerald-100 border-emerald-200 text-emerald-700 hover:bg-emerald-200'
+                                                                    : 'bg-success-container border-transparent text-on-success-container hover:bg-success-container/70'
                                                                 }`}
                                                         >
                                                             {company.isHidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
