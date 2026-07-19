@@ -123,8 +123,7 @@ export default function Navbar() {
 
                             {/* Share Experience — the one filled, on-brand action in the bar */}
                             <Link href="/share-experience">
-                                <button className="flex items-center gap-2 px-5 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold rounded-full transition-all shadow-m3">
-                                    <Plus className="h-4 w-4" />
+                                <button className="flex items-center justify-center px-4 sm:px-5 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold rounded-full transition-all shadow-m3">
                                     <span>Share</span>
                                 </button>
                             </Link>
