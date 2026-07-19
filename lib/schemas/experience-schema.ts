@@ -9,11 +9,11 @@ export const basicInfoSchema = z.object({
     role: z.string().min(2, 'Role is required'),
     batch: z.string().min(4, 'Please select a batch year'),
     courseBranch: z.string().min(2, 'Course & Branch is required (e.g., BTech CSE)'),
-    ctc: z.number().min(0, 'CTC must be a positive number'),
-    minCGPA: z.number().min(0).max(10, 'CGPA must be between 0 and 10'),
+    ctc: z.number({ error: 'Please enter the CTC/stipend' }).min(0, 'CTC must be a positive number'),
+    minCGPA: z.number({ error: 'Please enter the minimum CGPA' }).min(0).max(10, 'CGPA must be between 0 and 10'),
     placementType: z.enum(['ON_CAMPUS', 'OFF_CAMPUS']).default('ON_CAMPUS'),
     roleType: z.enum(['FULL_TIME', 'INTERNSHIP', 'SUMMER_INTERNSHIP']).default('FULL_TIME'),
-    workModel: z.enum(['ON_SITE', 'WFH', 'HYBRID']),
+    workModel: z.enum(['ON_SITE', 'WFH', 'HYBRID'], { error: 'Please select a work model' }),
     historyOfBacklogs: z.enum(['Allowed', 'Not Allowed']).default('Allowed'),
     standingBacklogs: z.enum(['Allowed', 'Not Allowed']).default('Not Allowed'),
 });
@@ -99,7 +99,7 @@ export const roundBuilderSchema = z.object({
 // STEP 3: Conclusion Schema
 // ============================================================================
 export const conclusionSchema = z.object({
-    finalVerdict: z.enum(['selected', 'rejected']),
+    finalVerdict: z.enum(['selected', 'rejected'], { error: 'Please select an outcome' }),
     tipsForJuniors: z.string().default(''),
     overallExperience: z.string().optional(),
 });

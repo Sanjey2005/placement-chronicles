@@ -224,7 +224,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
         let fieldsToValidate: (keyof ExperienceFormData)[] = [];
 
         if (currentStep === 1) {
-            fieldsToValidate = ['studentName', 'company', 'role', 'batch', 'minCGPA', 'historyOfBacklogs', 'standingBacklogs', 'ctc', 'workModel'];
+            fieldsToValidate = ['studentName', 'company', 'role', 'batch', 'courseBranch', 'placementType', 'roleType', 'minCGPA', 'historyOfBacklogs', 'standingBacklogs', 'ctc', 'workModel'];
         } else if (currentStep === 2) {
             fieldsToValidate = ['rounds'];
         } else if (currentStep === 3) {
@@ -234,32 +234,13 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
         // Await the trigger - this is critical!
         const isValid = await form.trigger(fieldsToValidate);
 
-        // Debug logging
-        console.log('🔍 Validation Check:', {
-            currentStep,
-            fieldsToValidate,
-            isValid,
-            errors: form.formState.errors
-        });
-
         if (isValid) {
-            console.log('✅ Validation passed, moving to next step');
-
             // Add safety delay to prevent double-clicks triggering submit on next step
             setIsStepChanging(true);
             setCurrentStep(currentStep + 1);
             setTimeout(() => setIsStepChanging(false), 500);
         } else {
-            // Visual feedback
             toast.error('Please fill required fields');
-
-            // Log specific field errors for debugging
-            const errorMessages = Object.entries(form.formState.errors)
-                .filter(([key]) => fieldsToValidate.includes(key as keyof ExperienceFormData))
-                .map(([key, error]) => `${key}: ${error.message}`)
-                .join(', ');
-
-            console.log('🚨 Validation Errors:', errorMessages || 'No specific errors found');
         }
     };
 
@@ -313,12 +294,12 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
     };
 
     return (
-        <div className="relative min-h-screen w-full overflow-hidden bg-black bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))]">
+        <div className="relative min-h-screen w-full overflow-hidden bg-background">
             {/* Subtle Grid Pattern Overlay */}
             <div
                 className="absolute inset-0 opacity-[0.05] pointer-events-none"
                 style={{
-                    backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.15) 1px, transparent 0)`,
+                    backgroundImage: `radial-gradient(circle at 1px 1px, rgba(83, 0, 183, 0.15) 1px, transparent 0)`,
                     backgroundSize: '40px 40px',
                 }}
             />
@@ -332,7 +313,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                             animate={{ opacity: 1, y: 0 }}
                             className="text-4xl sm:text-6xl font-bold mb-4 tracking-tight px-2"
                         >
-                            <span className="bg-gradient-to-br from-white to-zinc-500 bg-clip-text text-transparent">
+                            <span className="text-foreground">
                                 Share Your Experience
                             </span>
                         </motion.h1>
@@ -340,7 +321,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.1 }}
-                            className="text-zinc-400 text-lg font-light"
+                            className="text-muted-foreground text-lg font-light"
                         >
                             Help your juniors by sharing your placement journey
                         </motion.p>
@@ -355,7 +336,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                     >
                         <label
                             htmlFor="pdf-upload"
-                            className={`inline-flex items-center gap-3 px-8 py-4 bg-white text-black font-semibold rounded-xl cursor-pointer transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)] hover:scale-105 ${isUploading ? 'opacity-50 cursor-not-allowed scale-95' : ''
+                            className={`inline-flex items-center gap-3 px-8 py-4 bg-primary text-primary-foreground font-semibold rounded-xl cursor-pointer transition-all duration-300 shadow-m3 hover:shadow-lg hover:scale-105 ${isUploading ? 'opacity-50 cursor-not-allowed scale-95' : ''
                                 }`}
                         >
                             <Upload className="h-5 w-5" />
@@ -376,7 +357,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                             onChange={handlePDFUpload}
                             disabled={isUploading}
                         />
-                        <p className="text-sm text-zinc-600 mt-3 font-light">Upload a PDF to auto-fill the form using AI</p>
+                        <p className="text-sm text-outline mt-3 font-light">Upload a PDF to auto-fill the form using AI</p>
                     </motion.div>
 
                     {/* Progress Indicator */}
@@ -388,10 +369,10 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                                     <div className="flex flex-col items-center" style={{ minWidth: '70px' }}>
                                         <div
                                             className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-sm sm:text-base transition-all duration-300 ${currentStep > step.id
-                                                ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.4)]'
+                                                ? 'bg-primary text-primary-foreground shadow-m3'
                                                 : currentStep === step.id
-                                                    ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.3)]'
-                                                    : 'bg-zinc-800/50 text-zinc-600 border border-zinc-700'
+                                                    ? 'bg-primary text-primary-foreground shadow-m3'
+                                                    : 'bg-surface-container text-outline border border-outline-variant'
                                                 }`}
                                         >
                                             {currentStep > step.id ? (
@@ -401,16 +382,16 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                                             )}
                                         </div>
                                         <div className="mt-2 sm:mt-3 text-center">
-                                            <p className={`text-xs sm:text-sm font-semibold transition-colors ${currentStep >= step.id ? 'text-white' : 'text-zinc-600'}`}>
+                                            <p className={`text-xs sm:text-sm font-semibold transition-colors ${currentStep >= step.id ? 'text-foreground' : 'text-outline'}`}>
                                                 {step.name}
                                             </p>
-                                            <p className="text-[10px] sm:text-xs text-zinc-600 mt-0.5">{step.description}</p>
+                                            <p className="text-[10px] sm:text-xs text-outline mt-0.5">{step.description}</p>
                                         </div>
                                     </div>
                                     {/* Connector line */}
                                     {index < STEPS.length - 1 && (
                                         <div
-                                            className={`h-0.5 flex-1 mx-2 sm:mx-4 rounded transition-all duration-300 self-start mt-5 sm:mt-6 ${currentStep > step.id ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'bg-zinc-800'
+                                            className={`h-0.5 flex-1 mx-2 sm:mx-4 rounded transition-all duration-300 self-start mt-5 sm:mt-6 ${currentStep > step.id ? 'bg-primary shadow-m3' : 'bg-surface-container-highest'
                                                 }`}
                                         />
                                     )}
@@ -421,7 +402,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
 
                     {/* Form Container - Glass Morphic Panel */}
                     <form onSubmit={handleSubmit(onFormSubmit)} onKeyDown={handleKeyDown}>
-                        <div className="backdrop-blur-3xl bg-zinc-900/40 border border-white/10 shadow-2xl shadow-purple-500/10 rounded-2xl sm:rounded-3xl p-4 sm:p-10 ring-1 ring-white/5">
+                        <div className="bg-card border border-outline-variant shadow-2xl rounded-2xl sm:rounded-3xl p-4 sm:p-10">
                             <AnimatePresence mode="wait">
                                 <motion.div
                                     key={currentStep}
@@ -437,14 +418,14 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                             </AnimatePresence>
 
                             {/* Navigation Buttons */}
-                            <div className="flex flex-col-reverse sm:flex-row justify-between gap-4 mt-10 pt-8 border-t border-white/5">
+                            <div className="flex flex-col-reverse sm:flex-row justify-between gap-4 mt-10 pt-8 border-t border-outline-variant">
                                 <button
                                     type="button"
                                     onClick={prevStep}
                                     disabled={currentStep === 1}
                                     className={`flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 rounded-xl font-medium transition-all duration-300 ${currentStep === 1
-                                        ? 'opacity-30 cursor-not-allowed text-zinc-600'
-                                        : 'text-zinc-400 hover:text-white hover:bg-white/5 bg-white/5 sm:bg-transparent'
+                                        ? 'opacity-30 cursor-not-allowed text-outline'
+                                        : 'text-muted-foreground hover:text-foreground hover:bg-surface-container-high bg-surface-container sm:bg-transparent'
                                         }`}
                                 >
                                     <ArrowLeft className="h-5 w-5" />
@@ -455,7 +436,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                                     <button
                                         type="button"
                                         onClick={nextStep}
-                                        className="flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-3 bg-white text-black hover:bg-zinc-200 font-semibold rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)]"
+                                        className="flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-3 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold rounded-xl transition-all duration-300 shadow-m3 hover:shadow-lg"
                                     >
                                         Next
                                         <ArrowRight className="h-5 w-5" />
@@ -464,7 +445,7 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                                     <button
                                         type="submit"
                                         disabled={isSubmitting || isStepChanging}
-                                        className={`flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-3 bg-white text-black font-semibold rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.3)] ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-zinc-200 hover:shadow-[0_0_30px_rgba(255,255,255,0.5)]'}`}
+                                        className={`flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-3 bg-primary text-primary-foreground font-semibold rounded-xl transition-all duration-300 shadow-m3 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/90 hover:shadow-lg'}`}
                                     >
                                         {isSubmitting ? 'Submitting...' : 'Submit Experience'}
                                         <Check className="h-5 w-5" />
@@ -476,9 +457,9 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
 
                     {/* Error summary */}
                     {Object.keys(errors).length > 0 && (
-                        <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl backdrop-blur-sm">
-                            <p className="text-red-400 text-sm font-semibold">Please fix the following errors:</p>
-                            <ul className="mt-2 text-sm text-red-300/80 list-disc list-inside space-y-1">
+                        <div className="mt-6 p-4 bg-error-container border border-transparent rounded-xl">
+                            <p className="text-on-error-container text-sm font-semibold">Please fix the following errors:</p>
+                            <ul className="mt-2 text-sm text-on-error-container/80 list-disc list-inside space-y-1">
                                 {Object.entries(errors).flatMap(([key, error]) => {
                                     // Helper function to safely extract messages from any nested error structure
                                     const extractMessages = (errObj: any, prefix = ''): React.ReactNode[] => {

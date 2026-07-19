@@ -75,23 +75,23 @@ type StatusFilter = 'ALL' | 'PENDING' | 'FLAGGED' | 'APPROVED' | 'REJECTED';
 function StatusBadge({ status }: { status: string }) {
     const config: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
         PENDING: {
-            bg: 'bg-amber-500/20 border-amber-500/30',
-            text: 'text-amber-300',
+            bg: 'bg-secondary border-transparent',
+            text: 'text-secondary-foreground',
             icon: <Clock className="h-3 w-3" />,
         },
         FLAGGED: {
-            bg: 'bg-red-500/20 border-red-500/30',
-            text: 'text-red-300',
+            bg: 'bg-error-container border-transparent',
+            text: 'text-on-error-container',
             icon: <AlertTriangle className="h-3 w-3" />,
         },
         APPROVED: {
-            bg: 'bg-emerald-500/20 border-emerald-500/30',
-            text: 'text-emerald-300',
+            bg: 'bg-emerald-100 border-emerald-200',
+            text: 'text-emerald-700',
             icon: <CheckCircle2 className="h-3 w-3" />,
         },
         REJECTED: {
-            bg: 'bg-rose-500/20 border-rose-500/30',
-            text: 'text-rose-300',
+            bg: 'bg-error-container border-transparent',
+            text: 'text-on-error-container',
             icon: <XCircle className="h-3 w-3" />,
         },
     };
@@ -125,13 +125,13 @@ function StatCard({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay, duration: 0.4 }}
-            className={`relative overflow-hidden rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-6`}
+            className={`relative overflow-hidden rounded-xl border border-outline-variant bg-surface-container p-6`}
         >
             <div className={`absolute inset-0 opacity-10 bg-gradient-to-br ${gradient}`} />
             <div className="relative flex items-center justify-between">
                 <div>
-                    <p className="text-sm text-white/60 font-medium">{title}</p>
-                    <p className="text-3xl font-bold text-white mt-1">{value}</p>
+                    <p className="text-sm text-muted-foreground font-medium">{title}</p>
+                    <p className="text-3xl font-bold text-foreground mt-1">{value}</p>
                 </div>
                 <div className={`p-3 rounded-xl bg-gradient-to-br ${gradient}`}>
                     {icon}
@@ -158,25 +158,25 @@ function PaginationControls({
     if (totalPages <= 1) return null;
 
     return (
-        <div className="flex items-center justify-between px-4 py-3 border-t border-white/10 bg-white/5 rounded-b-xl">
-            <div className="text-sm text-white/50">
-                Showing <span className="text-white font-medium">total {totalItems}</span> {itemName}
+        <div className="flex items-center justify-between px-4 py-3 border-t border-outline-variant bg-surface-container rounded-b-xl">
+            <div className="text-sm text-muted-foreground">
+                Showing <span className="text-foreground font-medium">total {totalItems}</span> {itemName}
             </div>
             <div className="flex items-center gap-2">
                 <button
                     onClick={() => onPageChange(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
-                    className="px-3 py-1.5 text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/10 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 text-xs font-medium bg-surface-container hover:bg-surface-container-high border border-outline-variant rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                     Previous
                 </button>
-                <div className="text-sm text-white/60">
-                    Page <span className="text-white">{currentPage}</span> of <span className="text-white">{totalPages}</span>
+                <div className="text-sm text-muted-foreground">
+                    Page <span className="text-foreground">{currentPage}</span> of <span className="text-foreground">{totalPages}</span>
                 </div>
                 <button
                     onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
-                    className="px-3 py-1.5 text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/10 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="px-3 py-1.5 text-xs font-medium bg-surface-container hover:bg-surface-container-high border border-outline-variant rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                     Next
                 </button>
@@ -454,7 +454,7 @@ export default function AdminDashboard() {
     return (
         <>
             <Navbar />
-            <div className="min-h-screen bg-black bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))] text-white">
+            <div className="min-h-screen bg-background text-foreground">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
                     {/* Header */}
                     <motion.div
@@ -463,18 +463,15 @@ export default function AdminDashboard() {
                         className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4"
                     >
                         <div className="flex items-center gap-3">
-                            <div className="p-2.5 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl">
-                                <Shield className="h-6 w-6 text-white" />
-                            </div>
                             <div>
                                 <h1 className="text-2xl sm:text-3xl font-bold">Admin Dashboard</h1>
-                                <p className="text-sm text-white/50">Content Moderation & Management</p>
+                                <p className="text-sm text-muted-foreground">Content Moderation & Management</p>
                             </div>
                         </div>
                         <button
                             onClick={refreshAll}
                             disabled={loading}
-                            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg transition-all text-sm"
+                            className="flex items-center gap-2 px-4 py-2 bg-surface-container hover:bg-surface-container-high border border-outline-variant rounded-lg transition-all text-sm"
                         >
                             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                             Refresh
@@ -494,8 +491,8 @@ export default function AdminDashboard() {
                         <button
                             onClick={() => setActiveTab('table')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'table'
-                                ? 'bg-purple-500/20 border border-purple-500/30 text-purple-300'
-                                : 'bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10'
+                                ? 'bg-primary-fixed border border-outline-variant text-primary'
+                                : 'bg-surface-container border border-outline-variant text-muted-foreground hover:text-foreground hover:bg-surface-container-high'
                                 }`}
                         >
                             <Filter className="h-4 w-4" />
@@ -504,8 +501,8 @@ export default function AdminDashboard() {
                         <button
                             onClick={() => setActiveTab('logs')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'logs'
-                                ? 'bg-purple-500/20 border border-purple-500/30 text-purple-300'
-                                : 'bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10'
+                                ? 'bg-primary-fixed border border-outline-variant text-primary'
+                                : 'bg-surface-container border border-outline-variant text-muted-foreground hover:text-foreground hover:bg-surface-container-high'
                                 }`}
                         >
                             <Activity className="h-4 w-4" />
@@ -514,8 +511,8 @@ export default function AdminDashboard() {
                         <button
                             onClick={() => setActiveTab('companies')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'companies'
-                                ? 'bg-purple-500/20 border border-purple-500/30 text-purple-300'
-                                : 'bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10'
+                                ? 'bg-primary-fixed border border-outline-variant text-primary'
+                                : 'bg-surface-container border border-outline-variant text-muted-foreground hover:text-foreground hover:bg-surface-container-high'
                                 }`}
                         >
                             <Building2 className="h-4 w-4" />
@@ -524,8 +521,8 @@ export default function AdminDashboard() {
                         <button
                             onClick={() => setActiveTab('feedbacks')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'feedbacks'
-                                ? 'bg-purple-500/20 border border-purple-500/30 text-purple-300'
-                                : 'bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10'
+                                ? 'bg-primary-fixed border border-outline-variant text-primary'
+                                : 'bg-surface-container border border-outline-variant text-muted-foreground hover:text-foreground hover:bg-surface-container-high'
                                 }`}
                         >
                             <MessageSquare className="h-4 w-4" />
@@ -547,8 +544,8 @@ export default function AdminDashboard() {
                                         key={f.value}
                                         onClick={() => setFilter(f.value)}
                                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${filter === f.value
-                                            ? 'bg-white/15 text-white border border-white/20'
-                                            : 'bg-white/5 text-white/50 border border-white/5 hover:bg-white/10 hover:text-white/80'
+                                            ? 'bg-surface-container text-foreground border border-outline-variant'
+                                            : 'bg-surface-container text-muted-foreground border border-outline-variant hover:bg-surface-container-high hover:text-muted-foreground'
                                             }`}
                                     >
                                         {f.label} ({f.count})
@@ -557,46 +554,46 @@ export default function AdminDashboard() {
                             </div>
 
                             {/* Table */}
-                            <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5 backdrop-blur-md">
+                            <div className="overflow-x-auto rounded-xl border border-outline-variant bg-surface-container">
                                 <table className="w-full">
                                     <thead>
-                                        <tr className="border-b border-white/10">
-                                            <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">Date</th>
-                                            <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">Student</th>
-                                            <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">Company</th>
-                                            <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">Status</th>
-                                            <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">AI Reason</th>
-                                            <th className="text-right px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">Actions</th>
+                                        <tr className="border-b border-outline-variant">
+                                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Date</th>
+                                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Student</th>
+                                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Company</th>
+                                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">AI Reason</th>
+                                            <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-white/5">
+                                    <tbody className="divide-y divide-outline-variant">
                                         {paginatedExperiences.length === 0 ? (
                                             <tr>
-                                                <td colSpan={6} className="px-4 py-12 text-center text-white/40">
+                                                <td colSpan={6} className="px-4 py-12 text-center text-outline">
                                                     {loading ? 'Loading...' : 'No experiences found'}
                                                 </td>
                                             </tr>
                                         ) : (
                                             paginatedExperiences.map((exp: Experience) => (
-                                                <tr key={exp._id} className="hover:bg-white/5 transition-colors">
-                                                    <td className="px-4 py-3 text-sm text-white/70 whitespace-nowrap">
+                                                <tr key={exp._id} className="hover:bg-surface-container-high transition-colors">
+                                                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
                                                         {new Date(exp.createdAt).toLocaleDateString('en-IN', {
                                                             day: '2-digit',
                                                             month: 'short',
                                                             year: 'numeric',
                                                         })}
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm text-white font-medium">
+                                                    <td className="px-4 py-3 text-sm text-foreground font-medium">
                                                         {exp.studentName || exp.studentId || 'Anonymous'}
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm text-white/80">
+                                                    <td className="px-4 py-3 text-sm text-muted-foreground">
                                                         {exp.company}
-                                                        <span className="block text-xs text-white/40">{exp.role}</span>
+                                                        <span className="block text-xs text-outline">{exp.role}</span>
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         <StatusBadge status={exp.status || 'PENDING'} />
                                                     </td>
-                                                    <td className="px-4 py-3 text-xs text-white/50 max-w-[200px] truncate">
+                                                    <td className="px-4 py-3 text-xs text-muted-foreground max-w-[200px] truncate">
                                                         {exp.moderationReason || '—'}
                                                     </td>
                                                     <td className="px-4 py-3 text-right">
@@ -604,7 +601,7 @@ export default function AdminDashboard() {
                                                             {exp.status === 'FLAGGED' && (
                                                                 <button
                                                                     onClick={() => setReviewExperience(exp)}
-                                                                    className="px-2.5 py-1 text-xs font-medium bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded-md transition-all flex items-center gap-1"
+                                                                    className="px-2.5 py-1 text-xs font-medium bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-transparent rounded-md transition-all flex items-center gap-1"
                                                                 >
                                                                     <Shield className="h-3 w-3" />
                                                                     Review
@@ -614,7 +611,7 @@ export default function AdminDashboard() {
                                                                 <button
                                                                     onClick={() => handleAction(exp._id, 'APPROVE')}
                                                                     disabled={actionLoading === exp._id}
-                                                                    className="px-2.5 py-1 text-xs font-medium bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 rounded-md transition-all disabled:opacity-50"
+                                                                    className="px-2.5 py-1 text-xs font-medium bg-emerald-100 hover:bg-emerald-200 text-emerald-700 border border-emerald-200 rounded-md transition-all disabled:opacity-50"
                                                                 >
                                                                     Approve
                                                                 </button>
@@ -623,7 +620,7 @@ export default function AdminDashboard() {
                                                                 <button
                                                                     onClick={() => handleAction(exp._id, 'REJECT')}
                                                                     disabled={actionLoading === exp._id}
-                                                                    className="px-2.5 py-1 text-xs font-medium bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 rounded-md transition-all disabled:opacity-50"
+                                                                    className="px-2.5 py-1 text-xs font-medium bg-error-container hover:bg-error-container/70 text-on-error-container border border-transparent rounded-md transition-all disabled:opacity-50"
                                                                 >
                                                                     Reject
                                                                 </button>
@@ -631,7 +628,7 @@ export default function AdminDashboard() {
                                                             <button
                                                                 onClick={() => handleDelete(exp._id)}
                                                                 disabled={actionLoading === exp._id}
-                                                                className="p-1.5 text-red-400/70 hover:text-red-300 hover:bg-red-500/20 rounded-md transition-all disabled:opacity-50"
+                                                                className="p-1.5 text-on-error-container/70 hover:text-on-error-container hover:bg-error-container/70 rounded-md transition-all disabled:opacity-50"
                                                                 title="Delete"
                                                             >
                                                                 <Trash2 className="h-3.5 w-3.5" />
@@ -659,40 +656,40 @@ export default function AdminDashboard() {
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden"
+                            className="rounded-xl border border-outline-variant bg-surface-container overflow-hidden"
                         >
-                            <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+                            <div className="px-4 py-3 border-b border-outline-variant flex items-center justify-between">
                                 <Select value={logsFilter} onValueChange={setLogsFilter}>
-                                    <SelectTrigger className="w-[140px] h-8 bg-black/50 border border-white/20 rounded-md px-3 text-xs text-white focus:ring-purple-500/50">
+                                    <SelectTrigger className="w-[140px] h-8 bg-surface-container border border-outline-variant rounded-md px-3 text-xs text-foreground focus:ring-ring/30">
                                         <SelectValue placeholder="All Actions" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-slate-900 border-white/10 text-white">
-                                        <SelectItem value="ALL" className="focus:bg-white/10 focus:text-white cursor-pointer text-xs">All Actions</SelectItem>
-                                        <SelectItem value="APPROVE" className="focus:bg-white/10 focus:text-white cursor-pointer text-xs">Approved</SelectItem>
-                                        <SelectItem value="AUTO_APPROVE" className="focus:bg-white/10 focus:text-white cursor-pointer text-xs">Auto Approved</SelectItem>
-                                        <SelectItem value="REJECT" className="focus:bg-white/10 focus:text-white cursor-pointer text-xs">Rejected</SelectItem>
-                                        <SelectItem value="FLAG" className="focus:bg-white/10 focus:text-white cursor-pointer text-xs">Flagged</SelectItem>
-                                        <SelectItem value="DELETE" className="focus:bg-white/10 focus:text-white cursor-pointer text-xs">Deleted</SelectItem>
+                                    <SelectContent className="bg-card border-outline-variant text-foreground">
+                                        <SelectItem value="ALL" className="focus:bg-surface-container focus:text-foreground cursor-pointer text-xs">All Actions</SelectItem>
+                                        <SelectItem value="APPROVE" className="focus:bg-surface-container focus:text-foreground cursor-pointer text-xs">Approved</SelectItem>
+                                        <SelectItem value="AUTO_APPROVE" className="focus:bg-surface-container focus:text-foreground cursor-pointer text-xs">Auto Approved</SelectItem>
+                                        <SelectItem value="REJECT" className="focus:bg-surface-container focus:text-foreground cursor-pointer text-xs">Rejected</SelectItem>
+                                        <SelectItem value="FLAG" className="focus:bg-surface-container focus:text-foreground cursor-pointer text-xs">Flagged</SelectItem>
+                                        <SelectItem value="DELETE" className="focus:bg-surface-container focus:text-foreground cursor-pointer text-xs">Deleted</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="divide-y divide-white/5 max-h-[600px] overflow-y-auto">
+                            <div className="divide-y divide-outline-variant max-h-[600px] overflow-y-auto">
                                 {paginatedLogs.length === 0 ? (
-                                    <div className="px-4 py-12 text-center text-white/40">
+                                    <div className="px-4 py-12 text-center text-outline">
                                         {loading ? 'Loading...' : 'No activity logs found'}
                                     </div>
                                 ) : (
                                     paginatedLogs.map((log: AdminLogEntry) => (
-                                        <div key={log._id} className="px-4 py-3 flex items-start gap-3 hover:bg-white/5 transition-colors">
+                                        <div key={log._id} className="px-4 py-3 flex items-start gap-3 hover:bg-surface-container-high transition-colors">
                                             <div className={`mt-0.5 p-1.5 rounded-lg ${log.action === 'APPROVE' || log.action === 'AUTO_APPROVE'
-                                                ? 'bg-emerald-500/20 text-emerald-300'
+                                                ? 'bg-emerald-100 text-emerald-700'
                                                 : log.action === 'REJECT'
-                                                    ? 'bg-rose-500/20 text-rose-300'
+                                                    ? 'bg-error-container text-on-error-container'
                                                     : log.action === 'DELETE'
-                                                        ? 'bg-red-500/20 text-red-300'
+                                                        ? 'bg-error-container text-on-error-container'
                                                         : log.action === 'FLAG'
-                                                            ? 'bg-amber-500/20 text-amber-300'
-                                                            : 'bg-white/10 text-white/60'
+                                                            ? 'bg-secondary text-secondary-foreground'
+                                                            : 'bg-surface-container text-muted-foreground'
                                                 }`}>
                                                 {(log.action === 'APPROVE' || log.action === 'AUTO_APPROVE') && <CheckCircle2 className="h-3.5 w-3.5" />}
                                                 {log.action === 'REJECT' && <XCircle className="h-3.5 w-3.5" />}
@@ -701,13 +698,13 @@ export default function AdminDashboard() {
                                                 {!['APPROVE', 'AUTO_APPROVE', 'REJECT', 'DELETE', 'FLAG'].includes(log.action) && <Activity className="h-3.5 w-3.5" />}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm text-white/80">
-                                                    <span className="font-medium text-white">{log.adminId}</span>
+                                                <p className="text-sm text-muted-foreground">
+                                                    <span className="font-medium text-foreground">{log.adminId}</span>
                                                     {' '}
-                                                    <span className={`font-semibold ${log.action === 'APPROVE' || log.action === 'AUTO_APPROVE' ? 'text-emerald-400' :
-                                                        log.action === 'REJECT' ? 'text-rose-400' :
-                                                            log.action === 'DELETE' ? 'text-red-400' :
-                                                                log.action === 'FLAG' ? 'text-amber-400' : 'text-white/60'
+                                                    <span className={`font-semibold ${log.action === 'APPROVE' || log.action === 'AUTO_APPROVE' ? 'text-emerald-700' :
+                                                        log.action === 'REJECT' ? 'text-on-error-container' :
+                                                            log.action === 'DELETE' ? 'text-on-error-container' :
+                                                                log.action === 'FLAG' ? 'text-secondary-foreground' : 'text-muted-foreground'
                                                         }`}>
                                                         {log.action === 'AUTO_APPROVE' ? 'auto_approved' :
                                                             log.action === 'FLAG' ? 'flagged' :
@@ -715,11 +712,11 @@ export default function AdminDashboard() {
                                                     </span>
                                                     {' '}an experience
                                                 </p>
-                                                <p className="text-xs text-white/50 mt-0.5 truncate">
+                                                <p className="text-xs text-muted-foreground mt-0.5 truncate">
                                                     {log.details}
                                                 </p>
                                             </div>
-                                            <span className="text-xs text-white/30 whitespace-nowrap">
+                                            <span className="text-xs text-outline whitespace-nowrap">
                                                 {new Date(log.timestamp).toLocaleString('en-IN', {
                                                     day: '2-digit',
                                                     month: 'short',
@@ -757,17 +754,17 @@ export default function AdminDashboard() {
                                         placeholder="Search companies..."
                                         value={companiesSearch}
                                         onChange={(e) => setCompaniesSearch(e.target.value)}
-                                        className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500/50 w-full sm:w-64 placeholder:text-white/30"
+                                        className="bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary w-full sm:w-64 placeholder:text-outline"
                                     />
                                     <div className="w-[160px]">
                                         <Select value={companiesFilter} onValueChange={(val: any) => setCompaniesFilter(val)}>
-                                            <SelectTrigger className="w-full h-10 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white outline-none focus:ring-0">
+                                            <SelectTrigger className="w-full h-10 px-3 py-2 bg-surface-container border border-outline-variant rounded-lg text-sm text-foreground outline-none focus:ring-0">
                                                 <SelectValue placeholder="All Links" />
                                             </SelectTrigger>
-                                            <SelectContent className="bg-slate-900 border-white/10 text-white">
-                                                <SelectItem value="ALL" className="focus:bg-white/10 focus:text-white cursor-pointer text-sm">All Links</SelectItem>
-                                                <SelectItem value="HAS_LINK" className="focus:bg-white/10 focus:text-white cursor-pointer text-sm">Has Link</SelectItem>
-                                                <SelectItem value="MISSING_LINK" className="focus:bg-white/10 focus:text-white cursor-pointer text-sm">Missing Link</SelectItem>
+                                            <SelectContent className="bg-card border-outline-variant text-foreground">
+                                                <SelectItem value="ALL" className="focus:bg-surface-container focus:text-foreground cursor-pointer text-sm">All Links</SelectItem>
+                                                <SelectItem value="HAS_LINK" className="focus:bg-surface-container focus:text-foreground cursor-pointer text-sm">Has Link</SelectItem>
+                                                <SelectItem value="MISSING_LINK" className="focus:bg-surface-container focus:text-foreground cursor-pointer text-sm">Missing Link</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -775,36 +772,36 @@ export default function AdminDashboard() {
                                 <button
                                     onClick={handleCleanup}
                                     disabled={cleanupLoading}
-                                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 border border-purple-500/30 rounded-lg transition-all text-sm font-medium text-purple-300 disabled:opacity-50 w-full sm:w-auto justify-center"
+                                    className="flex items-center gap-2 px-4 py-2 bg-primary-fixed hover:bg-primary-fixed-dim border border-outline-variant rounded-lg transition-all text-sm font-medium text-primary disabled:opacity-50 w-full sm:w-auto justify-center"
                                 >
                                     <Sparkles className={`h-4 w-4 ${cleanupLoading ? 'animate-pulse' : ''}`} />
                                     {cleanupLoading ? 'Cleaning...' : 'Clean Companies'}
                                 </button>
                             </div>
-                            <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5 backdrop-blur-md">
+                            <div className="overflow-x-auto rounded-xl border border-outline-variant bg-surface-container">
                                 <table className="w-full">
                                     <thead>
-                                        <tr className="border-b border-white/10">
-                                            <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">Company Name</th>
-                                            <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">Experiences</th>
-                                            <th className="text-center px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">Visible</th>
-                                            <th className="text-right px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">First Seen</th>
+                                        <tr className="border-b border-outline-variant">
+                                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Company Name</th>
+                                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Experiences</th>
+                                            <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Visible</th>
+                                            <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">First Seen</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-white/5">
+                                    <tbody className="divide-y divide-outline-variant">
                                         {paginatedCompanies.length === 0 ? (
                                             <tr>
-                                                <td colSpan={4} className="px-4 py-12 text-center text-white/40">
+                                                <td colSpan={4} className="px-4 py-12 text-center text-outline">
                                                     {loading ? 'Loading...' : 'No companies found'}
                                                 </td>
                                             </tr>
                                         ) : (
                                             paginatedCompanies.map((company: Company) => (
-                                                <tr key={company._id} className="hover:bg-white/5 transition-colors">
-                                                    <td className="px-4 py-3 text-sm text-white font-medium">
+                                                <tr key={company._id} className="hover:bg-surface-container-high transition-colors">
+                                                    <td className="px-4 py-3 text-sm text-foreground font-medium">
                                                         <div className="flex items-center gap-2">
                                                             {company.link ? (
-                                                                <div className="w-8 h-8 flex-shrink-0 rounded-md bg-white flex items-center justify-center overflow-hidden border border-white/10">
+                                                                <div className="w-8 h-8 flex-shrink-0 rounded-md bg-white flex items-center justify-center overflow-hidden border border-outline-variant">
                                                                     <img
                                                                         src={`https://www.google.com/s2/favicons?domain=${company.link}&sz=128`}
                                                                         alt={`${company.name} logo`}
@@ -816,15 +813,15 @@ export default function AdminDashboard() {
                                                                             const parent = target.parentElement;
                                                                             if (parent) {
                                                                                 parent.classList.remove('bg-white');
-                                                                                parent.classList.add('bg-blue-500/10');
-                                                                                parent.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>';
+                                                                                parent.classList.add('bg-primary-fixed');
+                                                                                parent.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>';
                                                                             }
                                                                         }}
                                                                     />
                                                                 </div>
                                                             ) : (
-                                                                <div className="w-8 h-8 flex-shrink-0 p-1.5 bg-blue-500/10 rounded-md flex items-center justify-center">
-                                                                    <Building2 className="h-4 w-4 text-blue-400" />
+                                                                <div className="w-8 h-8 flex-shrink-0 p-1.5 bg-primary-fixed rounded-md flex items-center justify-center">
+                                                                    <Building2 className="h-4 w-4 text-primary" />
                                                                 </div>
                                                             )}
                                                             <div>
@@ -833,7 +830,7 @@ export default function AdminDashboard() {
                                                                     <div className="flex items-center gap-1.5 mt-1">
                                                                         <input
                                                                             type="text"
-                                                                            className="bg-black/50 border border-white/20 rounded px-2 py-0.5 text-xs text-white outline-none focus:border-purple-500/50 w-32"
+                                                                            className="bg-surface-container border border-outline-variant rounded px-2 py-0.5 text-xs text-foreground outline-none focus:border-primary w-32"
                                                                             value={editLinkValue}
                                                                             onChange={(e) => setEditLinkValue(e.target.value)}
                                                                             placeholder="domain.com"
@@ -843,23 +840,23 @@ export default function AdminDashboard() {
                                                                                 if (e.key === 'Escape') setEditingLinkId(null);
                                                                             }}
                                                                         />
-                                                                        <button onClick={() => handleSaveLink(company._id)} className="p-1 hover:bg-emerald-500/20 text-emerald-400 rounded transition-colors" title="Save">
+                                                                        <button onClick={() => handleSaveLink(company._id)} className="p-1 hover:bg-emerald-200 text-emerald-700 rounded transition-colors" title="Save">
                                                                             <Check className="h-3 w-3" />
                                                                         </button>
-                                                                        <button onClick={() => setEditingLinkId(null)} className="p-1 hover:bg-rose-500/20 text-rose-400 rounded transition-colors" title="Cancel">
+                                                                        <button onClick={() => setEditingLinkId(null)} className="p-1 hover:bg-error-container/70 text-on-error-container rounded transition-colors" title="Cancel">
                                                                             <X className="h-3 w-3" />
                                                                         </button>
                                                                     </div>
                                                                 ) : (
                                                                     <div className="group flex items-center gap-2 mt-0.5">
                                                                         {company.link ? (
-                                                                            <span className="block text-xs text-white/40 font-normal">{company.link}</span>
+                                                                            <span className="block text-xs text-outline font-normal">{company.link}</span>
                                                                         ) : (
                                                                             <span className="block text-xs text-amber-500/50 font-normal italic">No domain set</span>
                                                                         )}
                                                                         <button
                                                                             onClick={() => { setEditingLinkId(company._id); setEditLinkValue(company.link || ''); }}
-                                                                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-white/10 text-white/50 hover:text-white rounded transition-all"
+                                                                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-surface-container-high text-muted-foreground hover:text-foreground rounded transition-all"
                                                                             title="Edit Domain"
                                                                         >
                                                                             <Pencil className="h-3 w-3" />
@@ -870,7 +867,7 @@ export default function AdminDashboard() {
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-3">
-                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/10 text-white/80 border border-white/10">
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-container text-muted-foreground border border-outline-variant">
                                                             {company.experienceCount}
                                                         </span>
                                                     </td>
@@ -879,15 +876,15 @@ export default function AdminDashboard() {
                                                             onClick={() => handleToggleVisibility(company._id, company.isHidden)}
                                                             title={company.isHidden ? 'Hidden from home page – click to show' : 'Visible on home page – click to hide'}
                                                             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${company.isHidden
-                                                                    ? 'bg-rose-500/15 border-rose-500/25 text-rose-400 hover:bg-rose-500/25'
-                                                                    : 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/25'
+                                                                    ? 'bg-error-container border-transparent text-on-error-container hover:bg-error-container/70'
+                                                                    : 'bg-emerald-100 border-emerald-200 text-emerald-700 hover:bg-emerald-200'
                                                                 }`}
                                                         >
                                                             {company.isHidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                                                             {company.isHidden ? 'Hidden' : 'Visible'}
                                                         </button>
                                                     </td>
-                                                    <td className="px-4 py-3 text-right text-xs text-white/40 font-mono">
+                                                    <td className="px-4 py-3 text-right text-xs text-outline font-mono">
                                                         {new Date(company.createdAt).toLocaleDateString('en-IN', {
                                                             day: '2-digit',
                                                             month: 'short',
@@ -917,39 +914,39 @@ export default function AdminDashboard() {
                             animate={{ opacity: 1 }}
                             className="space-y-4"
                         >
-                            <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5 backdrop-blur-md">
+                            <div className="overflow-x-auto rounded-xl border border-outline-variant bg-surface-container">
                                 <table className="w-full">
                                     <thead>
-                                        <tr className="border-b border-white/10">
-                                            <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">Date</th>
-                                            <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">Student ID</th>
-                                            <th className="text-left px-4 py-3 text-xs font-semibold text-white/50 uppercase tracking-wider">Message</th>
+                                        <tr className="border-b border-outline-variant">
+                                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Date</th>
+                                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Student ID</th>
+                                            <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Message</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-white/5">
+                                    <tbody className="divide-y divide-outline-variant">
                                         {paginatedFeedbacks.length === 0 ? (
                                             <tr>
-                                                <td colSpan={3} className="px-4 py-12 text-center text-white/40">
+                                                <td colSpan={3} className="px-4 py-12 text-center text-outline">
                                                     {loading ? 'Loading...' : 'No feedbacks found'}
                                                 </td>
                                             </tr>
                                         ) : (
                                             paginatedFeedbacks.map((feedback: Feedback) => (
-                                                <tr key={feedback._id} className="hover:bg-white/5 transition-colors">
-                                                    <td className="px-4 py-3 text-sm text-white/70 whitespace-nowrap align-top w-32">
+                                                <tr key={feedback._id} className="hover:bg-surface-container-high transition-colors">
+                                                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap align-top w-32">
                                                         {new Date(feedback.createdAt).toLocaleDateString('en-IN', {
                                                             day: '2-digit',
                                                             month: 'short',
                                                             year: 'numeric',
                                                         })}
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm text-white font-medium align-top w-40">
-                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/10 border border-white/10 text-white/80">
+                                                    <td className="px-4 py-3 text-sm text-foreground font-medium align-top w-40">
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container border border-outline-variant text-muted-foreground">
                                                             <User className="h-3 w-3" />
                                                             {feedback.studentId}
                                                         </span>
                                                     </td>
-                                                    <td className="px-4 py-3 text-sm text-white/80 whitespace-pre-wrap">
+                                                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-pre-wrap">
                                                         {feedback.message}
                                                     </td>
                                                 </tr>

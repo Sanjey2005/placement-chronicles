@@ -22,16 +22,16 @@ export default function ConclusionStep({ form }: ConclusionStepProps) {
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-2xl font-bold text-white mb-2">Final Thoughts</h2>
-                <p className="text-white/60">Share your outcome and wisdom for juniors</p>
+                <h2 className="text-2xl font-bold text-foreground mb-2">Final Thoughts</h2>
+                <p className="text-muted-foreground">Share your outcome and wisdom for juniors</p>
             </div>
 
             {/* Final Verdict */}
             <div>
-                <label className="text-white font-semibold mb-3 block">
-                    Final Verdict <span className="text-red-400">*</span>
+                <label className="text-foreground font-semibold mb-3 block">
+                    Final Verdict <span className="text-on-error-container">*</span>
                 </label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className={`grid grid-cols-2 md:grid-cols-4 gap-3 rounded-lg ${errors.finalVerdict ? 'ring-2 ring-destructive/30' : ''}`}>
                     {verdictOptions.map((option) => {
                         const Icon = option.icon;
                         const isSelected = finalVerdict === option.value;
@@ -40,7 +40,7 @@ export default function ConclusionStep({ form }: ConclusionStepProps) {
                                 key={option.value}
                                 className={`relative flex flex-col items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${isSelected
                                     ? `border-${option.color}-500 bg-${option.color}-500/20`
-                                    : 'border-white/20 bg-white/5 hover:bg-white/10'
+                                    : 'border-outline-variant bg-surface-container hover:bg-surface-container-high'
                                     }`}
                             >
                                 <input
@@ -50,11 +50,11 @@ export default function ConclusionStep({ form }: ConclusionStepProps) {
                                     className="sr-only"
                                 />
                                 <Icon
-                                    className={`h-8 w-8 mb-2 ${isSelected ? `text-${option.color}-400` : 'text-white/60'
+                                    className={`h-8 w-8 mb-2 ${isSelected ? `text-${option.color}-400` : 'text-muted-foreground'
                                         }`}
                                 />
                                 <span
-                                    className={`text-sm font-semibold ${isSelected ? 'text-white' : 'text-white/70'
+                                    className={`text-sm font-semibold ${isSelected ? 'text-foreground' : 'text-muted-foreground'
                                         }`}
                                 >
                                     {option.label}
@@ -64,43 +64,43 @@ export default function ConclusionStep({ form }: ConclusionStepProps) {
                     })}
                 </div>
                 {errors.finalVerdict && (
-                    <p className="mt-1 text-sm text-red-400">{errors.finalVerdict.message}</p>
+                    <p className="mt-1 text-sm text-on-error-container">{errors.finalVerdict.message}</p>
                 )}
             </div>
 
             {/* Tips for Juniors */}
             <div>
-                <label className="flex items-center gap-2 text-white font-semibold mb-2">
+                <label className="flex items-center gap-2 text-foreground font-semibold mb-2">
                     <Lightbulb className="h-4 w-4" />
-                    Tips for Juniors <span className="text-white/40 text-sm font-normal">(Optional)</span>
+                    Tips for Juniors <span className="text-outline text-sm font-normal">(Optional)</span>
                 </label>
                 <textarea
                     {...register('tipsForJuniors')}
                     rows={6}
                     placeholder="Share your advice, preparation strategies, common mistakes to avoid, resources that helped you, etc."
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                    className="w-full px-4 py-3 bg-surface-container border border-outline-variant rounded-lg text-foreground placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-transparent transition-all resize-none"
                 />
                 {errors.tipsForJuniors && (
-                    <p className="mt-1 text-sm text-red-400">{errors.tipsForJuniors.message}</p>
+                    <p className="mt-1 text-sm text-on-error-container">{errors.tipsForJuniors.message}</p>
                 )}
-                <p className="mt-1 text-xs text-white/40">
+                <p className="mt-1 text-xs text-outline">
                     Be specific and helpful. Your insights can make a real difference!
                 </p>
             </div>
 
             {/* Overall Experience (Optional) */}
             <div>
-                <label className="text-white font-semibold mb-2 block">
-                    Overall Experience <span className="text-white/40 text-sm font-normal">(Optional)</span>
+                <label className="text-foreground font-semibold mb-2 block">
+                    Overall Experience <span className="text-outline text-sm font-normal">(Optional)</span>
                 </label>
                 <textarea
                     {...register('overallExperience')}
                     rows={4}
                     placeholder="How was your overall experience? Any memorable moments? How was the company culture?"
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                    className="w-full px-4 py-3 bg-surface-container border border-outline-variant rounded-lg text-foreground placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-transparent transition-all resize-none"
                 />
                 {errors.overallExperience && (
-                    <p className="mt-1 text-sm text-red-400">{errors.overallExperience.message}</p>
+                    <p className="mt-1 text-sm text-on-error-container">{errors.overallExperience.message}</p>
                 )}
             </div>
 

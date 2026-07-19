@@ -1,17 +1,32 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, MessageSquare, LogOut, Home, Shield, Menu, X } from 'lucide-react';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function Navbar() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const mobileNavRef = useRef<HTMLElement>(null);
     const router = useRouter();
     const pathname = usePathname();
+
+    // Off-canvas drawer: focus the first link and let Esc close it, same as
+    // the mobile filter sheet in FeedGrid.
+    useEffect(() => {
+        if (!isMobileMenuOpen) return;
+        mobileNavRef.current?.querySelector<HTMLElement>('a, button')?.focus();
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setIsMobileMenuOpen(false);
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [isMobileMenuOpen]);
 
     // Check authentication only on client side to avoid hydration mismatch
     // Run whenever the pathname changes so we catch logins/logouts via router.push
@@ -53,7 +68,7 @@ export default function Navbar() {
     };
 
     return (
-        <header className="relative z-50 border-b border-white/10 bg-black/20 backdrop-blur-sm">
+        <header className="sticky top-0 z-50 border-b border-outline-variant bg-background/90 backdrop-blur">
             <div className="max-w-7xl mx-auto px-6 py-4 relative">
                 <div className="flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-3 group">
@@ -63,19 +78,19 @@ export default function Navbar() {
                             width={36}
                             height={36}
                             className="rounded-lg"
-                            style={{ mixBlendMode: 'screen' }}
                         />
-                        <h1 className="text-2xl sm:text-3xl font-bold text-white group-hover:text-white/90 transition-colors">
+                        <h1 className="text-2xl sm:text-3xl font-bold text-foreground group-hover:text-primary transition-colors">
                             Placement Chronicles
                         </h1>
                     </Link>
-                    <div className="flex items-center gap-3">
-                        {/* Desktop Navigation */}
-                        <nav className="hidden sm:flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                        {/* Desktop Navigation — one quiet ghost treatment for all wayfinding
+                            links, so the only fill left is the single Share CTA. */}
+                        <nav className="hidden sm:flex items-center gap-1">
                             {/* Home button - only show if not on home page */}
                             {pathname !== '/' && (
                                 <Link href="/">
-                                    <button className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 rounded-lg text-white transition-all">
+                                    <button className="flex items-center gap-2 px-4 py-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-surface-container-high text-sm font-medium transition-all">
                                         <Home className="h-4 w-4" />
                                         <span>Home</span>
                                     </button>
@@ -85,7 +100,7 @@ export default function Navbar() {
                             {/* Admin button - only show for admins */}
                             {isAdmin && pathname !== '/admin' && (
                                 <Link href="/admin">
-                                    <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 backdrop-blur-md border border-amber-500/30 rounded-lg text-amber-200 font-semibold transition-all">
+                                    <button className="flex items-center gap-2 px-4 py-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-surface-container-high text-sm font-medium transition-all">
                                         <Shield className="h-4 w-4" />
                                         <span>Admin</span>
                                     </button>
@@ -95,49 +110,87 @@ export default function Navbar() {
                             {/* Chat button - only show if authenticated */}
                             {isAuthenticated && (
                                 <Link href="/chat">
-                                    <button className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl hover:shadow-purple-500/50">
-                                        <MessageSquare className="h-5 w-5" />
+                                    <button className="flex items-center gap-2 px-4 py-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-surface-container-high text-sm font-medium transition-all">
+                                        <MessageSquare className="h-4 w-4" />
                                         <span>Chat</span>
                                     </button>
                                 </Link>
                             )}
-
-                            {/* Share Experience button */}
-                            <Link href="/share-experience">
-                                <button className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl hover:shadow-blue-500/50">
-                                    <Plus className="h-5 w-5" />
-                                    <span>Share</span>
-                                </button>
-                            </Link>
-
-                            {/* Sign Out button - only show if authenticated */}
-                            {isAuthenticated && (
-                                <button
-                                    onClick={handleLogout}
-                                    className="flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 backdrop-blur-md border border-red-500/30 hover:border-red-500/50 rounded-lg text-red-300 hover:text-red-200 transition-all"
-                                >
-                                    <LogOut className="h-4 w-4" />
-                                    <span>Sign Out</span>
-                                </button>
-                            )}
                         </nav>
+
+                        {isAuthenticated && <div className="hidden sm:block h-6 w-px bg-outline-variant mx-1" />}
+
+                        {/* Share Experience — the one filled, on-brand action in the bar */}
+                        <Link href="/share-experience">
+                            <button className="flex items-center gap-2 px-5 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold rounded-full transition-all shadow-m3">
+                                <Plus className="h-4 w-4" />
+                                <span>Share</span>
+                            </button>
+                        </Link>
+
+                        {/* Sign Out - quiet by default, only reads as destructive on hover */}
+                        {isAuthenticated && (
+                            <button
+                                onClick={handleLogout}
+                                aria-label="Sign out"
+                                title="Sign out"
+                                className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-surface-container-high text-sm font-medium transition-all"
+                            >
+                                <LogOut className="h-4 w-4" />
+                            </button>
+                        )}
+
+                        <ThemeToggle />
 
                         {/* Mobile Menu Toggle */}
                         <button
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                            className="sm:hidden p-2 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 rounded-lg text-white transition-all"
+                            aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+                            aria-expanded={isMobileMenuOpen}
+                            aria-controls="mobile-nav"
+                            className="sm:hidden p-2 bg-surface-container hover:bg-surface-container-high rounded-full text-foreground transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         >
                             {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
                         </button>
                     </div>
                 </div>
 
-                {/* Mobile Navigation Dropdown */}
+                {/* Mobile Navigation — off-canvas drawer, not an inline expand:
+                    the old version pushed page content down instead of
+                    overlaying it. Same hierarchy as desktop: ghost links,
+                    one filled CTA, quiet sign-out. */}
+                <AnimatePresence>
                 {isMobileMenuOpen && (
-                    <nav className="sm:hidden mt-4 flex flex-col gap-3 py-4 border-t border-white/10">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="sm:hidden fixed inset-0 z-[60] bg-black/40"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                    <motion.nav
+                        ref={mobileNavRef}
+                        id="mobile-nav"
+                        initial={{ x: '100%' }}
+                        animate={{ x: 0 }}
+                        exit={{ x: '100%' }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute top-0 right-0 h-full w-[85%] max-w-xs bg-card border-l border-outline-variant p-6 flex flex-col gap-2 shadow-2xl overflow-y-auto"
+                    >
+                        <div className="flex items-center justify-between mb-4">
+                            <span className="text-lg font-bold text-foreground">Menu</span>
+                            <button
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                aria-label="Close menu"
+                                className="p-2 rounded-full bg-surface-container hover:bg-surface-container-high text-foreground transition-colors cursor-pointer"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
                         {pathname !== '/' && (
                             <Link href="/" className="w-full">
-                                <button className="w-full justify-center flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 rounded-lg text-white transition-all">
+                                <button className="w-full justify-center flex items-center gap-2 px-4 py-3 rounded-full text-foreground hover:bg-surface-container-high font-medium transition-all">
                                     <Home className="h-4 w-4" />
                                     <span>Home</span>
                                 </button>
@@ -146,7 +199,7 @@ export default function Navbar() {
 
                         {isAdmin && pathname !== '/admin' && (
                             <Link href="/admin" className="w-full">
-                                <button className="w-full justify-center flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 backdrop-blur-md border border-amber-500/30 rounded-lg text-amber-200 font-semibold transition-all">
+                                <button className="w-full justify-center flex items-center gap-2 px-4 py-3 rounded-full text-foreground hover:bg-surface-container-high font-medium transition-all">
                                     <Shield className="h-4 w-4" />
                                     <span>Admin Dashboard</span>
                                 </button>
@@ -155,15 +208,15 @@ export default function Navbar() {
 
                         {isAuthenticated && (
                             <Link href="/chat" className="w-full">
-                                <button className="w-full justify-center flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl hover:shadow-purple-500/50">
-                                    <MessageSquare className="h-5 w-5" />
+                                <button className="w-full justify-center flex items-center gap-2 px-4 py-3 rounded-full text-foreground hover:bg-surface-container-high font-medium transition-all">
+                                    <MessageSquare className="h-4 w-4" />
                                     <span>AI Assistant Guide</span>
                                 </button>
                             </Link>
                         )}
 
                         <Link href="/share-experience" className="w-full">
-                            <button className="w-full justify-center flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl hover:shadow-blue-500/50">
+                            <button className="w-full justify-center flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-full transition-all shadow-m3">
                                 <Plus className="h-5 w-5" />
                                 <span>Share Experience</span>
                             </button>
@@ -172,14 +225,16 @@ export default function Navbar() {
                         {isAuthenticated && (
                             <button
                                 onClick={handleLogout}
-                                className="w-full justify-center flex items-center gap-2 px-4 py-3 bg-red-500/20 hover:bg-red-500/30 backdrop-blur-md border border-red-500/30 hover:border-red-500/50 rounded-lg text-red-300 hover:text-red-200 transition-all"
+                                className="w-full justify-center flex items-center gap-2 px-4 py-3 rounded-full text-muted-foreground hover:text-foreground hover:bg-surface-container-high font-medium transition-all"
                             >
                                 <LogOut className="h-4 w-4" />
                                 <span>Sign Out</span>
                             </button>
                         )}
-                    </nav>
+                    </motion.nav>
+                    </motion.div>
                 )}
+                </AnimatePresence>
             </div>
         </header>
     );

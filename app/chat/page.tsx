@@ -1,13 +1,18 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User as UserIcon, Sparkles, Target, FileText, TrendingUp, ArrowLeft } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import {
+    ArrowUp,
+    Copy,
+    Check,
+    Paperclip
+} from 'lucide-react';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
-import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface Message {
     role: 'user' | 'assistant';
@@ -20,43 +25,161 @@ interface Message {
     }>;
 }
 
-interface SuggestedPromptCardProps {
-    icon: React.ReactNode;
-    title: string;
-    prompt: string;
-    onClick: (prompt: string) => void;
+const GREETINGS = [
+    "What would you like to know before your next interview?",
+    "Which company's interview process are you preparing for?",
+    "Ask me about DSA questions, HR rounds, or student CTCs.",
+    "How can I help you prepare for your upcoming placement?",
+    "Search through verified student placement experiences.",
+    "Looking for interview tips? Ask away."
+];
+
+interface AutoResizeProps {
+    minHeight: number;
+    maxHeight?: number;
 }
 
-function SuggestedPromptCard({ icon, title, prompt, onClick }: SuggestedPromptCardProps) {
+function useAutoResizeTextarea({ minHeight, maxHeight }: AutoResizeProps) {
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    const adjustHeight = useCallback(
+        (reset?: boolean) => {
+            const textarea = textareaRef.current;
+            if (!textarea) return;
+
+            if (reset) {
+                textarea.style.height = `${minHeight}px`;
+                return;
+            }
+
+            textarea.style.height = `${minHeight}px`; // reset first
+            const newHeight = Math.max(
+                minHeight,
+                Math.min(textarea.scrollHeight, maxHeight ?? Infinity)
+            );
+            textarea.style.height = `${newHeight}px`;
+        },
+        [minHeight, maxHeight]
+    );
+
+    useEffect(() => {
+        if (textareaRef.current) textareaRef.current.style.height = `${minHeight}px`;
+    }, [minHeight]);
+
+    return { textareaRef, adjustHeight };
+}
+
+interface ComposerProps {
+    input: string;
+    onInputChange: (value: string) => void;
+    onSend: () => void;
+    onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+    loading: boolean;
+    textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+    adjustHeight: (reset?: boolean) => void;
+}
+
+function Composer({ input, onInputChange, onSend, onKeyDown, loading, textareaRef, adjustHeight }: ComposerProps) {
     return (
-        <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => onClick(prompt)}
-            className="p-6 bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 hover:border-purple-500/30 rounded-xl transition-all group"
-        >
-            <div className="flex flex-col items-center gap-3 text-center">
-                <div className="p-3 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg group-hover:from-purple-500/30 group-hover:to-pink-500/30 transition-all">
-                    {icon}
+        <div className="relative w-full bg-card border border-outline-variant rounded-xl shadow-m3 transition-all">
+            <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => {
+                    onInputChange(e.target.value);
+                    adjustHeight();
+                }}
+                onKeyDown={onKeyDown}
+                placeholder="Ask about placement experiences..."
+                className="w-full px-4 py-3 resize-none bg-transparent text-foreground text-sm placeholder:text-outline/75 min-h-[48px] !border-0 !ring-0 !outline-none !shadow-none focus:!border-0 focus:!ring-0 focus:!outline-none focus:!shadow-none"
+                style={{ overflow: "hidden", border: "none", boxShadow: "none", outline: "none" }}
+                disabled={loading}
+            />
+
+            {/* Footer Buttons */}
+            <div className="flex items-center justify-end px-3 pb-3 pt-1">
+                <div className="flex items-center gap-2">
+                    <Button
+                        onClick={onSend}
+                        disabled={loading || !input.trim()}
+                        size="icon"
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
+                    >
+                        <ArrowUp className="w-4 h-4" />
+                        <span className="sr-only">Send</span>
+                    </Button>
                 </div>
-                <h4 className="text-lg font-semibold text-white">{title}</h4>
-                <p className="text-sm text-white/60">{prompt}</p>
             </div>
-        </motion.button>
+        </div>
     );
 }
+
+const ASSISTANT_PROSE =
+    'prose prose-sm max-w-none ' +
+    'prose-headings:text-foreground prose-headings:font-semibold ' +
+    'prose-h1:text-lg prose-h1:mt-5 prose-h1:mb-2 ' +
+    'prose-h2:text-base prose-h2:mt-5 prose-h2:mb-2 ' +
+    'prose-h3:text-sm prose-h3:tracking-wide prose-h3:mt-5 prose-h3:mb-2 prose-h3:pb-1.5 prose-h3:border-b prose-h3:border-outline-variant first:prose-h3:mt-0 ' +
+    'prose-p:text-foreground/90 prose-p:leading-relaxed ' +
+    'prose-li:text-foreground/90 prose-li:my-0.5 marker:text-muted-foreground ' +
+    'prose-strong:text-foreground prose-strong:font-semibold ' +
+    'prose-code:text-primary prose-code:bg-surface-container prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:before:content-none prose-code:after:content-none ' +
+    'prose-pre:bg-surface-container prose-pre:border prose-pre:border-outline-variant prose-pre:rounded-xl ' +
+    'prose-a:text-primary prose-a:underline hover:prose-a:text-primary/80 ' +
+    'prose-blockquote:border-primary prose-blockquote:text-muted-foreground prose-blockquote:not-italic ' +
+    'prose-table:text-xs prose-th:text-foreground prose-td:text-foreground/90 prose-tr:border-outline-variant prose-thead:border-outline-variant';
 
 export default function ChatPage() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
+    const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+    const [greeting, setGreeting] = useState('');
+    
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const { textareaRef, adjustHeight } = useAutoResizeTextarea({
+        minHeight: 48,
+        maxHeight: 150,
+    });
 
-    // Auto-scroll to bottom when messages change
+    // Select dynamic greeting on client mount to avoid hydration mismatch
+    useEffect(() => {
+        const randomIndex = Math.floor(Math.random() * GREETINGS.length);
+        setGreeting(GREETINGS[randomIndex]);
+    }, []);
+
+    // Auto-scroll to bottom of message thread
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    // Keyboard shortcut for starting a new chat (CMD/CTRL + N)
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+                e.preventDefault();
+                handleNewChat();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    const handleNewChat = () => {
+        setMessages([]);
+        setInput('');
+        adjustHeight(true);
+    };
+
+    const handleCopy = async (idx: number, content: string) => {
+        try {
+            await navigator.clipboard.writeText(content);
+            setCopiedIdx(idx);
+            setTimeout(() => setCopiedIdx((current) => (current === idx ? null : current)), 1500);
+        } catch {
+            toast.error('Could not copy to clipboard');
+        }
+    };
 
     const handleSendMessage = async (messageText: string) => {
         if (!messageText.trim() || loading) return;
@@ -66,20 +189,20 @@ export default function ChatPage() {
             content: messageText,
         };
 
-        setMessages((prev) => [...prev, userMessage]);
+        const updatedMessages = [...messages, userMessage];
+        setMessages(updatedMessages);
         setInput('');
+        adjustHeight(true);
         setLoading(true);
 
-        // Add placeholder assistant message
-        setMessages((prev) => [...prev, {
+        const assistantPlaceholder: Message = {
             role: 'assistant',
             content: '',
-        }]);
+        };
+        setMessages([...updatedMessages, assistantPlaceholder]);
 
         try {
-            // Build full conversation history (last 10 messages) for multi-turn context
-            const allMessages = [...messages, { role: 'user' as const, content: messageText }];
-            const historyToSend = allMessages
+            const historyToSend = updatedMessages
                 .slice(-10)
                 .map(m => ({ role: m.role, content: m.content }));
 
@@ -97,11 +220,10 @@ export default function ChatPage() {
                 throw new Error('Failed to get response');
             }
 
-            // Handle streaming response
             const reader = response.body?.getReader();
             const decoder = new TextDecoder();
             let accumulatedText = '';
-            let sources: any[] = [];
+            let sources: Message['sources'] = [];
 
             while (true) {
                 const { done, value } = await reader!.read();
@@ -117,7 +239,6 @@ export default function ChatPage() {
 
                             if (data.text) {
                                 accumulatedText += data.text;
-                                // Update message in real-time
                                 setMessages((prev) => {
                                     const newMsgs = [...prev];
                                     newMsgs[newMsgs.length - 1] = {
@@ -130,7 +251,6 @@ export default function ChatPage() {
 
                             if (data.done && data.sources) {
                                 sources = data.sources;
-                                // Add sources to final message
                                 setMessages((prev) => {
                                     const newMsgs = [...prev];
                                     newMsgs[newMsgs.length - 1] = {
@@ -162,10 +282,6 @@ export default function ChatPage() {
         }
     };
 
-    const handleSuggestedPrompt = (prompt: string) => {
-        handleSendMessage(prompt);
-    };
-
     const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -174,173 +290,149 @@ export default function ChatPage() {
     };
 
     return (
-        <>
-            {/* Navbar */}
+        <div className="flex flex-col h-screen overflow-hidden bg-background text-foreground">
             <Navbar />
-
-            {/* Global theme background matching share-experience page */}
-            <div className="min-h-screen bg-black bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))] text-white">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="h-[calc(100vh-80px)] flex items-center justify-center p-4 md:p-8 relative"
-                >
-                    {/* Back button */}
-                    <div className="absolute top-6 left-6 z-10">
-                        <Link href="/">
-                            <button className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 rounded-lg text-white transition-all">
-                                <ArrowLeft className="h-4 w-4" />
-                                <span className="hidden sm:inline">Back</span>
-                            </button>
-                        </Link>
-                    </div>
-
-                    {/* Main Chat Container */}
-                    <div className="w-full max-w-6xl h-full bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-                        {/* Header */}
-                        <div className="px-6 py-4 border-b border-white/10 bg-gradient-to-r from-purple-500/10 to-pink-500/10">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg">
-                                    <Sparkles className="h-6 w-6 text-white" />
-                                </div>
-                                <div>
-                                    <h1 className="text-2xl font-bold text-white">AI Assistant</h1>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Messages Area */}
-                        <div
-                            ref={scrollAreaRef}
-                            className="flex-1 overflow-y-auto p-6 space-y-4"
-                        >
-                            {messages.length === 0 ? (
-                                // Empty State
-                                <div className="flex flex-col items-center justify-center h-full gap-8">
-                                    <motion.div
-                                        initial={{ scale: 0.8, opacity: 0 }}
-                                        animate={{ scale: 1, opacity: 1 }}
-                                        transition={{ delay: 0.2 }}
-                                        className="text-center"
-                                    >
-                                        <h2 className="text-3xl font-bold text-white mb-2">Start a conversation</h2>
-                                        <p className="text-white/60">Ask me anything about placement experiences</p>
-                                    </motion.div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl w-full">
-                                        <SuggestedPromptCard
-                                            icon={<Target className="h-6 w-6 text-purple-400" />}
-                                            title="Mock Interview"
-                                            prompt="Can you give me common interview questions for Google SDE role?"
-                                            onClick={handleSuggestedPrompt}
-                                        />
-                                        <SuggestedPromptCard
-                                            icon={<FileText className="h-6 w-6 text-pink-400" />}
-                                            title="Resume Tips"
-                                            prompt="What skills are most valued by top tech companies?"
-                                            onClick={handleSuggestedPrompt}
-                                        />
-                                        <SuggestedPromptCard
-                                            icon={<TrendingUp className="h-6 w-6 text-blue-400" />}
-                                            title="Market Trends"
-                                            prompt="Which companies hired the most this year?"
-                                            onClick={handleSuggestedPrompt}
+            
+            <div className="flex-1 flex overflow-hidden relative">
+                {/* Main Chat Content View */}
+                <div className="flex-1 flex flex-col min-w-0 h-full relative">
+                    
+                    {/* Messages Scroll Area */}
+                    <div className="flex-1 overflow-y-auto bg-background">
+                        {messages.length === 0 ? (
+                            /* Empty State layout */
+                            <div className="min-h-full flex flex-col justify-center px-4 py-8 max-w-2xl mx-auto w-full">
+                                <div className="flex flex-col items-center justify-center gap-8 -mt-16">
+                                    <h2 className="text-lg sm:text-xl md:text-2xl font-medium text-foreground text-center tracking-tight leading-normal px-4">
+                                        {greeting}
+                                    </h2>
+                                    
+                                    <div className="w-full">
+                                        <Composer
+                                            input={input}
+                                            onInputChange={setInput}
+                                            onSend={() => handleSendMessage(input)}
+                                            onKeyDown={handleKeyPress}
+                                            loading={loading}
+                                            textareaRef={textareaRef}
+                                            adjustHeight={adjustHeight}
                                         />
                                     </div>
                                 </div>
-                            ) : (
-                                // Messages
-                                <>
+                            </div>
+                        ) : (
+                            /* Message List (Thread format) */
+                            <div className="p-6 space-y-6">
+                                <div className="max-w-3xl mx-auto space-y-6">
                                     {messages.map((message, idx) => (
-                                        <motion.div
+                                        <div
                                             key={idx}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ duration: 0.3 }}
-                                            className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                         >
-                                            {message.role === 'assistant' && (
-                                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
-                                                    <Bot className="h-6 w-6 text-white" />
+                                            {message.role === 'user' ? (
+                                                /* User bubble */
+                                                <div className="bg-surface-container text-foreground rounded-2xl px-5 py-3.5 max-w-[80%] shadow-xs whitespace-pre-wrap leading-relaxed text-sm">
+                                                    {message.content}
                                                 </div>
-                                            )}
-
-                                            <div
-                                                className={`max-w-[70%] p-4 ${message.role === 'user'
-                                                    ? 'bg-purple-600/20 text-purple-100 border border-purple-500/30 rounded-tl-xl rounded-br-xl'
-                                                    : 'bg-zinc-800/50 text-zinc-100 rounded-tr-xl rounded-bl-xl'
-                                                    }`}
-                                            >
-                                                {message.content ? (
-                                                    message.role === 'assistant' ? (
-                                                        <div className="prose prose-invert prose-sm max-w-none prose-headings:text-white prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2 prose-p:text-zinc-200 prose-p:leading-relaxed prose-li:text-zinc-200 prose-strong:text-white prose-code:text-purple-300 prose-code:bg-white/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-black/40 prose-pre:border prose-pre:border-white/10 prose-a:text-purple-400 prose-a:underline">
-                                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
-                                                        </div>
-                                                    ) : (
-                                                        <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
-                                                    )
-                                                ) : (
-                                                    <span className="flex gap-1">
-                                                        <span className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                                        <span className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                                        <span className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                                                    </span>
-                                                )}
-
-                                                {message.sources && message.sources.length > 0 && (
-                                                    <div className="mt-3 pt-3 border-t border-white/20">
-                                                        <p className="text-xs text-white/60 mb-2">📚 Sources:</p>
-                                                        <div className="space-y-1">
-                                                            {message.sources.map((source, sIdx) => (
-                                                                <div key={sIdx} className="text-xs text-white/80">
-                                                                    • {source.company} - {source.role}{source.student ? ` (${source.student})` : ''}{source.similarity > 0 ? ` — ${Math.round(source.similarity * 100)}% match` : ''}
-                                                                </div>
-                                                            ))}
-                                                        </div>
+                                            ) : (
+                                                /* Assistant response */
+                                                <div className="flex gap-4 items-start w-full min-w-0">
+                                                    <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 border border-outline-variant bg-card flex items-center justify-center shadow-xs">
+                                                        <img src="/logo.png" alt="AI Avatar" className="w-5.5 h-5.5 object-contain" />
                                                     </div>
-                                                )}
-                                            </div>
+                                                    
+                                                    <div className="flex-1 min-w-0 space-y-2">
+                                                        <div className="text-[10px] font-bold uppercase tracking-wider text-outline select-none">
+                                                            Assistant
+                                                        </div>
+                                                        
+                                                        <div className="text-foreground">
+                                                            {message.content ? (
+                                                                <div className={ASSISTANT_PROSE}>
+                                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                                        {message.content}
+                                                                    </ReactMarkdown>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="flex gap-1.5 py-2">
+                                                                    <span className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                                                    <span className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                                                    <span className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                                                </span>
+                                                            )}
+                                                        </div>
 
-                                            {message.role === 'user' && (
-                                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                                                    <UserIcon className="h-6 w-6 text-white" />
+                                                        {message.content && (
+                                                            <div className="pt-2 flex flex-col gap-3">
+                                                                {/* Source citation cards */}
+                                                                {message.sources && message.sources.length > 0 && (
+                                                                    <div className="flex flex-wrap gap-1.5">
+                                                                        {message.sources.map((source, sIdx) => (
+                                                                            <div
+                                                                                key={sIdx}
+                                                                                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-high border border-outline-variant rounded-full text-xs text-muted-foreground hover:text-foreground cursor-default transition-all"
+                                                                                title={`${source.company} - ${source.role}`}
+                                                                            >
+                                                                                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                                                                                <span>{source.company}</span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                                
+                                                                {/* Copy action */}
+                                                                <div className="flex items-center">
+                                                                    <button
+                                                                        onClick={() => handleCopy(idx, message.content)}
+                                                                        className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-surface-container rounded-lg transition-all"
+                                                                    >
+                                                                        {copiedIdx === idx ? (
+                                                                            <>
+                                                                                <Check className="h-3.5 w-3.5 text-success" />
+                                                                                <span>Copied</span>
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <Copy className="h-3.5 w-3.5" />
+                                                                                <span>Copy</span>
+                                                                            </>
+                                                                        )}
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             )}
-                                        </motion.div>
+                                        </div>
                                     ))}
                                     <div ref={messagesEndRef} />
-                                </>
-                            )}
-                        </div>
-
-                        {/* Input Area - Fixed at Bottom */}
-                        <div className="p-4 border-t border-white/10 bg-black/20">
-                            <div className="flex gap-3 items-end max-w-4xl mx-auto">
-                                <div className="flex-1 relative">
-                                    <textarea
-                                        value={input}
-                                        onChange={(e) => setInput(e.target.value)}
-                                        onKeyDown={handleKeyPress}
-                                        placeholder="Ask about placement experiences..."
-                                        className="w-full px-4 py-3 bg-white/5 backdrop-blur-md border border-white/10 focus:border-purple-500/50 rounded-xl text-white placeholder:text-white/40 resize-none focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all"
-                                        rows={2}
-                                        disabled={loading}
-                                    />
                                 </div>
-                                <button
-                                    onClick={() => handleSendMessage(input)}
-                                    disabled={loading || !input.trim()}
-                                    className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 disabled:from-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-xl hover:shadow-purple-500/50 flex items-center gap-2"
-                                >
-                                    <Send className="h-5 w-5" />
-                                    <span className="hidden sm:inline">Send</span>
-                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Bottom Composer Input Bar */}
+                    {messages.length > 0 && (
+                        <div className="p-4 border-t border-outline-variant bg-background shrink-0">
+                            <div className="max-w-3xl mx-auto">
+                                <Composer
+                                    input={input}
+                                    onInputChange={setInput}
+                                    onSend={() => handleSendMessage(input)}
+                                    onKeyDown={handleKeyPress}
+                                    loading={loading}
+                                    textareaRef={textareaRef}
+                                    adjustHeight={adjustHeight}
+                                />
+                                <p className="text-center text-[10px] text-outline/60 mt-2 select-none">
+                                    Press Enter to send • Shift + Enter for a new line
+                                </p>
                             </div>
                         </div>
-                    </div>
-                </motion.div>
+                    )}
+                </div>
             </div>
-        </>
+        </div>
     );
 }

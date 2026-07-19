@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Quicksand, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/next";
 import DisclaimerModal from "@/components/DisclaimerModal";
+import Providers from "@/components/Providers";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const quicksand = Quicksand({
+  variable: "--font-quicksand",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const geistMono = Geist_Mono({
@@ -114,22 +116,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning belongs on <html>: next-themes writes the theme
+    // class onto this element before paint, so the server markup can't match.
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        suppressHydrationWarning
-      >
-        {children}
-        <Suspense fallback={null}>
-          <DisclaimerModal />
-        </Suspense>
-        <Toaster />
+      <body className={`${quicksand.variable} ${geistMono.variable} antialiased`}>
+        <Providers>
+          {children}
+          <Suspense fallback={null}>
+            <DisclaimerModal />
+          </Suspense>
+          <Toaster />
+        </Providers>
         <Analytics />
       </body>
     </html>

@@ -23,7 +23,6 @@ export async function getAllExperiences(): Promise<{
         const experiences = await Experience.find({ status: 'APPROVED' })
             .select('studentId studentName company role ctc placementType roleType verdict historyOfBacklogs standingBacklogs batch courseBranch minCGPA resumeShortlisting rounds finalVerdict tipsForJuniors overallExperience tags year createdAt')
             .sort({ createdAt: -1 })
-            .limit(50) // Reduced from 100 for faster loading
             .lean()
             .exec();
 

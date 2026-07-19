@@ -103,11 +103,19 @@ export async function POST(request: NextRequest) {
                 .map(m => `${m.role}: ${m.content.substring(0, 300)}`)
                 .join('\n');
 
+            // Give the extractor the live company roster so it can resolve
+            // abbreviations/initials/misspellings ("jpm" -> "J.P. Morgan")
+            // against whatever companies actually exist — no hardcoded alias
+            // list to maintain as new companies get added.
+            const knownCompanies = await Company.find().select('canonicalName').lean<{ canonicalName: string }[]>();
+            const companyRoster = knownCompanies.map((c) => c.canonicalName).join(', ');
+
             const extractResponse = await groq.chat.completions.create({
                 messages: [
                     {
                         role: 'system',
                         content: `Extract structured intent from a student's question about placement/interview experiences, using the conversation for context.
+Companies already in our database: [${companyRoster || 'None yet.'}]
 Return ONLY a JSON object with these fields:
 {
   "companyName": "extracted company name or null",
@@ -116,7 +124,8 @@ Return ONLY a JSON object with these fields:
   "topic": "extracted technical topic like DSA, System Design, HR, etc. or null",
   "searchQuery": "the current question restated as a standalone search query, with any company/topic/pronoun references resolved from the conversation"
 }
-For companyName/roleType/verdict/topic: only set a value if it is explicit in the question or clearly carried over from the conversation. Otherwise set it to null.`
+For companyName: if the question refers to one of the companies listed above — even via an abbreviation, initials, ticker, or misspelling (e.g. "jpm"/"jpmc" -> "J.P. Morgan", "aws" -> "Amazon") — return that company's name EXACTLY as written in the list. If it refers to a company not in the list, return your best normalized guess. Otherwise set it to null.
+For roleType/verdict/topic: only set a value if it is explicit in the question or clearly carried over from the conversation. Otherwise set it to null.`
                     },
                     {
                         role: 'user',
@@ -164,6 +173,9 @@ For companyName/roleType/verdict/topic: only set a value if it is explicit in th
         const companyFilter: any = {};
         let companyName: string | null = null;
         if (extractedCompany) {
+            // Extraction already resolved the name against the live company
+            // roster (see Step 1) — this just normalizes case/whitespace
+            // against the stored record.
             const rx = exactMatch(extractedCompany);
             const known = await Company.findOne({
                 $or: [{ canonicalName: rx }, { aliases: rx }],

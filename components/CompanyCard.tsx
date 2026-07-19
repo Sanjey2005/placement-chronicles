@@ -1,143 +1,98 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Building2, Users, TrendingUp, Briefcase } from 'lucide-react';
-import { formatCompensation } from '@/lib/utils';
+import { Users, TrendingUp, Layers, ArrowUpRight, type LucideIcon } from 'lucide-react';
+import { averageCTC, averageRounds } from '@/lib/utils';
+import CompanyLogo from './CompanyLogo';
 
 interface CompanyCardProps {
     companyName: string;
-    experiences: any[];
+    experiences: Array<{ ctc?: number; roleType?: string; rounds?: unknown[] }>;
     logoUrl?: string;
     onClick: () => void;
     index: number;
 }
 
-export default function CompanyCard({ companyName, experiences, logoUrl, onClick, index }: CompanyCardProps) {
-    // Compute stats
-    const count = experiences.length;
+function Stat({
+    icon: Icon,
+    value,
+    label,
+    tone,
+}: {
+    icon: LucideIcon;
+    value: string;
+    label: string;
+    tone: string;
+}) {
+    return (
+        <div className="bg-surface-container rounded-2xl px-2 py-2.5 text-center">
+            <div className={`flex items-center justify-center gap-1 mb-0.5 ${tone}`}>
+                <Icon className="h-3 w-3 shrink-0" />
+                <span className="text-base font-bold text-foreground tabular-nums">{value}</span>
+            </div>
+            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                {label}
+            </span>
+        </div>
+    );
+}
 
-    // Average CTC in LPA
-    let totalLPA = 0;
-    let validCount = 0;
-    for (const exp of experiences) {
-        if (exp.ctc > 0) {
-            if (exp.roleType === 'INTERNSHIP' || exp.roleType === 'SUMMER_INTERNSHIP') {
-                totalLPA += (exp.ctc * 12) / 100000;
-            } else {
-                totalLPA += exp.ctc;
-            }
-            validCount++;
-        }
-    }
-    const avgCTC = validCount > 0 ? (totalLPA / validCount).toFixed(1) : '—';
-
-    // Role types present
-    const roleTypes = Array.from(new Set(experiences.map(e => e.roleType).filter(Boolean)));
-    const roleTypeLabels: Record<string, { label: string; cls: string }> = {
-        FULL_TIME: { label: 'Full Time', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
-        INTERNSHIP: { label: 'Intern', cls: 'bg-blue-500/15 text-blue-400 border-blue-500/20' },
-        SUMMER_INTERNSHIP: { label: 'Summer', cls: 'bg-amber-500/15 text-amber-400 border-amber-500/20' },
-    };
-
-    // Most recent batch
-    const batches = experiences.map(e => e.batch).filter(Boolean).sort().reverse();
-    const latestBatch = batches[0] || null;
-
-    // Selection rate
-    const selected = experiences.filter(e => e.finalVerdict === 'selected').length;
-    const selectionRate = count > 0 ? Math.round((selected / count) * 100) : 0;
+export default function CompanyCard({
+    companyName,
+    experiences,
+    logoUrl,
+    onClick,
+    index,
+}: CompanyCardProps) {
+    const avg = averageCTC(experiences);
+    // Not selection rate: every experience in the data is 'selected' (people who
+    // don't get an offer rarely share), so it read 100% on every card. Avg rounds
+    // actually varies (1.0-4.5) and tells you how long the process runs.
+    const rounds = averageRounds(experiences);
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.04, duration: 0.3 }}
+            whileHover={{ y: -4, scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            role="button"
+            tabIndex={0}
+            aria-label={`${companyName}, ${experiences.length} experience${experiences.length === 1 ? '' : 's'}`}
             onClick={onClick}
-            className="cursor-pointer group"
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onClick();
+                }
+            }}
+            className="cursor-pointer group h-full rounded-3xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-            <article className="relative rounded-xl bg-slate-950/60 backdrop-blur-xl border border-white/[0.08] p-5 transition-all duration-300 hover:border-violet-500/30 hover:bg-slate-900/60 hover:shadow-[0_0_40px_-10px_rgba(139,92,246,0.15)] h-full">
-                {/* Top accent */}
-                <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-violet-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <article className="relative h-full flex flex-col rounded-3xl bg-card border border-outline-variant p-5 shadow-m3 transition-[box-shadow,border-color] duration-300 group-hover:border-primary/40 group-hover:shadow-xl">
+                <ArrowUpRight className="absolute top-5 right-5 h-4 w-4 text-primary opacity-0 -translate-y-1 translate-x-1 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0" />
 
-                {/* Header: Logo + Name */}
-                <div className="flex items-center gap-3 mb-4">
-                    {logoUrl ? (
-                        <div className="w-10 h-10 flex-shrink-0 rounded-lg bg-white flex items-center justify-center overflow-hidden border border-white/10 shadow-sm">
-                            <img
-                                src={`https://www.google.com/s2/favicons?domain=${logoUrl}&sz=128`}
-                                alt={`${companyName} logo`}
-                                className="w-full h-full object-contain p-0.5"
-                                onError={(e) => {
-                                    const target = e.currentTarget;
-                                    target.style.display = 'none';
-                                    const parent = target.parentElement;
-                                    if (parent) {
-                                        parent.classList.remove('bg-white');
-                                        parent.classList.add('bg-blue-500/10');
-                                        parent.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>';
-                                    }
-                                }}
-                            />
-                        </div>
-                    ) : (
-                        <div className="w-10 h-10 flex-shrink-0 p-2 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                            <Building2 className="h-5 w-5 text-blue-400" />
-                        </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-bold text-white truncate group-hover:text-violet-300 transition-colors">
-                            {companyName}
-                        </h3>
-                    </div>
+                <div className="flex items-center gap-3 mb-4 pr-6">
+                    <CompanyLogo logoUrl={logoUrl} />
+                    <h3 className="text-lg font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                        {companyName}
+                    </h3>
                 </div>
 
-                {/* Stats Row */}
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                    <div className="bg-white/[0.04] rounded-lg px-3 py-2 text-center">
-                        <div className="flex items-center justify-center gap-1 text-blue-400 mb-0.5">
-                            <Users className="h-3 w-3" />
-                        </div>
-                        <p className="text-lg font-bold text-white">{count}</p>
-                        <p className="text-[10px] text-white/40 uppercase tracking-wider">Experiences</p>
-                    </div>
-                    <div className="bg-white/[0.04] rounded-lg px-3 py-2 text-center">
-                        <div className="flex items-center justify-center gap-1 text-emerald-400 mb-0.5">
-                            <TrendingUp className="h-3 w-3" />
-                        </div>
-                        <p className="text-lg font-bold text-white">{avgCTC}</p>
-                        <p className="text-[10px] text-white/40 uppercase tracking-wider">Avg LPA</p>
-                    </div>
-                    <div className="bg-white/[0.04] rounded-lg px-3 py-2 text-center">
-                        <div className="flex items-center justify-center gap-1 text-purple-400 mb-0.5">
-                            <Briefcase className="h-3 w-3" />
-                        </div>
-                        <p className="text-lg font-bold text-white">{selectionRate}%</p>
-                        <p className="text-[10px] text-white/40 uppercase tracking-wider">Selected</p>
-                    </div>
-                </div>
-
-                {/* Role Types + Batch */}
-                <div className="flex flex-wrap items-center gap-1.5">
-                    {roleTypes.map(rt => {
-                        const config = roleTypeLabels[rt] || { label: rt, cls: 'bg-white/5 text-white/50 border-white/10' };
-                        return (
-                            <span key={rt} className={`px-2 py-0.5 text-[10px] font-medium rounded border ${config.cls}`}>
-                                {config.label}
-                            </span>
-                        );
-                    })}
-                    {latestBatch && (
-                        <span className="px-2 py-0.5 text-[10px] font-medium rounded bg-white/5 text-white/40 border border-white/10 ml-auto">
-                            {latestBatch}
-                        </span>
-                    )}
-                </div>
-
-                {/* Footer */}
-                <div className="flex items-center justify-end pt-3 mt-3 border-t border-white/[0.06]">
-                    <span className="text-xs text-violet-400/80 group-hover:text-violet-400 transition-colors">
-                        View Experiences →
-                    </span>
+                <div className="grid grid-cols-3 gap-2 mt-auto">
+                    <Stat icon={Users} value={String(experiences.length)} label="Shared" tone="text-primary" />
+                    <Stat
+                        icon={TrendingUp}
+                        value={avg === null ? '—' : avg.toFixed(1)}
+                        label="Avg LPA"
+                        tone="text-on-secondary-container"
+                    />
+                    <Stat
+                        icon={Layers}
+                        value={rounds === null ? '—' : rounds.toFixed(1)}
+                        label="Rounds"
+                        tone="text-success"
+                    />
                 </div>
             </article>
         </motion.div>

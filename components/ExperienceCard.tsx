@@ -1,223 +1,146 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Building2, Briefcase, IndianRupee, ArrowUpRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import ExperienceModal from './ExperienceModal';
-import { formatCompensation } from '@/lib/utils';
-import { toast } from 'sonner';
+import { Briefcase, IndianRupee, ArrowUpRight, CheckCircle2, XCircle, Layers } from 'lucide-react';
+import { formatCompensation, relativeTime } from '@/lib/utils';
 
 interface ExperienceCardProps {
-    company: string;
     role: string;
     ctc: number;
-    rounds?: any[];
-    tags?: string[];
-    year?: number;
-    batch?: string;
-    finalVerdict?: 'selected' | 'rejected';
     studentName?: string;
-    minCGPA?: number;
-    tipsForJuniors?: string;
-    overallExperience?: string;
-    placementType?: string;
+    courseBranch?: string;
+    batch?: string;
+    year?: number;
     roleType?: string;
-    historyOfBacklogs?: string;
-    standingBacklogs?: string;
-    resumeShortlisting?: boolean;
-    hideCompany?: boolean;
+    placementType?: string;
+    finalVerdict?: 'selected' | 'rejected';
+    rounds?: unknown[];
+    tags?: string[];
+    createdAt?: string | Date;
+    index: number;
+    onOpen: () => void;
 }
 
-function getCookie(name: string): string | null {
-    if (typeof document === 'undefined') return null;
-    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-    return match ? decodeURIComponent(match[2]) : null;
+const VERDICT = {
+    selected: { label: 'Selected', Icon: CheckCircle2, cls: 'bg-success-container text-on-success-container' },
+    rejected: { label: 'Not Selected', Icon: XCircle, cls: 'bg-error-container text-on-error-container' },
+} as const;
+
+function Meta({ children }: { children: React.ReactNode }) {
+    return (
+        <span className="px-2.5 py-0.5 text-xs font-medium rounded-full bg-surface-container text-muted-foreground border border-outline-variant">
+            {children}
+        </span>
+    );
 }
 
 export default function ExperienceCard({
-    company,
     role,
     ctc,
+    studentName,
+    courseBranch,
+    batch,
+    year,
+    roleType,
+    placementType,
+    finalVerdict,
     rounds = [],
     tags = [],
-    year,
-    batch,
-    finalVerdict,
-    studentName,
-    minCGPA,
-    tipsForJuniors,
-    overallExperience,
-    placementType,
-    roleType,
-    historyOfBacklogs,
-    standingBacklogs,
-    resumeShortlisting,
-    hideCompany = false,
+    createdAt,
+    index,
+    onOpen,
 }: ExperienceCardProps) {
-    const [modalOpen, setModalOpen] = useState(false);
-    const router = useRouter();
-
-    const verdictConfig: Record<string, { label: string; cls: string }> = {
-        selected: { label: '✓ Selected', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
-        rejected: { label: '✗ Not Selected', cls: 'bg-red-500/15 text-red-400 border-red-500/25' },
-
-    };
-
-    const handleCardClick = () => {
-        const token = getCookie('auth-token');
-        if (!token) {
-            toast.info('Please log in to view experience details');
-            router.push('/login');
-            return;
-        }
-        setModalOpen(true);
-    };
+    const verdict = finalVerdict ? VERDICT[finalVerdict] : null;
+    const shared = relativeTime(createdAt);
 
     return (
-        <>
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                onClick={handleCardClick}
-                className="cursor-pointer group"
-            >
-                <article className="relative rounded-xl bg-slate-950/60 backdrop-blur-xl border border-white/[0.08] p-6 transition-all duration-300 hover:border-violet-500/30 hover:bg-slate-900/60 hover:shadow-[0_0_40px_-10px_rgba(139,92,246,0.15)]">
-                    {/* Top accent line */}
-                    <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-violet-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.04, duration: 0.3 }}
+            whileTap={{ scale: 0.98 }}
+            role="button"
+            tabIndex={0}
+            aria-label={`${role}${studentName ? ` by ${studentName}` : ''} — view full experience`}
+            onClick={onOpen}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onOpen();
+                }
+            }}
+            className="cursor-pointer group h-full rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+            <article className="relative h-full flex flex-col rounded-2xl bg-card border border-outline-variant p-5 shadow-m3 transition-[box-shadow,border-color] duration-300 group-hover:border-primary/40 group-hover:shadow-xl">
+                <ArrowUpRight className="absolute top-5 right-5 h-4 w-4 text-primary opacity-0 -translate-y-1 translate-x-1 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0" />
 
-                    {/* Arrow indicator */}
-                    <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-1 -translate-y-1 group-hover:translate-x-0 group-hover:translate-y-0">
-                        <ArrowUpRight className="h-4 w-4 text-violet-400" />
-                    </div>
-
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-3 gap-3">
-                        <div className="flex-1 min-w-0">
-                            {hideCompany ? (
-                                <>
-                                    <h3 className="text-xl font-bold text-white mb-1 flex items-center gap-2 truncate">
-                                        <Briefcase className="h-5 w-5 text-violet-400 shrink-0" />
-                                        <span className="truncate">{role}</span>
-                                    </h3>
-                                    {studentName && (
-                                        <p className="text-xs text-white/40 mt-1 ml-[22px]">
-                                            by {studentName}
-                                        </p>
-                                    )}
-                                </>
-                            ) : (
-                                <>
-                                    <h3 className="text-xl font-bold text-white mb-1 flex items-center gap-2 truncate">
-                                        <Building2 className="h-5 w-5 text-blue-400 shrink-0" />
-                                        <span className="truncate">{company}</span>
-                                    </h3>
-                                    <p className="text-sm text-white/60 flex items-center gap-2 truncate">
-                                        <Briefcase className="h-3.5 w-3.5 shrink-0" />
-                                        <span className="truncate">{role}</span>
-                                    </p>
-                                    {studentName && (
-                                        <p className="text-xs text-white/40 mt-1 ml-[22px]">
-                                            by {studentName}
-                                        </p>
-                                    )}
-                                </>
-                            )}
-                        </div>
-                        <div className="text-right shrink-0">
-                            <div className="flex items-center gap-0.5 text-emerald-400 font-bold text-lg">
-                                <IndianRupee className="h-4 w-4" />
-                                {formatCompensation(ctc, roleType)}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Meta row */}
-                    <div className="flex flex-wrap items-center gap-2 mb-3">
-                        {batch && (
-                            <span className="px-2 py-0.5 text-[11px] font-medium rounded bg-blue-500/15 text-blue-300 border border-blue-500/20">
-                                {batch}
-                            </span>
-                        )}
-                        {finalVerdict && (
-                            <span className={`px-2 py-0.5 text-[11px] font-semibold rounded border ${verdictConfig[finalVerdict]?.cls || ''}`}>
-                                {verdictConfig[finalVerdict]?.label || finalVerdict}
-                            </span>
-                        )}
-                        {year && (
-                            <span className="text-[11px] text-white/40 ml-auto">{year}</span>
-                        )}
-
-                    </div>
-
-                    {/* Type Badges */}
-                    <div className="flex flex-wrap items-center gap-2 mb-3">
-                        {placementType && (
-                            <span className="px-2 py-0.5 text-[10px] font-medium rounded uppercase tracking-wider bg-purple-500/10 text-purple-300 border border-purple-500/20">
-                                {placementType.replace('_', ' ')}
-                            </span>
-                        )}
-                        {roleType && (
-                            <span className="px-2 py-0.5 text-[10px] font-medium rounded uppercase tracking-wider bg-pink-500/10 text-pink-300 border border-pink-500/20">
-                                {roleType.replace('_', ' ')}
-                            </span>
-                        )}
-                    </div>
-
-                    {/* Tags */}
-                    {tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mb-3">
-                            {tags.slice(0, 5).map((tag, idx) => (
-                                <span
-                                    key={idx}
-                                    className="px-2.5 py-0.5 text-[11px] font-medium rounded-full bg-white/[0.05] text-white/70 border border-white/[0.08]"
-                                >
-                                    {tag}
-                                </span>
-                            ))}
-                            {tags.length > 5 && (
-                                <span className="px-2.5 py-0.5 text-[11px] text-white/40">
-                                    +{tags.length - 5} more
-                                </span>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Footer */}
-                    <div className="flex items-center justify-between pt-3 border-t border-white/[0.06]">
-                        <p className="text-xs text-white/40">
-                            {rounds.length} round{rounds.length !== 1 ? 's' : ''}
+                {/* Role + author */}
+                <div className="pr-6">
+                    <h3 className="text-lg font-bold text-foreground flex items-center gap-2 min-w-0">
+                        <Briefcase className="h-4 w-4 text-primary shrink-0" />
+                        <span className="truncate">{role}</span>
+                    </h3>
+                    {(studentName || courseBranch) && (
+                        <p className="text-xs text-outline mt-1 ml-6 truncate">
+                            {[studentName && `by ${studentName}`, courseBranch].filter(Boolean).join(' · ')}
                         </p>
-                        <span className="text-xs text-violet-400/80 group-hover:text-violet-400 transition-colors">
-                            View Details →
-                        </span>
-                    </div>
-                </article>
-            </motion.div>
+                    )}
+                </div>
 
-            {/* Detail Modal */}
-            <ExperienceModal
-                isOpen={modalOpen}
-                onClose={() => setModalOpen(false)}
-                company={company}
-                role={role}
-                ctc={ctc}
-                rounds={rounds}
-                tags={tags}
-                year={year}
-                batch={batch}
-                finalVerdict={finalVerdict}
-                studentName={studentName}
-                minCGPA={minCGPA}
-                tipsForJuniors={tipsForJuniors}
-                overallExperience={overallExperience}
-                placementType={placementType}
-                roleType={roleType}
-                historyOfBacklogs={historyOfBacklogs}
-                standingBacklogs={standingBacklogs}
-                resumeShortlisting={resumeShortlisting}
-            />
-        </>
+                {/* CTC is the hero figure; verdict never signals by colour alone. */}
+                <div className="flex items-center justify-between gap-3 mt-4">
+                    {/* formatCompensation(0) is the words "Prefer not to say" — don't
+                        give that the rupee glyph and hero-number treatment. */}
+                    {ctc > 0 ? (
+                        <span className="flex items-center gap-0.5 text-success font-bold text-xl tabular-nums">
+                            <IndianRupee className="h-4 w-4 shrink-0" />
+                            {formatCompensation(ctc, roleType)}
+                        </span>
+                    ) : (
+                        <span className="text-sm text-outline italic">{formatCompensation(ctc, roleType)}</span>
+                    )}
+                    {verdict && (
+                        <span
+                            className={`shrink-0 flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full ${verdict.cls}`}
+                        >
+                            <verdict.Icon className="h-3.5 w-3.5" />
+                            {verdict.label}
+                        </span>
+                    )}
+                </div>
+
+                {/* One meta row, not three */}
+                <div className="flex flex-wrap items-center gap-1.5 mt-4">
+                    {batch && <Meta>Batch {batch}</Meta>}
+                    {roleType && <Meta>{roleType.replaceAll('_', ' ').toLowerCase()}</Meta>}
+                    {placementType && <Meta>{placementType.replaceAll('_', ' ').toLowerCase()}</Meta>}
+                    {year && <Meta>{year}</Meta>}
+                </div>
+
+                {tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                        {tags.slice(0, 5).map((tag) => (
+                            <span
+                                key={tag}
+                                className="px-2.5 py-0.5 text-xs font-medium rounded-full bg-primary-fixed text-primary"
+                            >
+                                {tag}
+                            </span>
+                        ))}
+                        {tags.length > 5 && (
+                            <span className="px-2 py-0.5 text-xs text-outline">+{tags.length - 5} more</span>
+                        )}
+                    </div>
+                )}
+
+                <div className="flex items-center justify-between gap-2 pt-4 mt-auto text-xs text-outline">
+                    <span className="flex items-center gap-1.5">
+                        <Layers className="h-3.5 w-3.5" />
+                        {rounds.length} round{rounds.length === 1 ? '' : 's'}
+                    </span>
+                    {shared && <span className="truncate">{shared}</span>}
+                </div>
+            </article>
+        </motion.div>
     );
 }

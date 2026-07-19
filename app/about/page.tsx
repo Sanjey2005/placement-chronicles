@@ -77,24 +77,24 @@ export default function AboutPage() {
 
                     {/* Hero — Editorial, left-aligned, bold — silver-grey gradient */}
                     <section className="mb-24">
-                        <span className="inline-block text-zinc-400 text-sm font-medium tracking-widest uppercase mb-6">
+                        <span className="inline-block text-muted-foreground text-sm font-medium tracking-widest uppercase mb-6">
                             PSG Tech · Placement Experiences
                         </span>
                         <h1 className="text-5xl md:text-7xl font-bold leading-[1.05] tracking-tight max-w-3xl">
-                            <span className="bg-gradient-to-r from-zinc-200 via-zinc-300 to-zinc-500 bg-clip-text text-transparent">
+                            <span className="text-foreground">
                                 Real experiences.
                             </span>
                             <br />
-                            <span className="text-white">
+                            <span className="text-foreground">
                                 Real outcomes.
                             </span>
                         </h1>
-                        <p className="text-xl text-white/60 max-w-xl mt-8 leading-relaxed">
+                        <p className="text-xl text-muted-foreground max-w-xl mt-8 leading-relaxed">
                             PSG Tech students deserve better than guesswork. Placement Chronicles turns scattered interview intel into a searchable, AI-powered knowledge base—by students, for students.
                         </p>
                         <Link
                             href="/login"
-                            className="inline-flex items-center gap-2 mt-10 px-6 py-3.5 bg-white/5 hover:bg-white/10 border border-white/20 text-zinc-200 font-medium rounded-lg transition-all group"
+                            className="inline-flex items-center gap-2 mt-10 px-6 py-3.5 bg-surface-container hover:bg-surface-container-high border border-outline-variant text-muted-foreground font-medium rounded-lg transition-all group"
                         >
                             Get started
                             <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
@@ -102,12 +102,12 @@ export default function AboutPage() {
                     </section>
 
                     {/* The gap — Editorial block */}
-                    <section className="mb-24 pl-0 md:pl-12 border-l-2 border-white/10 md:ml-8">
-                        <span className="text-white/40 text-xs font-mono uppercase tracking-wider">Chapter 01</span>
-                        <h2 className="text-2xl md:text-3xl font-bold text-white mt-2 mb-6">
+                    <section className="mb-24 pl-0 md:pl-12 border-l-2 border-outline-variant md:ml-8">
+                        <span className="text-outline text-xs font-mono uppercase tracking-wider">Chapter 01</span>
+                        <h2 className="text-2xl md:text-3xl font-bold text-foreground mt-2 mb-6">
                             The information gap at PSG Tech
                         </h2>
-                        <div className="space-y-4 text-white/70 leading-relaxed max-w-2xl">
+                        <div className="space-y-4 text-muted-foreground leading-relaxed max-w-2xl">
                             <p>
                                 Placement prep at PSG College of Technology has always been a black box. Seniors move on; juniors start from zero. &quot;What does Company X ask?&quot; — nobody knows until it&apos;s too late.
                             </p>
@@ -119,48 +119,48 @@ export default function AboutPage() {
 
                     {/* Bento grid — Asymmetric, distinctive */}
                     <section className="mb-24">
-                        <span className="text-white/40 text-xs font-mono uppercase tracking-wider">What we offer</span>
-                        <h2 className="text-2xl md:text-3xl font-bold text-white mt-2 mb-10">
+                        <span className="text-outline text-xs font-mono uppercase tracking-wider">What we offer</span>
+                        <h2 className="text-2xl md:text-3xl font-bold text-foreground mt-2 mb-10">
                             Built for PSG Tech placement prep
                         </h2>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Large card */}
-                            <div className="md:row-span-2 p-8 rounded-2xl bg-white/[0.03] border border-white/20">
-                                <Sparkles className="h-10 w-10 text-zinc-300 mb-4" />
-                                <h3 className="text-xl font-bold text-white mb-3">AI placement assistant</h3>
-                                <p className="text-white/70 text-sm leading-relaxed">
+                            <div className="md:row-span-2 p-8 rounded-2xl bg-surface-container border border-outline-variant">
+                                <Sparkles className="h-10 w-10 text-muted-foreground mb-4" />
+                                <h3 className="text-xl font-bold text-foreground mb-3">AI placement assistant</h3>
+                                <p className="text-muted-foreground text-sm leading-relaxed">
                                     Ask questions in plain English. Our AI pulls from real PSG Tech placement experiences—company-specific prep, common questions, and tips from students who cracked those rounds.
                                 </p>
                             </div>
 
-                            <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-white/20 transition-colors">
-                                <Share2 className="h-8 w-8 text-zinc-400 mb-3" />
-                                <h3 className="font-bold text-white mb-2">Share your journey</h3>
-                                <p className="text-white/60 text-sm">
+                            <div className="p-6 rounded-2xl bg-surface-container border border-outline-variant hover:border-outline-variant transition-colors">
+                                <Share2 className="h-8 w-8 text-muted-foreground mb-3" />
+                                <h3 className="font-bold text-foreground mb-2">Share your journey</h3>
+                                <p className="text-muted-foreground text-sm">
                                     Post your PSG Tech interview experience. Round breakdowns, questions, verdict—help the next batch.
                                 </p>
                             </div>
 
-                            <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-white/20 transition-colors">
-                                <Zap className="h-8 w-8 text-zinc-400 mb-3" />
-                                <h3 className="font-bold text-white mb-2">Search by company & role</h3>
-                                <p className="text-white/60 text-sm">
+                            <div className="p-6 rounded-2xl bg-surface-container border border-outline-variant hover:border-outline-variant transition-colors">
+                                <Zap className="h-8 w-8 text-muted-foreground mb-3" />
+                                <h3 className="font-bold text-foreground mb-2">Search by company & role</h3>
+                                <p className="text-muted-foreground text-sm">
                                     Filter PSG Tech placement experiences by company, role, batch. Find exactly what you need.
                                 </p>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                            <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/10">
-                                <Brain className="h-8 w-8 text-zinc-400 mb-3" />
-                                <h3 className="font-bold text-white mb-2">Community-driven</h3>
-                                <p className="text-white/60 text-sm">
+                            <div className="p-6 rounded-2xl bg-surface-container border border-outline-variant">
+                                <Brain className="h-8 w-8 text-muted-foreground mb-3" />
+                                <h3 className="font-bold text-foreground mb-2">Community-driven</h3>
+                                <p className="text-muted-foreground text-sm">
                                     PSG Tech students and alumni. Real data, real people.
                                 </p>
                             </div>
-                            <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/10 md:col-span-2">
-                                <p className="text-white/50 text-sm italic">
+                            <div className="p-6 rounded-2xl bg-surface-container border border-outline-variant md:col-span-2">
+                                <p className="text-muted-foreground text-sm italic">
                                     &quot;Placement Chronicles isn&apos;t another forum. It&apos;s structured, searchable, and powered by AI—so you spend less time digging and more time preparing.&quot;
                                 </p>
                             </div>
@@ -169,70 +169,70 @@ export default function AboutPage() {
 
                     {/* How it works — Minimal steps */}
                     <section className="mb-24">
-                        <span className="text-white/40 text-xs font-mono uppercase tracking-wider">How it works</span>
-                        <h2 className="text-2xl md:text-3xl font-bold text-white mt-2 mb-12">
+                        <span className="text-outline text-xs font-mono uppercase tracking-wider">How it works</span>
+                        <h2 className="text-2xl md:text-3xl font-bold text-foreground mt-2 mb-12">
                             Three steps. That&apos;s it.
                         </h2>
 
                         <div className="flex flex-col md:flex-row gap-8 md:gap-4">
                             <div className="flex-1 group">
-                                <div className="text-4xl font-bold text-zinc-500 group-hover:text-zinc-300 transition-colors">01</div>
-                                <h3 className="text-lg font-semibold text-white mt-2 mb-1">Sign in</h3>
-                                <p className="text-white/60 text-sm">eCampus credentials. PSG Tech students only.</p>
+                                <div className="text-4xl font-bold text-outline group-hover:text-muted-foreground transition-colors">01</div>
+                                <h3 className="text-lg font-semibold text-foreground mt-2 mb-1">Sign in</h3>
+                                <p className="text-muted-foreground text-sm">eCampus credentials. PSG Tech students only.</p>
                             </div>
-                            <div className="hidden md:block text-white/20 self-center">→</div>
+                            <div className="hidden md:block text-outline self-center">→</div>
                             <div className="flex-1 group">
-                                <div className="text-4xl font-bold text-zinc-500 group-hover:text-zinc-300 transition-colors">02</div>
-                                <h3 className="text-lg font-semibold text-white mt-2 mb-1">Explore</h3>
-                                <p className="text-white/60 text-sm">Browse or ask the AI. Real PSG Tech placement experiences.</p>
+                                <div className="text-4xl font-bold text-outline group-hover:text-muted-foreground transition-colors">02</div>
+                                <h3 className="text-lg font-semibold text-foreground mt-2 mb-1">Explore</h3>
+                                <p className="text-muted-foreground text-sm">Browse or ask the AI. Real PSG Tech placement experiences.</p>
                             </div>
-                            <div className="hidden md:block text-white/20 self-center">→</div>
+                            <div className="hidden md:block text-outline self-center">→</div>
                             <div className="flex-1 group">
-                                <div className="text-4xl font-bold text-zinc-500 group-hover:text-zinc-300 transition-colors">03</div>
-                                <h3 className="text-lg font-semibold text-white mt-2 mb-1">Share</h3>
-                                <p className="text-white/60 text-sm">After placements, add your experience. Pay it forward.</p>
+                                <div className="text-4xl font-bold text-outline group-hover:text-muted-foreground transition-colors">03</div>
+                                <h3 className="text-lg font-semibold text-foreground mt-2 mb-1">Share</h3>
+                                <p className="text-muted-foreground text-sm">After placements, add your experience. Pay it forward.</p>
                             </div>
                         </div>
                     </section>
 
                     {/* FAQ — Compact grid */}
                     <section className="mb-24">
-                        <span className="text-white/40 text-xs font-mono uppercase tracking-wider">FAQ</span>
-                        <h2 className="text-2xl md:text-3xl font-bold text-white mt-2 mb-10">
+                        <span className="text-outline text-xs font-mono uppercase tracking-wider">FAQ</span>
+                        <h2 className="text-2xl md:text-3xl font-bold text-foreground mt-2 mb-10">
                             Quick answers
                         </h2>
 
                         <div className="grid md:grid-cols-2 gap-6">
-                            <div className="p-6 rounded-xl bg-white/[0.02] border border-white/10">
-                                <h3 className="font-semibold text-white mb-2">PSG Tech students only?</h3>
-                                <p className="text-white/60 text-sm">Yes. Placement Chronicles is for PSG College of Technology students and alumni. Sign in with eCampus.</p>
+                            <div className="p-6 rounded-xl bg-surface-container border border-outline-variant">
+                                <h3 className="font-semibold text-foreground mb-2">PSG Tech students only?</h3>
+                                <p className="text-muted-foreground text-sm">Yes. Placement Chronicles is for PSG College of Technology students and alumni. Sign in with eCampus.</p>
                             </div>
-                            <div className="p-6 rounded-xl bg-white/[0.02] border border-white/10">
-                                <h3 className="font-semibold text-white mb-2">Can I post anonymously?</h3>
-                                <p className="text-white/60 text-sm">Absolutely. Share your PSG Tech placement experience without exposing your identity.</p>
+                            <div className="p-6 rounded-xl bg-surface-container border border-outline-variant">
+                                <h3 className="font-semibold text-foreground mb-2">Can I post anonymously?</h3>
+                                <p className="text-muted-foreground text-sm">Absolutely. Share your PSG Tech placement experience without exposing your identity.</p>
                             </div>
-                            <div className="p-6 rounded-xl bg-white/[0.02] border border-white/10">
-                                <h3 className="font-semibold text-white mb-2">What&apos;s inside?</h3>
-                                <p className="text-white/60 text-sm">Round-by-round breakdowns, questions, CTC, tips. Real PSG Tech placement experiences from real students.</p>
+                            <div className="p-6 rounded-xl bg-surface-container border border-outline-variant">
+                                <h3 className="font-semibold text-foreground mb-2">What&apos;s inside?</h3>
+                                <p className="text-muted-foreground text-sm">Round-by-round breakdowns, questions, CTC, tips. Real PSG Tech placement experiences from real students.</p>
                             </div>
-                            <div className="p-6 rounded-xl bg-white/[0.02] border border-white/10">
-                                <h3 className="font-semibold text-white mb-2">How do I access it?</h3>
-                                <p className="text-white/60 text-sm">Log in with eCampus. Browse experiences or chat with the AI assistant.</p>
+                            <div className="p-6 rounded-xl bg-surface-container border border-outline-variant">
+                                <h3 className="font-semibold text-foreground mb-2">How do I access it?</h3>
+                                <p className="text-muted-foreground text-sm">Log in with eCampus. Browse experiences or chat with the AI assistant.</p>
                             </div>
                         </div>
                     </section>
 
                     {/* CTA — Full-width banner — silver-grey */}
-                    <section className="rounded-2xl bg-white/[0.03] border border-white/20 p-10 md:p-14 text-center">
-                        <h2 className="text-2xl font-bold bg-gradient-to-r from-zinc-200 to-zinc-400 bg-clip-text text-transparent mb-3">
+                    <section className="rounded-2xl bg-surface-container border border-outline-variant p-10 md:p-14 text-center">
+                        <h2 className="text-2xl font-bold text-foreground mb-3">
                             Ready to crack your next PSG Tech placement?
                         </h2>
-                        <p className="text-white/60 mb-8 max-w-md mx-auto">
+                        <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                             Join Placement Chronicles. Explore experiences. Share yours.
                         </p>
                         <Link
                             href="/login"
-                            className="inline-flex items-center gap-2 px-8 py-4 bg-white/10 hover:bg-white/20 border border-white/30 text-zinc-200 font-semibold rounded-lg transition-all"
+                            className="inline-flex items-center gap-2 px-8 py-4 bg-surface-container hover:bg-surface-container-high border border-outline-variant text-muted-foreground font-semibold rounded-lg transition-all"
                         >
                             Sign in to get started
                             <ArrowRight className="h-4 w-4" />
@@ -240,12 +240,12 @@ export default function AboutPage() {
                     </section>
                 </main>
 
-                <footer className="border-t border-white/10 py-8 mt-16">
-                    <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-white/50 text-sm">
+                <footer className="border-t border-outline-variant py-8 mt-16">
+                    <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-muted-foreground text-sm">
                         <p>© {new Date().getFullYear()} Placement Chronicles</p>
                         <div className="flex gap-6">
-                            <Link href="/about" className="text-zinc-400 hover:text-white transition-colors">About</Link>
-                            <Link href="/login" className="text-zinc-400 hover:text-white transition-colors">Login</Link>
+                            <Link href="/about" className="text-muted-foreground hover:text-foreground transition-colors">About</Link>
+                            <Link href="/login" className="text-muted-foreground hover:text-foreground transition-colors">Login</Link>
                         </div>
                     </div>
                 </footer>

@@ -67,75 +67,51 @@ export default async function Home() {
         {/* Navigation Header */}
         <Navbar />
 
-        {/* Hero Section */}
-        <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-12">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 tracking-tight">
-              Real Interview Experiences
-            </h2>
-            <p className="text-white/70 text-lg sm:text-xl">
-              Learn from students who've been there, done that
-            </p>
-          </div>
+        {/* Hero Section — minimal, centered */}
+        <section className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 pt-14 pb-6 text-center">
+          <h2 className="text-4xl sm:text-5xl font-bold text-foreground tracking-tight mb-4">
+            Real Interview Experiences
+          </h2>
+          <p className="text-lg font-medium text-muted-foreground mb-6">
+            Learn from students who've been there, done that
+          </p>
+          <Link href="/share-experience">
+            <button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 font-semibold shadow-m3 transition-all">
+              Share Your Experience
+            </button>
+          </Link>
 
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="group bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 hover:bg-white/15 hover:border-white/30 transition-all cursor-pointer">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-500/20 rounded-lg group-hover:bg-blue-500/30 transition-all">
-                  <BookOpen className="h-6 w-6 text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-white">{experiences.length}</p>
-                  <p className="text-white/70 text-sm">Total Experiences</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="group bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 hover:bg-white/15 hover:border-white/30 transition-all cursor-pointer">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-purple-500/20 rounded-lg group-hover:bg-purple-500/30 transition-all">
-                  <Users className="h-6 w-6 text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-white">
-                    {new Set(experiences.map(e => e.company)).size}
-                  </p>
-                  <p className="text-white/70 text-sm">Companies</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="group bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 hover:bg-white/15 hover:border-white/30 transition-all cursor-pointer">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-green-500/20 rounded-lg group-hover:bg-green-500/30 transition-all">
-                  <TrendingUp className="h-6 w-6 text-green-400" />
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-white">
-                    {averageCTC} LPA
-                  </p>
-                  <p className="text-white/70 text-sm">Average CTC</p>
-                </div>
-              </div>
-            </div>
+          {/* Stat chips */}
+          <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-container px-4 py-1.5 text-sm font-semibold text-muted-foreground">
+              <BookOpen className="h-4 w-4 text-primary" />
+              {experiences.length} experiences
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-container px-4 py-1.5 text-sm font-semibold text-muted-foreground">
+              <Users className="h-4 w-4 text-primary" />
+              {new Set(experiences.map(e => e.company)).size} companies
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-container px-4 py-1.5 text-sm font-semibold text-muted-foreground">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              {averageCTC} LPA avg
+            </span>
           </div>
         </section>
 
         {/* Experience Feed */}
-        <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-4">
           {experiences.length === 0 ? (
             <div className="text-center py-20">
-              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-8 sm:p-12 max-w-md mx-auto">
-                <BookOpen className="h-12 w-12 text-white/50 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">
+              <div className="bg-card border border-outline-variant shadow-m3 rounded-3xl p-8 sm:p-12 max-w-md mx-auto">
+                <BookOpen className="h-12 w-12 text-outline mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-foreground mb-2">
                   No Experiences Yet
                 </h3>
-                <p className="text-white/70 mb-6">
+                <p className="text-muted-foreground mb-6">
                   Be the first to share your interview experience!
                 </p>
                 <Link href="/share-experience">
-                  <button className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all">
+                  <button className="px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-full shadow-m3 transition-all">
                     Share Your Experience
                   </button>
                 </Link>

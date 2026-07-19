@@ -1,10 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useId } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Building2, Briefcase, IndianRupee, GraduationCap, Clock, MessageSquare, Lightbulb, Star, Info } from 'lucide-react';
+import {
+    X,
+    Building2,
+    Briefcase,
+    IndianRupee,
+    GraduationCap,
+    Clock,
+    Lightbulb,
+    Star,
+    Info,
+    ChevronDown,
+    CheckCircle2,
+    XCircle,
+    BookOpen,
+    type LucideIcon,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCompensation } from '@/lib/utils';
+import { getRound } from '@/lib/rounds';
 
 interface ExperienceModalProps {
     isOpen: boolean;
@@ -12,74 +28,272 @@ interface ExperienceModalProps {
     company: string;
     role: string;
     ctc: number;
-    rounds?: any[];
-    tags?: string[];
-    year?: number;
-    batch?: string;
-    finalVerdict?: 'selected' | 'rejected';
     studentName?: string;
-    minCGPA?: number;
-    tipsForJuniors?: string;
-    overallExperience?: string;
-    placementType?: string;
+    courseBranch?: string;
+    batch?: string;
+    year?: number;
     roleType?: string;
+    placementType?: string;
+    finalVerdict?: 'selected' | 'rejected';
+    minCGPA?: number;
     historyOfBacklogs?: string;
     standingBacklogs?: string;
     resumeShortlisting?: boolean;
+    rounds?: any[];
+    tags?: string[];
+    overallExperience?: string;
+    tipsForJuniors?: string;
 }
 
-function getRoundIcon(type: string) {
-    switch (type?.toLowerCase()) {
-        case 'test':
-        case 'online assessment':
-        case 'online test':
-            return '📝';
-        case 'technical':
-        case 'interview':
-            return '💻';
-        case 'hr':
-            return '🤝';
-        case 'managerial':
-            return '👔';
-        case 'hackathon':
-            return '🏆';
-        case 'group discussion':
-            return '💬';
-        default:
-            return '📋';
-    }
-}
+const pretty = (s?: string) => (s ? s.replaceAll('_', ' ').toLowerCase() : '');
 
-function getRoundLabel(round: any): string {
-    return round.roundType || round.interviewType || round.type || 'Round';
-}
-
-const ExpandableText = ({ text, limit = 150 }: { text: string; limit?: number }) => {
+/**
+ * Fades overflowing text with a CSS mask rather than a gradient overlay.
+ * The old version hardcoded `from-card`, so the fade was the wrong colour in
+ * every panel that wasn't bg-card. A mask is background-independent.
+ * "Show more" is gated on real overflow, not a character count that disagreed
+ * with line-clamp-3.
+ */
+function ExpandableText({ text }: { text: string }) {
     const [expanded, setExpanded] = useState(false);
+    const [overflows, setOverflows] = useState(false);
+    const ref = useRef<HTMLParagraphElement>(null);
+
+    useEffect(() => {
+        const el = ref.current;
+        if (el) setOverflows(el.scrollHeight > el.clientHeight + 1);
+    }, [text]);
 
     if (!text) return null;
 
-    if (text.length <= limit) {
-        return <p className="text-sm text-white/70 leading-relaxed">{text}</p>;
-    }
-
     return (
-        <div className="relative">
-            <p className={`text-sm text-white/70 leading-relaxed ${!expanded ? 'line-clamp-3' : ''}`}>
+        <div>
+            <p
+                ref={ref}
+                className={
+                    expanded
+                        ? 'text-sm text-muted-foreground leading-relaxed whitespace-pre-line'
+                        : 'text-sm text-muted-foreground leading-relaxed whitespace-pre-line line-clamp-3 [mask-image:linear-gradient(to_bottom,black_60%,transparent)]'
+                }
+            >
                 {text}
             </p>
-            {!expanded && (
-                <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-slate-900/90 to-transparent pointer-events-none" />
+            {(overflows || expanded) && (
+                <button
+                    type="button"
+                    onClick={() => setExpanded((v) => !v)}
+                    className="mt-1 text-xs text-primary hover:underline font-medium cursor-pointer"
+                >
+                    {expanded ? 'Show less' : 'Show more'}
+                </button>
             )}
-            <button
-                onClick={() => setExpanded(!expanded)}
-                className="mt-1 text-xs text-violet-400 hover:text-violet-300 font-medium flex items-center gap-1 transition-colors"
-            >
-                {expanded ? 'Show Less' : 'Show More'}
-            </button>
         </div>
     );
-};
+}
+
+function Block({
+    title,
+    icon: Icon,
+    tone = 'neutral',
+    children,
+}: {
+    title: string;
+    icon?: LucideIcon;
+    tone?: 'neutral' | 'brand' | 'success' | 'warning';
+    children: React.ReactNode;
+}) {
+    const tones = {
+        neutral: 'bg-surface-container-high border-outline-variant',
+        brand: 'bg-primary-fixed border-transparent',
+        success: 'bg-success-container border-transparent',
+        warning: 'bg-warning-container border-transparent',
+    };
+    const heads = {
+        neutral: 'text-outline',
+        brand: 'text-primary',
+        success: 'text-on-success-container',
+        warning: 'text-on-warning-container',
+    };
+    const bodies = {
+        neutral: 'text-muted-foreground',
+        brand: 'text-primary',
+        success: 'text-on-success-container',
+        warning: 'text-on-warning-container',
+    };
+    return (
+        <div className={`p-3 rounded-xl border ${tones[tone]}`}>
+            <h5
+                className={`text-[11px] font-semibold uppercase tracking-wider mb-1.5 flex items-center gap-1.5 ${heads[tone]}`}
+            >
+                {Icon && <Icon className="h-3 w-3" />}
+                {title}
+            </h5>
+            <div className={`text-sm leading-relaxed whitespace-pre-line ${bodies[tone]}`}>{children}</div>
+        </div>
+    );
+}
+
+const toList = (v: unknown, sep: RegExp): string[] =>
+    Array.isArray(v)
+        ? (v as string[])
+        : String(v ?? '')
+              .split(sep)
+              .map((s) => s.trim())
+              .filter(Boolean);
+
+function RoundNode({ round, idx, isLast }: { round: any; idx: number; isLast: boolean }) {
+    // All rounds expand by default — nested accordion-inside-modal scrolling
+    // was confusing on mobile. The toggle still lets people collapse ones
+    // they've read.
+    const [open, setOpen] = useState(true);
+    const { Icon, label } = getRound(round);
+    const panelId = `round-panel-${idx}`;
+
+    const questions: any[] = Array.isArray(round.questions) ? round.questions : [];
+    const topics = round.topics ? toList(round.topics, /[,;\n]+/) : [];
+    const sources = round.studySources ? toList(round.studySources, /[,;\n]+/) : [];
+
+    return (
+        <li className="relative pl-11">
+            {/* rail */}
+            {!isLast && <span className="absolute left-[15px] top-9 bottom-0 w-px bg-outline-variant" />}
+            {/* node */}
+            <span className="absolute left-0 top-1 w-8 h-8 rounded-full bg-primary-fixed text-primary flex items-center justify-center ring-4 ring-card">
+                <Icon className="h-4 w-4" />
+            </span>
+
+            <button
+                type="button"
+                onClick={() => setOpen((v) => !v)}
+                aria-expanded={open}
+                aria-controls={panelId}
+                className="w-full flex items-center gap-2 text-left py-1.5 min-h-11 cursor-pointer group/round rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+                <span className="min-w-0">
+                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider block">
+                        Round {round.roundNumber || idx + 1}
+                    </span>
+                    <span className="text-foreground font-semibold text-sm">{label}</span>
+                </span>
+                {round.duration && (
+                    <span className="ml-auto shrink-0 text-[11px] text-outline flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {round.duration}
+                    </span>
+                )}
+                <ChevronDown
+                    className={`h-4 w-4 text-outline shrink-0 transition-transform ${round.duration ? '' : 'ml-auto'} ${open ? 'rotate-180' : ''}`}
+                />
+            </button>
+
+            <AnimatePresence initial={false}>
+                {open && (
+                    <motion.div
+                        id={panelId}
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                    >
+                        <div className="space-y-3 pt-1 pb-5">
+                            {round.description && (
+                                <Block title="Description">
+                                    <ExpandableText text={round.description} />
+                                </Block>
+                            )}
+                            {round.experience && (
+                                <Block title="Experience">
+                                    <ExpandableText text={round.experience} />
+                                </Block>
+                            )}
+                            {round.problemStatement && (
+                                <Block title="Problem Statement" tone="brand">
+                                    {round.problemStatement}
+                                </Block>
+                            )}
+                            {round.strategy && (
+                                <Block title="Strategy Used" icon={Lightbulb} tone="success">
+                                    {round.strategy}
+                                </Block>
+                            )}
+                            {topics.length > 0 && (
+                                <div>
+                                    <h5 className="text-[11px] font-semibold uppercase tracking-wider mb-1.5 text-outline">
+                                        Topics Covered
+                                    </h5>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {topics.map((t, i) => (
+                                            <span
+                                                key={i}
+                                                className="px-2.5 py-0.5 text-xs font-medium rounded-full bg-surface-container text-muted-foreground border border-outline-variant"
+                                            >
+                                                {t}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {questions.length > 0 && (
+                                <div>
+                                    <h5 className="text-[11px] font-semibold uppercase tracking-wider mb-1.5 text-outline">
+                                        Questions Asked
+                                    </h5>
+                                    <ol className="space-y-2">
+                                        {questions.map((q, qIdx) => (
+                                            <li
+                                                key={qIdx}
+                                                className="p-3 rounded-xl bg-surface-container-high border border-outline-variant"
+                                            >
+                                                <p className="text-sm text-foreground font-medium">
+                                                    <span className="text-primary mr-1.5 tabular-nums">Q{qIdx + 1}.</span>
+                                                    {typeof q === 'string' ? q : q.question}
+                                                </p>
+                                                {typeof q !== 'string' && q.answerTip && (
+                                                    <div className="mt-2 pl-3 border-l-2 border-primary/40 flex gap-1.5">
+                                                        <Lightbulb className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                                                        <span className="text-sm text-muted-foreground italic">
+                                                            {q.answerTip}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </li>
+                                        ))}
+                                    </ol>
+                                </div>
+                            )}
+                            {sources.length > 0 && (
+                                <div>
+                                    <h5 className="text-[11px] font-semibold uppercase tracking-wider mb-1.5 text-outline">
+                                        Study Sources
+                                    </h5>
+                                    <ul className="space-y-1">
+                                        {sources.map((s, i) => (
+                                            <li key={i} className="flex gap-1.5 text-sm text-muted-foreground">
+                                                <BookOpen className="h-3.5 w-3.5 shrink-0 mt-0.5 text-outline" />
+                                                {s}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                            {round.tips && (
+                                <Block title="Tips" icon={Lightbulb} tone="warning">
+                                    {round.tips}
+                                </Block>
+                            )}
+                            {round.notes && (
+                                <Block title="Notes" icon={Lightbulb} tone="warning">
+                                    {round.notes}
+                                </Block>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </li>
+    );
+}
 
 export default function ExperienceModal({
     isOpen,
@@ -87,215 +301,231 @@ export default function ExperienceModal({
     company,
     role,
     ctc,
-    rounds = [],
-    tags = [],
-    year,
-    batch,
-    finalVerdict,
     studentName,
-    minCGPA,
-    tipsForJuniors,
-    overallExperience,
-    placementType,
+    courseBranch,
+    batch,
+    year,
     roleType,
+    placementType,
+    finalVerdict,
+    minCGPA,
     historyOfBacklogs,
     standingBacklogs,
     resumeShortlisting,
+    rounds = [],
+    tags = [],
+    overallExperience,
+    tipsForJuniors,
 }: ExperienceModalProps) {
     const [mounted, setMounted] = useState(false);
+    const panelRef = useRef<HTMLDivElement>(null);
+    const titleId = useId();
 
+    useEffect(() => setMounted(true), []);
+
+    // Scroll lock
     useEffect(() => {
-        setMounted(true);
-    }, []);
-
-    useEffect(() => {
-        if (isOpen) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = '';
-        }
-
+        if (!isOpen) return;
+        const prev = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
         return () => {
-            document.body.style.overflow = '';
+            document.body.style.overflow = prev;
         };
     }, [isOpen]);
 
-    // Handle ESC key press
+    // ESC, focus trap, focus restore
     useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
+        if (!isOpen) return;
+        const opener = document.activeElement as HTMLElement | null;
+        panelRef.current?.focus();
+
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                onClose();
+                return;
+            }
+            if (e.key !== 'Tab') return;
+            const focusables = panelRef.current?.querySelectorAll<HTMLElement>(
+                'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+            );
+            if (!focusables?.length) return;
+            const first = focusables[0];
+            const last = focusables[focusables.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
         };
 
-        if (isOpen) {
-            window.addEventListener('keydown', handleKeyDown);
-        }
-
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        window.addEventListener('keydown', onKey);
+        return () => {
+            window.removeEventListener('keydown', onKey);
+            opener?.focus?.();
+        };
     }, [isOpen, onClose]);
 
-    const verdictConfig = {
-        selected: { label: '✓ Selected', color: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30' },
-        rejected: { label: '✗ Not Selected', color: 'text-red-400 bg-red-500/15 border-red-500/30' },
-    };
+    if (!mounted) return null;
 
-    const modalContent = (
+    const verdict =
+        finalVerdict === 'selected'
+            ? { label: 'Selected', Icon: CheckCircle2, cls: 'bg-success-container text-on-success-container' }
+            : finalVerdict === 'rejected'
+              ? { label: 'Not Selected', Icon: XCircle, cls: 'bg-error-container text-on-error-container' }
+              : null;
+
+    // minCGPA is coerced to 0 upstream, so 0 means "not specified" far more
+    // often than it means a real zero requirement.
+    const cgpaUnset = !minCGPA;
+
+    const eligibility = [
+        { label: 'Minimum CGPA', value: cgpaUnset ? 'Not specified' : String(minCGPA), hint: cgpaUnset },
+        historyOfBacklogs && { label: 'History of Backlogs', value: historyOfBacklogs },
+        standingBacklogs && { label: 'Standing Backlogs', value: standingBacklogs },
+        { label: 'Resume Shortlisting', value: resumeShortlisting ? 'Yes' : 'Not mentioned' },
+    ].filter(Boolean) as Array<{ label: string; value: string; hint?: boolean }>;
+
+    return createPortal(
         <AnimatePresence>
             {isOpen && (
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+                    className="fixed inset-0 z-[100] flex items-stretch sm:items-center justify-center p-0 sm:p-4"
                     onClick={onClose}
                 >
-                    {/* Backdrop */}
-                    <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+                    {/* Dim + blur: the backdrop was opaque, hiding the page entirely */}
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
-                    {/* Modal */}
                     <motion.div
+                        ref={panelRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby={titleId}
+                        tabIndex={-1}
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                         onClick={(e) => e.stopPropagation()}
-                        className="relative w-full max-w-3xl max-h-[85vh] overflow-y-auto rounded-2xl bg-slate-950/95 border border-white/10 shadow-2xl shadow-purple-500/10"
+                        className="relative w-full h-full sm:h-auto max-w-full sm:max-w-3xl max-h-full sm:max-h-[85dvh] flex flex-col rounded-none sm:rounded-2xl bg-card border-0 sm:border border-outline-variant shadow-2xl outline-none overflow-hidden"
                     >
-                        {/* Top gradient accent */}
-                        <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl bg-gradient-to-r from-blue-500 via-violet-500 to-purple-500" />
-
-                        {/* Close button */}
-                        <button
-                            onClick={onClose}
-                            className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white transition-all"
-                        >
-                            <X className="h-5 w-5" />
-                        </button>
-
-                        <div className="p-5 sm:p-8">
-                            {/* ── Header ── */}
-                            <div className="mb-6">
-                                <div className="flex flex-col sm:flex-row items-start justify-between gap-4 sm:pr-10">
-                                    <div>
-                                        <h2 className="text-3xl font-bold text-white flex items-center gap-3">
-                                            <Building2 className="h-7 w-7 text-blue-400 shrink-0" />
-                                            {company}
-                                        </h2>
-                                        <p className="text-lg text-white/70 mt-1 flex items-center gap-2 sm:ml-10 ml-0">
-                                            <Briefcase className="h-4 w-4" />
-                                            {role}
-                                        </p>
+                        {/* Header is a flex sibling, not absolute — it no longer scrolls away */}
+                        <header className="shrink-0 border-b border-outline-variant bg-card">
+                            <div className="p-5 sm:p-6 flex items-start justify-between gap-4">
+                                <div className="min-w-0">
+                                    <h2
+                                        id={titleId}
+                                        className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2 min-w-0"
+                                    >
+                                        <Building2 className="h-5 w-5 text-primary shrink-0" />
+                                        <span className="truncate">{company}</span>
+                                    </h2>
+                                    <p className="text-sm text-muted-foreground mt-1 ml-7 flex items-center gap-1.5 truncate">
+                                        <Briefcase className="h-3.5 w-3.5 shrink-0" />
+                                        {role}
+                                    </p>
+                                    <div className="flex flex-wrap items-center gap-2 mt-3 ml-7">
+                                        {/* formatCompensation(0) returns "Prefer not to say" */}
+                                        {ctc > 0 ? (
+                                            <span className="flex items-center gap-0.5 text-success font-bold text-lg tabular-nums">
+                                                <IndianRupee className="h-4 w-4" />
+                                                {formatCompensation(ctc, roleType)}
+                                            </span>
+                                        ) : (
+                                            <span className="text-sm text-outline italic">
+                                                {formatCompensation(ctc, roleType)}
+                                            </span>
+                                        )}
+                                        {verdict && (
+                                            <span
+                                                className={`flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-full ${verdict.cls}`}
+                                            >
+                                                <verdict.Icon className="h-3.5 w-3.5" />
+                                                {verdict.label}
+                                            </span>
+                                        )}
                                     </div>
-                                    <div className="text-right shrink-0">
-                                        <div className="flex items-center gap-1 text-emerald-400 font-bold text-2xl">
-                                            <IndianRupee className="h-6 w-6" />
-                                            {formatCompensation(ctc, roleType)}
-                                        </div>
-                                    </div>
                                 </div>
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    aria-label="Close experience details"
+                                    className="shrink-0 p-2 rounded-full bg-surface-container hover:bg-surface-container-high border border-outline-variant text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+                        </header>
 
-                                {/* Meta pills */}
-                                <div className="flex flex-wrap gap-2 mt-4 sm:ml-10 ml-0">
-                                    {studentName && (
-                                        <span className="px-3 py-1 text-xs font-medium rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/25">
-                                            👤 {studentName}
+                        <div className="overflow-y-auto p-5 sm:p-6 space-y-6">
+                            {/* Who */}
+                            <div className="flex flex-wrap gap-2">
+                                {[
+                                    studentName,
+                                    courseBranch,
+                                    batch && `Batch ${batch}`,
+                                    year && String(year),
+                                    pretty(placementType),
+                                    pretty(roleType),
+                                ]
+                                    .filter(Boolean)
+                                    .map((v, i) => (
+                                        <span
+                                            key={i}
+                                            className="px-2.5 py-0.5 text-xs font-medium rounded-full bg-surface-container text-muted-foreground border border-outline-variant"
+                                        >
+                                            {v as string}
                                         </span>
-                                    )}
-                                    {batch && (
-                                        <span className="px-3 py-1 text-xs font-medium rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/25">
-                                            🎓 Batch {batch}
-                                        </span>
-                                    )}
-                                    {year && (
-                                        <span className="px-3 py-1 text-xs font-medium rounded-full bg-white/5 text-white/60 border border-white/10">
-                                            📅 {year}
-                                        </span>
-                                    )}
-                                    {finalVerdict && (
-                                        <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${verdictConfig[finalVerdict].color}`}>
-                                            {verdictConfig[finalVerdict].label}
-                                        </span>
-                                    )}
-                                    {placementType && (
-                                        <span className="px-3 py-1 text-xs font-medium rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/25">
-                                            🏢 {placementType.replace('_', ' ')}
-                                        </span>
-                                    )}
-                                    {roleType && (
-                                        <span className="px-3 py-1 text-xs font-medium rounded-full bg-pink-500/15 text-pink-300 border border-pink-500/25">
-                                            💼 {roleType.replace('_', ' ')}
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="flex flex-wrap gap-2 mt-2 sm:ml-10 ml-0">
-                                    {(historyOfBacklogs === 'Allowed') && (
-                                        <span className="px-3 py-1 text-xs font-medium rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-                                            History of Backlogs: Allowed
-                                        </span>
-                                    )}
-                                    {(standingBacklogs === 'Allowed') && (
-                                        <span className="px-3 py-1 text-xs font-medium rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-                                            Standing Backlogs: Allowed
-                                        </span>
-                                    )}
-                                </div>
+                                    ))}
                             </div>
 
-                            {/* ── Eligibility ── */}
-                            <div className="mb-6 p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                                <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            {/* Eligibility — the duplicate backlog pill row above this is gone */}
+                            <section className="p-4 rounded-2xl bg-surface-container border border-outline-variant">
+                                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
                                     <GraduationCap className="h-4 w-4" />
                                     Eligibility Criteria
                                 </h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {minCGPA !== undefined && (
-                                        <div className="flex flex-col">
-                                            <span className="text-xs text-white/40 uppercase">Minimum CGPA</span>
-                                            <span className="text-white font-medium flex items-center gap-1.5">
-                                                {minCGPA}
-                                                {minCGPA === 0 && (
-                                                    <div className="group relative pr-4">
-                                                        <Info className="h-3.5 w-3.5 text-white/40 hover:text-white/80 cursor-help transition-colors" />
-                                                        <div className="absolute left-0 bottom-full mb-2 w-48 p-2 bg-slate-800 text-xs text-white rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all shadow-xl border border-white/10 z-[100] text-left pointer-events-none -translate-x-2">
-                                                            0 usually means there was no minimum CGPA requirement or it was not mentioned.
-                                                            <div className="absolute top-full left-[11px] border-4 border-transparent border-t-slate-800" />
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </span>
+                                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {eligibility.map((f) => (
+                                        <div key={f.label} className="flex items-center gap-1.5">
+                                            <dt className="text-xs text-outline">{f.label}:</dt>
+                                            <dd
+                                                className={`text-sm font-medium tabular-nums ${
+                                                    f.value === 'Not Allowed'
+                                                        ? 'text-destructive'
+                                                        : f.value === 'Allowed'
+                                                          ? 'text-success'
+                                                          : 'text-foreground'
+                                                }`}
+                                            >
+                                                {f.value}
+                                            </dd>
+                                            {f.hint && (
+                                                <span
+                                                    tabIndex={0}
+                                                    role="note"
+                                                    aria-label="Not specified means no minimum CGPA was given, or it was not mentioned"
+                                                    title="No minimum CGPA was given, or it was not mentioned."
+                                                    className="cursor-help rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                                                >
+                                                    <Info className="h-3.5 w-3.5 text-outline" />
+                                                </span>
+                                            )}
                                         </div>
-                                    )}
-                                    {historyOfBacklogs && (
-                                        <div className="flex flex-col">
-                                            <span className="text-xs text-white/40 uppercase">History of Backlogs</span>
-                                            <span className={`font-medium ${historyOfBacklogs === 'Not Allowed' ? 'text-red-400' : 'text-emerald-400'}`}>
-                                                {historyOfBacklogs}
-                                            </span>
-                                        </div>
-                                    )}
-                                    {standingBacklogs && (
-                                        <div className="flex flex-col">
-                                            <span className="text-xs text-white/40 uppercase">Standing Backlogs</span>
-                                            <span className={`font-medium ${standingBacklogs === 'Not Allowed' ? 'text-red-400' : 'text-emerald-400'}`}>
-                                                {standingBacklogs}
-                                            </span>
-                                        </div>
-                                    )}
-                                    <div className="flex flex-col">
-                                        <span className="text-xs text-white/40 uppercase">Resume Shortlisting</span>
-                                        <span className="font-medium text-white">
-                                            {resumeShortlisting ? 'Yes' : 'No / Not Mentioned'}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                                    ))}
+                                </dl>
+                            </section>
 
-                            {/* ── Tags ── */}
                             {tags.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mb-6">
-                                    {tags.map((tag, idx) => (
+                                <div className="flex flex-wrap gap-2">
+                                    {tags.map((tag) => (
                                         <span
-                                            key={idx}
-                                            className="px-3 py-1 text-xs font-medium rounded-full bg-white/[0.06] text-white/80 border border-white/10"
+                                            key={tag}
+                                            className="px-3 py-1 text-xs font-medium rounded-full bg-primary-fixed text-primary"
                                         >
                                             {tag}
                                         </span>
@@ -303,181 +533,67 @@ export default function ExperienceModal({
                                 </div>
                             )}
 
-                            {/* ── Interview Rounds ── */}
+                            {/* Rounds as a timeline. There is no per-round outcome in the
+                                schema, so the rail ends in the overall verdict. */}
                             {rounds.length > 0 && (
-                                <div className="mb-6">
-                                    <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                        <MessageSquare className="h-4 w-4" />
+                                <section>
+                                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
                                         Interview Rounds ({rounds.length})
                                     </h3>
-                                    <div className="space-y-3">
+                                    <ol>
                                         {rounds.map((round, idx) => (
-                                            <div
+                                            <RoundNode
                                                 key={idx}
-                                                className="relative p-5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] transition-colors"
-                                            >
-                                                {/* Round header */}
-                                                <div className="flex items-center gap-3 mb-4">
-                                                    <span className="text-2xl">{getRoundIcon(getRoundLabel(round))}</span>
-                                                    <div>
-                                                        <span className="text-xs font-bold text-violet-400 uppercase tracking-wider block mb-0.5">
-                                                            Round {round.roundNumber || idx + 1}
-                                                        </span>
-                                                        <h4 className="text-white font-semibold text-base capitalize">
-                                                            {getRoundLabel(round)}
-                                                        </h4>
-                                                    </div>
-                                                    {round.duration && (
-                                                        <span className="ml-auto text-xs text-white/40 flex items-center gap-1 bg-white/5 px-2 py-1 rounded-md border border-white/5">
-                                                            <Clock className="h-3 w-3" />
-                                                            {round.duration}
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                <div className="space-y-4 pl-1">
-                                                    {/* Description */}
-                                                    {round.description && (
-                                                        <div>
-                                                            <h5 className="text-xs font-semibold text-white/40 uppercase mb-1.5">Description</h5>
-                                                            <ExpandableText text={round.description} />
-                                                        </div>
-                                                    )}
-
-                                                    {/* Experience */}
-                                                    {round.experience && (
-                                                        <div>
-                                                            <h5 className="text-xs font-semibold text-white/40 uppercase mb-1.5">Experience & Tasks</h5>
-                                                            <ExpandableText text={round.experience} />
-                                                        </div>
-                                                    )}
-
-                                                    {/* Problem Statement */}
-                                                    {round.problemStatement && (
-                                                        <div className="p-3 rounded-lg bg-violet-500/5 border border-violet-500/10">
-                                                            <h5 className="text-xs font-medium text-violet-300 mb-1">Problem Statement</h5>
-                                                            <ExpandableText text={round.problemStatement} />
-                                                        </div>
-                                                    )}
-
-                                                    {/* Strategy (New) */}
-                                                    {round.strategy && (
-                                                        <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
-                                                            <h5 className="text-xs font-medium text-emerald-300 mb-1 flex items-center gap-1">
-                                                                <Lightbulb className="h-3 w-3" /> Strategy Used
-                                                            </h5>
-                                                            <ExpandableText text={round.strategy} />
-                                                        </div>
-                                                    )}
-
-                                                    {/* Tips (GD) */}
-                                                    {round.tips && (
-                                                        <div className="p-3 rounded-lg bg-orange-500/5 border border-orange-500/10">
-                                                            <h5 className="text-xs font-medium text-orange-300 mb-1 flex items-center gap-1">
-                                                                <Lightbulb className="h-3 w-3" /> Tips
-                                                            </h5>
-                                                            <ExpandableText text={round.tips} />
-                                                        </div>
-                                                    )}
-
-                                                    {/* Study Sources (New) */}
-                                                    {round.studySources && round.studySources.length > 0 && (
-                                                        <div>
-                                                            <h5 className="text-xs font-semibold text-white/40 uppercase mb-2">Study Sources</h5>
-                                                            <ul className="space-y-1">
-                                                                {(Array.isArray(round.studySources) ? round.studySources : round.studySources.split(/[,;\n]+/).map((s: string) => s.trim()).filter(Boolean)).map((source: string, sIdx: number) => (
-                                                                    <li key={sIdx} className="text-sm text-white/80">
-                                                                        <span className="flex items-center gap-1">
-                                                                            📖 {source}
-                                                                        </span>
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Topics */}
-                                                    {round.topics && (typeof round.topics === 'string' ? round.topics.length > 0 : round.topics.length > 0) && (
-                                                        <div>
-                                                            <h5 className="text-xs font-semibold text-white/40 uppercase mb-2">Topics Covered</h5>
-                                                            <div className="flex flex-wrap gap-1.5">
-                                                                {(Array.isArray(round.topics) ? round.topics : round.topics.split(/[,;]+/).map((s: string) => s.trim()).filter(Boolean)).map((topic: string, tIdx: number) => (
-                                                                    <span key={tIdx} className="px-2.5 py-1 text-xs font-medium rounded-md bg-white/5 text-white/70 border border-white/10">
-                                                                        {topic}
-                                                                    </span>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Questions */}
-                                                    {round.questions && round.questions.length > 0 && (
-                                                        <div>
-                                                            <h5 className="text-xs font-semibold text-white/40 uppercase mb-2">Questions Asked</h5>
-                                                            <div className="space-y-3">
-                                                                {round.questions.map((q: any, qIdx: number) => (
-                                                                    <div key={qIdx} className="bg-white/[0.02] p-3 rounded-lg border border-white/[0.04]">
-                                                                        <p className="text-sm text-white/80 font-medium mb-1">
-                                                                            <span className="text-violet-400 mr-2">Q{qIdx + 1}.</span>
-                                                                            {typeof q === 'string' ? q : q.question}
-                                                                        </p>
-                                                                        {/* Answer/Tip for Question */}
-                                                                        {typeof q !== 'string' && q.answerTip && (
-                                                                            <div className="mt-2 pl-6 text-sm text-white/50 italic border-l-2 border-white/10">
-                                                                                💡 {q.answerTip}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Round Notes/Tips (New) */}
-                                                    {round.notes && (
-                                                        <div className="p-3 rounded-lg bg-orange-500/5 border border-orange-500/10">
-                                                            <h5 className="text-xs font-medium text-orange-300 mb-1 flex items-center gap-1">
-                                                                <Lightbulb className="h-3 w-3" /> Round Tips & Notes
-                                                            </h5>
-                                                            <ExpandableText text={round.notes} />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
+                                                round={round}
+                                                idx={idx}
+                                                // The rail must reach the verdict node when there is one.
+                                                isLast={idx === rounds.length - 1 && !verdict}
+                                            />
                                         ))}
-                                    </div>
-                                </div>
+                                        {verdict && (
+                                            <li className="relative pl-11 min-h-8">
+                                                <span
+                                                    className={`absolute left-0 top-0 w-8 h-8 rounded-full flex items-center justify-center ring-4 ring-card ${verdict.cls}`}
+                                                >
+                                                    <verdict.Icon className="h-4 w-4" />
+                                                </span>
+                                                <span className="text-sm font-semibold text-foreground leading-8">
+                                                    {verdict.label}
+                                                </span>
+                                            </li>
+                                        )}
+                                    </ol>
+                                </section>
                             )}
 
-                            {/* ── Overall Experience ── */}
                             {overallExperience && (
-                                <div className="mb-6 p-4 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                                    <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                <section className="p-4 rounded-2xl bg-surface-container border border-outline-variant">
+                                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
                                         <Star className="h-4 w-4" />
                                         Overall Experience
                                     </h3>
                                     <ExpandableText text={overallExperience} />
-                                </div>
+                                </section>
                             )}
 
-                            {/* ── Tips ── */}
+                            {/* The payload of the whole product — promoted from the
+                                quietest block on the page to the loudest. */}
                             {tipsForJuniors && (
-                                <div className="p-4 rounded-xl bg-gradient-to-br from-violet-500/[0.05] to-blue-500/[0.05] border border-violet-500/10">
-                                    <h3 className="text-sm font-semibold text-violet-300 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                <section className="p-4 rounded-2xl bg-primary-fixed border border-primary/20">
+                                    <h3 className="text-xs font-semibold text-primary uppercase tracking-wider mb-2 flex items-center gap-2">
                                         <Lightbulb className="h-4 w-4" />
                                         Tips for Juniors
                                     </h3>
-                                    <ExpandableText text={tipsForJuniors} />
-                                </div>
+                                    <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">
+                                        {tipsForJuniors}
+                                    </p>
+                                </section>
                             )}
                         </div>
                     </motion.div>
                 </motion.div>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
-
-    if (!mounted) return null;
-
-    return createPortal(modalContent, document.body);
 }
