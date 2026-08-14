@@ -37,7 +37,6 @@ When you ask a question in the chatbot:
 We use the following external AI services to process data:
 - **Groq** (groq.com) — LLM inference for data extraction and chat
 - **Hugging Face** (huggingface.co) — Vector embeddings for semantic search
-- **Google Gemini** (ai.google.dev) — Backup extraction model
 
 Data sent to these providers is governed by their respective privacy policies. We send only the minimum data necessary (interview text excerpts, not personal identifiers) and do not opt into any training programs.
 

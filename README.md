@@ -7,7 +7,7 @@ This is the backend data layer for the Placement Chronicles application, built w
 - **Framework**: Next.js 15 (App Router)
 - **Language**: TypeScript
 - **Database**: MongoDB (with Mongoose ODM)
-- **AI**: Google Gemini 1.5 Flash
+- **AI**: Groq (OpenAI GPT-OSS 20B & GPT-OSS 120B)
 - **PDF Processing**: pdf-parse
 - **HTTP Client**: Axios
 
@@ -25,8 +25,9 @@ placement-chronicles/
 │       └── chat/
 │           └── route.ts        # RAG-powered chat API
 ├── lib/
+│   ├── ai-models.ts            # Centralized Groq AI model configuration
 │   ├── db.ts                   # MongoDB connection utility
-│   ├── gemini.ts               # Gemini AI client
+│   ├── moderation.ts           # Groq AI moderation & company canonicalization
 │   ├── redis.ts                # Upstash Redis & rate limiting
 │   └── vector.ts               # Vector embeddings & similarity
 ├── models/
@@ -58,7 +59,7 @@ cp .env.local.example .env.local
 Then update the following variables:
 
 - `MONGODB_URI`: Your MongoDB connection string
-- `GEMINI_API_KEY`: Your Google Gemini API key ([Get it here](https://makersuite.google.com/app/apikey))
+- `GROQ_API_KEY`: Your Groq Cloud API key ([Get it here](https://console.groq.com/keys))
 - `SCRAPER_URL`: URL of your scraper microservice
 
 ### 3. Run the Development Server
@@ -75,7 +76,7 @@ The application will be available at `http://localhost:3000`.
 
 **Endpoint**: `POST /api/ingest`
 
-**Description**: Accepts a PDF file, extracts text, and uses Gemini AI to extract structured interview experience data.
+**Description**: Accepts a PDF file, extracts text, and uses Groq AI (`openai/gpt-oss-20b`) to extract structured interview experience data.
 
 **Request**:
 - Method: `POST`
@@ -173,14 +174,15 @@ import dbConnect from '@/lib/db';
 await dbConnect();
 ```
 
-### Gemini AI Client (`lib/gemini.ts`)
+### AI Model Configuration (`lib/ai-models.ts`)
 
-Provides utilities for AI-powered data extraction:
+Centralizes all active Groq LLM model identifiers for consistency:
 
 ```typescript
-import { extractWithGemini } from '@/lib/gemini';
+import { GROQ_MODELS } from '@/lib/ai-models';
 
-const data = await extractWithGemini(text, prompt);
+// GROQ_MODELS.FAST -> 'openai/gpt-oss-20b'
+// GROQ_MODELS.VERSATILE -> 'openai/gpt-oss-120b'
 ```
 
 ## 📝 Notes

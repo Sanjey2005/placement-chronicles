@@ -78,7 +78,7 @@ I've successfully implemented a complete, stunning frontend for **Placement Chro
 Ensure your `.env.local` is configured with:
 ```env
 MONGODB_URI=your_mongodb_connection_string
-GEMINI_API_KEY=your_gemini_api_key
+GROQ_API_KEY=your_groq_api_key
 SCRAPER_URL=your_scraper_service_url
 UPSTASH_REDIS_REST_URL=your_redis_url (optional)
 UPSTASH_REDIS_REST_TOKEN=your_redis_token (optional)
@@ -112,36 +112,28 @@ placement-chronicles/
 │       ├── ingest/route.ts          # PDF upload & extraction
 │       └── chat/route.ts            # RAG chatbot
 │
-├── src/app/
-│   ├── page.tsx                     # Experience feed (homepage)
-│   ├── layout.tsx                   # Root layout with Toaster
-│   └── globals.css                  # Global styles
-│
 ├── components/
-│   ├── StarField.tsx                # 3D background
 │   ├── GlassCard.tsx                # Reusable glass card
 │   ├── ExperienceCard.tsx           # Experience display card
-│   ├── dashboard/
-│   │   ├── UploadTab.tsx            # PDF upload & review
-│   │   └── ChatTab.tsx              # AI chat interface
-│   └── ui/                          # Shadcn components
+│   ├── FeedGrid.tsx                 # Grid feed for experiences
+│   └── ui/                          # UI components
 │       ├── button.tsx
 │       ├── input.tsx
-│       ├── card.tsx
-│       ├── sonner.tsx
-│       ├── textarea.tsx
+│       ├── select.tsx
+│       ├── combobox.tsx
 │       ├── dialog.tsx
-│       ├── progress.tsx
-│       └── scroll-area.tsx
+│       ├── scroll-area.tsx
+│       └── sonner.tsx
 │
 ├── actions/
 │   ├── auth.ts                      # Login server action
 │   └── experience.ts                # CRUD server actions
 │
 └── lib/
+    ├── ai-models.ts                 # Groq model configurations
     ├── utils.ts                     # cn() helper
     ├── db.ts                        # MongoDB connection
-    ├── gemini.ts                    # Gemini AI functions
+    ├── moderation.ts                # Groq moderation & canonicalization
     ├── vector.ts                    # Vector embeddings
     └── redis.ts                     # Rate limiting
 ```
