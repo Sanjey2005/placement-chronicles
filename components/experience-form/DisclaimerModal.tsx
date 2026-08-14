@@ -465,7 +465,7 @@ export default function DisclaimerModal({
                         </header>
 
                         {/* Scrollable Body */}
-                        <div className="flex-1 min-h-0 overflow-y-auto p-5 sm:p-6 space-y-6 pb-36">
+                        <div className="flex-1 min-h-0 overflow-y-auto p-5 sm:p-6 space-y-6">
                             {/* Preview Notice Banner */}
                             <div className="p-3.5 rounded-xl bg-surface-container-high border border-outline-variant flex items-center gap-3">
                                 <div className="p-2 bg-primary-fixed text-primary rounded-lg shrink-0">
@@ -610,8 +610,8 @@ export default function DisclaimerModal({
                             )}
                         </div>
 
-                        {/* Sticky Bottom Actions Bar */}
-                        <div className="absolute bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-outline-variant p-4 sm:p-5 z-30">
+                        {/* Bottom Actions Bar */}
+                        <div className="shrink-0 bg-card/95 backdrop-blur-md border-t border-outline-variant p-4 sm:p-5 z-30">
                             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 w-full">
                                 <label className="flex items-start gap-3 cursor-pointer group flex-1 min-w-0">
                                     <div className="relative flex items-center pt-0.5 shrink-0">
