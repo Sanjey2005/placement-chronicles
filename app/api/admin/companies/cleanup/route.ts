@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
         const allCompanies = await Company.find().lean();
         const companyNames = allCompanies.map((c: any) => c.canonicalName);
 
-        const merges: { from: string; to: string }[] = [];
+        const merges: { from: string; to: string; source: 'local' | 'ai' }[] = [];
 
         // ── Phase 1: Local deterministic alias resolution ────────────
         for (const company of allCompanies) {
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
             const canonical = enforceCanonicalName(name);
 
             if (canonical !== name) {
-                merges.push({ from: name, to: canonical });
+                merges.push({ from: name, to: canonical, source: 'local' });
             }
         }
 
@@ -90,7 +90,7 @@ Rules:
                         if (merge.from && merge.to && merge.from !== merge.to) {
                             // Only add if both names actually exist in our company list
                             if (companyNames.includes(merge.from) && companyNames.includes(merge.to)) {
-                                merges.push({ from: merge.from, to: merge.to });
+                                merges.push({ from: merge.from, to: merge.to, source: 'ai' });
                             }
                         }
                     }

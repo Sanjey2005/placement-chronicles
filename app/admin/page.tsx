@@ -382,7 +382,7 @@ export default function AdminDashboard() {
                 const msg = data.message || 'Cleanup complete';
                 toast.success(msg, { duration: 5000 });
                 if (data.data?.merges?.length > 0) {
-                    const mergeList = data.data.merges.map((m: any) => `${m.from} → ${m.to}`).join(', ');
+                    const mergeList = data.data.merges.map((m: any) => `${m.from} → ${m.to} [${m.source === 'local' ? 'Local' : 'AI'}]`).join(', ');
                     toast.info(`Merged: ${mergeList}`, { duration: 7000 });
                 }
                 await refreshAll();
