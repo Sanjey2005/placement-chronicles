@@ -584,7 +584,7 @@ export default function DisclaimerModal({
                                             type="checkbox"
                                             checked={isConfirmed}
                                             onChange={(e) => setIsConfirmed(e.target.checked)}
-                                            className="peer h-4 w-4 rounded border-outline-variant bg-surface-container text-primary focus:ring-primary focus:ring-offset-0 cursor-pointer transition-all shrink-0"
+                                            className="peer h-4 w-4 rounded border-2 border-outline/60 bg-surface-container-highest text-primary focus:ring-primary focus:ring-offset-0 cursor-pointer transition-all shrink-0 checked:bg-primary checked:border-primary"
                                         />
                                     </div>
                                     <span className="text-xs sm:text-sm text-muted-foreground group-hover:text-foreground transition-colors select-none leading-relaxed">

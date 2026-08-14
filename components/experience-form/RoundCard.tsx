@@ -2,24 +2,51 @@
 
 import { UseFormReturn, useFieldArray } from 'react-hook-form';
 import { ExperienceFormData } from '@/lib/schemas/experience-schema';
-import { Trash2, Plus, X, Beaker, Code, Users, Link as LinkIcon, MessageSquare } from 'lucide-react';
+import { Trash2, Plus, X, Beaker, Code, Users, Link as LinkIcon, MessageSquare, GripVertical } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { DragControls } from 'framer-motion';
 
 const errorRing = 'border-destructive ring-2 ring-destructive/20';
 
 interface RoundCardProps {
     form: UseFormReturn<ExperienceFormData>;
     index: number;
+    displayRoundNumber?: number;
     onRemove: () => void;
+    dragControls?: DragControls;
+    isDragging?: boolean;
+    isExpanded?: boolean;
+    onToggleExpand?: () => void;
 }
 
-export default function RoundCard({ form, index, onRemove }: RoundCardProps) {
+export default function RoundCard({
+    form,
+    index,
+    displayRoundNumber,
+    onRemove,
+    dragControls,
+    isDragging = false,
+    isExpanded: controlledIsExpanded,
+    onToggleExpand,
+}: RoundCardProps) {
     const { register, watch, setValue, control, formState: { errors } } = form;
-    const [isExpanded, setIsExpanded] = useState(true);
+    const [localIsExpanded, setLocalIsExpanded] = useState(true);
+
+    const isExpanded = controlledIsExpanded !== undefined ? controlledIsExpanded : localIsExpanded;
+
+    const handleToggle = () => {
+        if (isDragging) return;
+        if (onToggleExpand) {
+            onToggleExpand();
+        } else {
+            setLocalIsExpanded((prev) => !prev);
+        }
+    };
 
     const round = watch(`rounds.${index}`);
     const roundType = round?.type;
+    const roundNum = displayRoundNumber ?? (index + 1);
 
     // For interview questions
     const { fields: questionFields, append: appendQuestion, remove: removeQuestion } = useFieldArray({
@@ -34,8 +61,15 @@ export default function RoundCard({ form, index, onRemove }: RoundCardProps) {
                 return { icon: Beaker, color: 'blue', label: 'Online Test' };
             case 'hackathon':
                 return { icon: Code, color: 'purple', label: 'Hackathon' };
-            case 'interview':
-                return { icon: Users, color: 'green', label: 'Interview' };
+            case 'interview': {
+                const interviewType = (round as any)?.interviewType;
+                let typeLabel = 'Interview';
+                if (interviewType === 'technical') typeLabel = 'Technical Interview';
+                else if (interviewType === 'hr') typeLabel = 'HR Interview';
+                else if (interviewType === 'managerial') typeLabel = 'Managerial Round';
+                else if (interviewType === 'mixed') typeLabel = 'Mixed Interview';
+                return { icon: Users, color: 'green', label: typeLabel };
+            }
             case 'gd':
                 return { icon: MessageSquare, color: 'orange', label: 'Group Discussion' };
             default:
@@ -48,36 +82,55 @@ export default function RoundCard({ form, index, onRemove }: RoundCardProps) {
     const roundError = errors.rounds?.[index];
 
     return (
-        <div className="border-2 border-outline-variant bg-surface-container-low rounded-2xl overflow-hidden">
+        <div className="border-2 border-outline-variant bg-surface-container-low rounded-2xl overflow-hidden shadow-sm">
             {/* Header */}
             <div
-                className="flex items-center justify-between p-4 bg-surface-container cursor-pointer"
-                onClick={() => setIsExpanded(!isExpanded)}
+                onClick={handleToggle}
+                style={{ touchAction: 'none' }}
+                className={cn(
+                    "flex items-center justify-between p-4 bg-surface-container cursor-grab active:cursor-grabbing select-none transition-colors touch-none",
+                    isDragging && "cursor-grabbing bg-surface-container-high ring-2 ring-primary/40 shadow-lg"
+                )}
             >
-                <div className="flex items-center gap-3">
-                    <div className="p-2 bg-primary-fixed rounded-full">
+                <div className="flex items-center gap-2.5 min-w-0 pointer-events-none">
+                    {/* Drag Handle Indicator */}
+                    <div
+                        className="p-1.5 -ml-1 text-outline group-hover:text-foreground shrink-0"
+                        title="Hold & drag to reorder"
+                    >
+                        <GripVertical className="h-5 w-5" />
+                    </div>
+
+                    <div className="p-2 bg-primary-fixed rounded-full shrink-0">
                         <Icon className="h-5 w-5 text-primary" />
                     </div>
-                    <div>
-                        <h3 className="text-foreground font-semibold">Round {index + 1}: {label}</h3>
-                        <p className="text-xs text-muted-foreground">Click to {isExpanded ? 'collapse' : 'expand'}</p>
+                    <div className="min-w-0">
+                        <h3 className="text-foreground font-semibold truncate">Round {roundNum}: {label}</h3>
+                        <p className="text-xs text-muted-foreground">Click to {isExpanded ? 'collapse' : 'expand'} • Hold to reorder</p>
                     </div>
                 </div>
+
                 <button
                     type="button"
+                    onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
                         e.stopPropagation();
                         onRemove();
                     }}
-                    className="p-2 hover:bg-error-container/70 rounded-lg text-on-error-container transition-all"
+                    title="Delete round"
+                    aria-label={`Delete Round ${roundNum}`}
+                    className="p-2 hover:bg-error-container/70 rounded-lg text-on-error-container border border-transparent hover:border-error-container transition-all ml-1 cursor-pointer shrink-0"
                 >
-                    <Trash2 className="h-5 w-5" />
+                    <Trash2 className="h-4 w-4" />
                 </button>
             </div>
 
             {/* Content */}
             {isExpanded && (
-                <div className="p-4 space-y-4">
+                <div
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className="p-4 space-y-4 cursor-default"
+                >
                     {/* ONLINE TEST FIELDS */}
                     {roundType === 'test' && (
                         <>
@@ -166,33 +219,34 @@ export default function RoundCard({ form, index, onRemove }: RoundCardProps) {
                     {/* INTERVIEW FIELDS */}
                     {roundType === 'interview' && (
                         <>
-                            {/* Interview Type */}
-                            <div>
-                                <label className="text-foreground font-semibold mb-2 block">
-                                    Interview Type
-                                </label>
-                                <select
-                                    {...register(`rounds.${index}.interviewType` as const)}
-                                    className="w-full px-4 py-2 bg-surface-container border border-outline-variant rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-green-500"
-                                >
-                                    <option value="technical" className="bg-card">Technical</option>
-                                    <option value="hr" className="bg-card">HR</option>
-                                    <option value="managerial" className="bg-card">Managerial</option>
-                                    <option value="mixed" className="bg-card">Mixed</option>
-                                </select>
-                            </div>
+                            {/* Interview Type & Duration (Side by Side) */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-foreground font-semibold mb-2 block">
+                                        Interview Type
+                                    </label>
+                                    <select
+                                        {...register(`rounds.${index}.interviewType` as const)}
+                                        className="w-full px-4 py-2 bg-surface-container border border-outline-variant rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    >
+                                        <option value="technical" className="bg-card">Technical</option>
+                                        <option value="hr" className="bg-card">HR</option>
+                                        <option value="managerial" className="bg-card">Managerial</option>
+                                        <option value="mixed" className="bg-card">Mixed</option>
+                                    </select>
+                                </div>
 
-                            {/* Duration */}
-                            <div>
-                                <label className="text-foreground font-semibold mb-2 block">
-                                    Duration (Optional)
-                                </label>
-                                <input
-                                    {...register(`rounds.${index}.duration` as const)}
-                                    type="text"
-                                    placeholder="e.g., 45 minutes"
-                                    className="w-full px-4 py-2 bg-surface-container border border-outline-variant rounded-lg text-foreground placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-green-500"
-                                />
+                                <div>
+                                    <label className="text-foreground font-semibold mb-2 block">
+                                        Duration (Optional)
+                                    </label>
+                                    <input
+                                        {...register(`rounds.${index}.duration` as const)}
+                                        type="text"
+                                        placeholder="e.g., 45 minutes"
+                                        className="w-full px-4 py-2 bg-surface-container border border-outline-variant rounded-lg text-foreground placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    />
+                                </div>
                             </div>
 
                             {/* Questions */}
