@@ -18,6 +18,7 @@ export interface IHackathonRound {
     roundNumber: number;
     problemStatement: string;
     strategy: string;
+    links?: Array<{ type: 'youtube' | 'github' | 'drive' | 'other'; url: string }>;
 }
 
 // Group Discussion Round

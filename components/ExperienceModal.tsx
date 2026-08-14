@@ -16,6 +16,10 @@ import {
     CheckCircle2,
     XCircle,
     BookOpen,
+    Link as LinkIcon,
+    Youtube,
+    Github,
+    HardDrive,
     type LucideIcon,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -154,6 +158,16 @@ function RoundNode({ round, idx, isLast }: { round: any; idx: number; isLast: bo
     const questions: any[] = Array.isArray(round.questions) ? round.questions : [];
     const topics = round.topics ? toList(round.topics, /[,;\n]+/) : [];
     const sources = round.studySources ? toList(round.studySources, /[,;\n]+/) : [];
+    const links: { type: string, url: string }[] = Array.isArray(round.links) ? round.links.filter((l: any) => l.url) : [];
+
+    const getLinkIcon = (type: string) => {
+        switch (type) {
+            case 'youtube': return <Youtube className="h-4 w-4 shrink-0 text-red-500" />;
+            case 'github': return <Github className="h-4 w-4 shrink-0" />;
+            case 'drive': return <HardDrive className="h-4 w-4 shrink-0 text-blue-500" />;
+            default: return <LinkIcon className="h-4 w-4 shrink-0 text-primary" />;
+        }
+    };
 
     return (
         <li className="relative pl-11">
@@ -218,6 +232,27 @@ function RoundNode({ round, idx, isLast }: { round: any; idx: number; isLast: bo
                                 <Block title="Strategy Used" icon={Lightbulb} tone="success">
                                     {round.strategy}
                                 </Block>
+                            )}
+                            {links.length > 0 && (
+                                <div>
+                                    <h5 className="text-[11px] font-semibold uppercase tracking-wider mb-2 text-outline flex items-center gap-1.5">
+                                        <LinkIcon className="h-3 w-3" /> Links & Resources
+                                    </h5>
+                                    <div className="flex flex-col gap-2">
+                                        {links.map((link, i) => (
+                                            <a
+                                                key={i}
+                                                href={link.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors p-2 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline-variant"
+                                            >
+                                                {getLinkIcon(link.type)}
+                                                <span className="truncate flex-1">{link.url}</span>
+                                            </a>
+                                        ))}
+                                    </div>
+                                </div>
                             )}
                             {topics.length > 0 && (
                                 <div>

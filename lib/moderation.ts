@@ -81,6 +81,7 @@ DO THREE THINGS:
    - Gibberish/Spam (e.g., 'asdf asdf', random characters)
    - Hate Speech/Abuse (offensive, discriminatory language)
    - Obviously fake content (impossible scenarios, trolling)
+   - Malicious/Harmful Links (phishing, malware, inappropriate sites)
 
 2. NORMALIZATION: Extract the company name and convert it to its official "Canonical Name".
    - CRITICAL: Here is a list of companies already in our database:

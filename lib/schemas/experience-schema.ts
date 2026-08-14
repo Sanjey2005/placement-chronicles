@@ -36,6 +36,10 @@ export const hackathonRoundSchema = z.object({
     roundNumber: z.number().min(1),
     problemStatement: z.string().min(5, 'Please describe the problem statement'),
     strategy: z.string().min(5, 'Please describe your approach/strategy'),
+    links: z.array(z.object({
+        type: z.enum(['youtube', 'github', 'drive', 'other']),
+        url: z.string().url('Please enter a valid URL')
+    })).optional().default([]),
 });
 
 // Group Discussion Round — topics & tips
@@ -146,6 +150,7 @@ export const getDefaultRound = (type: 'test' | 'hackathon' | 'interview' | 'gd',
                 roundNumber,
                 problemStatement: '',
                 strategy: '',
+                links: [],
             };
         case 'interview':
             return {

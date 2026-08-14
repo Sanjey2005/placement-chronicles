@@ -2,7 +2,7 @@
 
 import { UseFormReturn, useFieldArray } from 'react-hook-form';
 import { ExperienceFormData } from '@/lib/schemas/experience-schema';
-import { Trash2, Plus, X, Beaker, Code, Users, Link as LinkIcon, MessageSquare, GripVertical } from 'lucide-react';
+import { Trash2, Plus, X, Beaker, Code, Users, Link as LinkIcon, MessageSquare, GripVertical, Youtube, Github, HardDrive } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { DragControls } from 'framer-motion';
@@ -52,6 +52,12 @@ export default function RoundCard({
     const { fields: questionFields, append: appendQuestion, remove: removeQuestion } = useFieldArray({
         control,
         name: `rounds.${index}.questions` as any,
+    });
+
+    // For hackathon links
+    const { fields: linkFields, append: appendLink, remove: removeLink } = useFieldArray({
+        control,
+        name: `rounds.${index}.links` as any,
     });
 
     // Get round-specific icon and color
@@ -174,6 +180,26 @@ export default function RoundCard({
                     {/* HACKATHON FIELDS */}
                     {roundType === 'hackathon' && (
                         <>
+                            {/* Problem Statement */}
+                            <div>
+                                <label className="text-foreground font-semibold mb-2 block">
+                                    Problem Statement <span className="text-on-error-container">*</span>
+                                </label>
+                                <textarea
+                                    {...register(`rounds.${index}.problemStatement` as const)}
+                                    rows={4}
+                                    placeholder="Describe the problem statement you had to solve..."
+                                    aria-invalid={!!(roundError && 'problemStatement' in roundError)}
+                                    className={cn(
+                                        "w-full px-4 py-2 bg-surface-container border rounded-lg text-foreground placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-ring/30 resize-none",
+                                        roundError && 'problemStatement' in roundError ? errorRing : "border-outline-variant"
+                                    )}
+                                />
+                                {roundError && 'problemStatement' in roundError && (
+                                    <p className="mt-1 text-sm text-on-error-container">{(roundError as any).problemStatement?.message}</p>
+                                )}
+                            </div>
+
                             {/* Experience/Strategy */}
                             <div>
                                 <label className="text-foreground font-semibold mb-2 block">
@@ -194,24 +220,99 @@ export default function RoundCard({
                                 )}
                             </div>
 
-                            {/* Problem Statement */}
+                            {/* Links/Resources */}
                             <div>
-                                <label className="text-foreground font-semibold mb-2 block">
-                                    Problem Statement <span className="text-on-error-container">*</span>
+                                <label className="text-foreground font-semibold mb-2 flex justify-between items-center">
+                                    <span className="flex items-center gap-2">
+                                        <LinkIcon className="h-4 w-4" /> Links & Resources
+                                    </span>
                                 </label>
-                                <textarea
-                                    {...register(`rounds.${index}.problemStatement` as const)}
-                                    rows={4}
-                                    placeholder="Describe the problem statement you had to solve..."
-                                    aria-invalid={!!(roundError && 'problemStatement' in roundError)}
-                                    className={cn(
-                                        "w-full px-4 py-2 bg-surface-container border rounded-lg text-foreground placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-ring/30 resize-none",
-                                        roundError && 'problemStatement' in roundError ? errorRing : "border-outline-variant"
-                                    )}
-                                />
-                                {roundError && 'problemStatement' in roundError && (
-                                    <p className="mt-1 text-sm text-on-error-container">{(roundError as any).problemStatement?.message}</p>
-                                )}
+                                <div className="space-y-3 mb-3">
+                                    {linkFields.map((field, linkIdx) => {
+                                        // Retrieve the type explicitly since react-hook-form's field array doesn't automatically sync value changes back to the 'field' object on render if watched, but 'type' is set at append time.
+                                        const type = (field as any).type;
+                                        let LinkIconComponent = LinkIcon;
+                                        let iconClass = "h-5 w-5 text-primary";
+                                        let placeholder = "https://...";
+                                        let bgClass = "bg-primary/10";
+                                        
+                                        if (type === 'youtube') {
+                                            LinkIconComponent = Youtube;
+                                            iconClass = "h-5 w-5 text-red-500";
+                                            placeholder = "https://youtube.com/...";
+                                            bgClass = "bg-red-500/10";
+                                        } else if (type === 'github') {
+                                            LinkIconComponent = Github;
+                                            iconClass = "h-5 w-5 text-foreground";
+                                            placeholder = "https://github.com/...";
+                                            bgClass = "bg-foreground/10";
+                                        } else if (type === 'drive') {
+                                            LinkIconComponent = HardDrive;
+                                            iconClass = "h-5 w-5 text-blue-500";
+                                            placeholder = "https://drive.google.com/...";
+                                            bgClass = "bg-blue-500/10";
+                                        }
+
+                                        return (
+                                            <div key={field.id} className="flex gap-3 items-center relative bg-surface-container rounded-xl p-2 pr-3 border border-outline-variant">
+                                                <div className={`p-2.5 rounded-lg shrink-0 ${bgClass}`}>
+                                                    <LinkIconComponent className={iconClass} />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <input
+                                                        {...register(`rounds.${index}.links.${linkIdx}.url` as const)}
+                                                        type="url"
+                                                        placeholder={placeholder}
+                                                        className="w-full bg-transparent !border-none !shadow-none !outline-none !ring-0 focus:!border-none focus:!shadow-none focus:!outline-none focus:!ring-0 focus-visible:!ring-0 focus-visible:!outline-none focus-visible:!border-none text-foreground text-sm placeholder:text-outline px-1 py-1"
+                                                    />
+                                                    {roundError && (roundError as any).links?.[linkIdx]?.url && (
+                                                        <p className="mt-1 text-xs text-on-error-container">
+                                                            {(roundError as any).links[linkIdx].url?.message}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeLink(linkIdx)}
+                                                    className="p-1.5 text-outline hover:text-on-error-container hover:bg-error-container rounded-lg transition-colors shrink-0"
+                                                    aria-label="Remove link"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => appendLink({ type: 'youtube', url: '' })}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors border border-primary/20"
+                                    >
+                                        <Plus className="h-3.5 w-3.5" /> YouTube
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => appendLink({ type: 'github', url: '' })}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors border border-primary/20"
+                                    >
+                                        <Plus className="h-3.5 w-3.5" /> GitHub
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => appendLink({ type: 'drive', url: '' })}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors border border-primary/20"
+                                    >
+                                        <Plus className="h-3.5 w-3.5" /> Drive
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => appendLink({ type: 'other', url: '' })}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors border border-primary/20"
+                                    >
+                                        <Plus className="h-3.5 w-3.5" /> Other
+                                    </button>
+                                </div>
                             </div>
                         </>
                     )}
