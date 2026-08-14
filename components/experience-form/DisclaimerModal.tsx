@@ -430,7 +430,7 @@ export default function DisclaimerModal({
                         </header>
 
                         {/* Scrollable Body */}
-                        <div className="overflow-y-auto p-5 sm:p-6 space-y-6 pb-36">
+                        <div className="flex-1 min-h-0 overflow-y-auto p-5 sm:p-6 space-y-6 pb-36">
                             {/* Preview Notice Banner */}
                             <div className="p-3.5 rounded-xl bg-surface-container-high border border-outline-variant flex items-center gap-3">
                                 <div className="p-2 bg-primary-fixed text-primary rounded-lg shrink-0">
