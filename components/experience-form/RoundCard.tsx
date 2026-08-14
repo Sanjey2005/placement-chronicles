@@ -161,6 +161,64 @@ export default function RoundCard({
                                 <p className="mt-1 text-xs text-outline">List the topics covered in this test</p>
                             </div>
 
+                            {/* Questions */}
+                            <div>
+                                <div className="flex items-center justify-between mb-3">
+                                    <label className="text-foreground font-semibold">
+                                        Questions <span className="text-outline text-sm font-normal">(Optional)</span>
+                                    </label>
+                                    <button
+                                        type="button"
+                                        onClick={() => appendQuestion({ question: '', answerTip: '' })}
+                                        className="flex items-center gap-1 px-3 py-1 bg-blue-600/20 border border-blue-500/50 hover:bg-blue-600/30 text-blue-300 rounded-lg text-sm transition-all"
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                        Add Question
+                                    </button>
+                                </div>
+
+                                {questionFields.length === 0 ? (
+                                    <p className="text-muted-foreground text-sm mb-2">No questions added yet.</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {questionFields.map((field, qIndex) => (
+                                            <div key={field.id} className="p-3 bg-surface-container border border-outline-variant rounded-lg space-y-2">
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div className="flex-1">
+                                                        <label className="text-xs text-muted-foreground mb-1 block">Question {qIndex + 1}</label>
+                                                        <input
+                                                            {...register(`rounds.${index}.questions.${qIndex}.question` as const)}
+                                                            type="text"
+                                                            placeholder="What was the question asked?"
+                                                            className="w-full px-3 py-2 bg-surface-container border border-outline-variant rounded text-foreground text-sm placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeQuestion(qIndex)}
+                                                        className="p-1 hover:bg-error-container/70 rounded text-on-error-container"
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-muted-foreground mb-1 block">Your Answer/Tip</label>
+                                                    <textarea
+                                                        {...register(`rounds.${index}.questions.${qIndex}.answerTip` as const)}
+                                                        rows={2}
+                                                        placeholder="How did you answer? What should others know?"
+                                                        className="w-full px-3 py-2 bg-surface-container border border-outline-variant rounded text-foreground text-sm placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                                    />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                {roundError && 'questions' in roundError && (
+                                    <p className="mt-2 text-sm text-on-error-container">{(roundError as any).questions?.message}</p>
+                                )}
+                            </div>
+
                             {/* Study Sources */}
                             <div>
                                 <label className="text-foreground font-semibold mb-2 block">

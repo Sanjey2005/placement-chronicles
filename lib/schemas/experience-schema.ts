@@ -27,6 +27,20 @@ export const onlineTestRoundSchema = z.object({
     type: z.literal('test'),
     roundNumber: z.number().min(1),
     topics: z.string().min(1, 'Topics are required (e.g. DSA, OS, DBMS)'),
+    questions: z.array(
+        z.object({
+            question: z.string().optional().default(''),
+            answerTip: z.string().optional().default(''),
+        }).superRefine((val, ctx) => {
+            if ((val.question?.trim().length || 0) === 0 && (val.answerTip?.trim().length || 0) === 0) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "Please provide either a Question or an Answer/Tip",
+                    path: ["question"],
+                });
+            }
+        })
+    ).optional().default([]),
     studySources: z.string().default(''),
 });
 

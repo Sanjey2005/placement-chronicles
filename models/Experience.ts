@@ -9,6 +9,10 @@ export interface IOnlineTestRound {
     type: 'test';
     roundNumber: number;
     topics: string;
+    questions?: Array<{
+        question: string;
+        answerTip: string;
+    }>;
     studySources?: string;
 }
 
