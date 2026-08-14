@@ -116,7 +116,7 @@ If unsafe: { "isSafe": false, "reason": "Contains hate speech", "canonicalCompan
                     content: `Analyze this submission:\n\n${textToModerate.substring(0, 6000)}`,
                 },
             ],
-            max_tokens: 200,
+            max_tokens: 2000,
             temperature: 0.1,
             response_format: { type: 'json_object' }
         });
