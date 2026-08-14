@@ -77,7 +77,7 @@ Rules:
                             content: `Identify duplicates in this company list:\n${JSON.stringify(remainingCompanies)}`,
                         },
                     ],
-                    max_tokens: 500,
+                    max_tokens: 2000,
                     temperature: 0.1,
                     response_format: { type: 'json_object' },
                 });

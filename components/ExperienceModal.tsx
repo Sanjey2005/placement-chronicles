@@ -43,6 +43,8 @@ interface ExperienceModalProps {
     tags?: string[];
     overallExperience?: string;
     tipsForJuniors?: string;
+    adminBanner?: React.ReactNode;
+    adminFooter?: React.ReactNode;
 }
 
 const pretty = (s?: string) => (s ? s.replaceAll('_', ' ').toLowerCase() : '');
@@ -316,6 +318,8 @@ export default function ExperienceModal({
     tags = [],
     overallExperience,
     tipsForJuniors,
+    adminBanner,
+    adminFooter,
 }: ExperienceModalProps) {
     const [mounted, setMounted] = useState(false);
     const panelRef = useRef<HTMLDivElement>(null);
@@ -413,6 +417,7 @@ export default function ExperienceModal({
                         onClick={(e) => e.stopPropagation()}
                         className="relative w-full h-full sm:h-auto max-w-full sm:max-w-3xl max-h-full sm:max-h-[85dvh] flex flex-col rounded-none sm:rounded-2xl bg-card border-0 sm:border border-outline-variant shadow-2xl outline-none overflow-hidden"
                     >
+                        {adminBanner}
                         {/* Header is a flex sibling, not absolute — it no longer scrolls away */}
                         <header className="shrink-0 border-b border-outline-variant bg-card">
                             <div className="p-5 sm:p-6 flex items-start justify-between gap-4">
@@ -590,6 +595,7 @@ export default function ExperienceModal({
                                 </section>
                             )}
                         </div>
+                        {adminFooter}
                     </motion.div>
                 </motion.div>
             )}

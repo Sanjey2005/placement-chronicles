@@ -22,6 +22,9 @@ const COMPANY_ALIASES: Record<string, string> = {
     'jpmc': 'J.P. Morgan',
     'amazon web services': 'Amazon',
     'aws': 'Amazon',
+    'traineryone': 'TraineryHCM',
+    'trainery hcm': 'TraineryHCM',
+    'traineryhcm': 'TraineryHCM',
 };
 
 /**
@@ -40,6 +43,7 @@ export function enforceCanonicalName(name: string): string {
     // 2. Fallback fuzzy checks for common culprits if they typed something like 'Buckman Lab'
     if (normalizedInput.startsWith('buckman')) return 'Buckman';
     if (normalizedInput.startsWith('icu medical')) return 'ICU Medical';
+    if (normalizedInput.startsWith('trainery')) return 'TraineryHCM';
 
     return name;
 }
