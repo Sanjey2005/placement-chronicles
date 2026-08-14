@@ -257,9 +257,12 @@ export async function POST(request: NextRequest) {
         // Default to ACCEPTED if selected, otherwise REJECTED if rejected.
         const derivedVerdict = validatedData.finalVerdict === 'rejected' ? 'REJECTED' : 'ACCEPTED';
 
+        // Retrieve student roll number from session cookie if available
+        const studentId = request.cookies.get('user-id')?.value || 'anonymous';
+
         // Create experience document
         const experience = new Experience({
-            studentId: 'anonymous', // TODO: Get from auth session
+            studentId,
             studentName: validatedData.studentName,
             company: validatedData.company,
             role: validatedData.role,
@@ -301,10 +304,10 @@ export async function POST(request: NextRequest) {
         // ── Activity Log: Record submission + moderation outcome ──
         try {
             const studentLabel = validatedData.studentName || 'Unknown';
-            // Fallback to anonymous if studentId is not properly populated yet
+            // Fallback to placeholder if studentId is not available
             const rollNumber = experience.studentId && experience.studentId !== 'anonymous'
                 ? experience.studentId
-                : '(Roll Number missing)';
+                : 'Roll Number missing';
 
             await AdminLog.create({
                 action: status === 'APPROVED' ? 'AUTO_APPROVE' : status === 'FLAGGED' ? 'FLAG' : 'SUBMIT',
