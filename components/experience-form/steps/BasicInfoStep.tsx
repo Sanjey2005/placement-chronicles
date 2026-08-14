@@ -109,7 +109,7 @@ export default function BasicInfoStep({ form }: BasicInfoStepProps) {
                             setValue('batch', value);
                             trigger('batch');
                         }}
-                        value={watch('batch') || undefined}
+                        defaultValue={watch('batch')}
                     >
                         <SelectTrigger aria-invalid={!!errors.batch} className="w-full px-4 py-3 h-auto bg-surface-container border-outline-variant text-foreground focus:ring-ring/30">
                             <SelectValue placeholder="Select Batch" />
@@ -137,7 +137,7 @@ export default function BasicInfoStep({ form }: BasicInfoStepProps) {
                             setValue('courseBranch', value);
                             trigger('courseBranch');
                         }}
-                        value={watch('courseBranch') || undefined}
+                        defaultValue={watch('courseBranch')}
                     >
                         <SelectTrigger aria-invalid={!!errors.courseBranch} className="w-full px-4 py-3 h-auto bg-surface-container border-outline-variant text-foreground focus:ring-ring/30">
                             <SelectValue placeholder="Select Course & Branch" />
@@ -167,7 +167,7 @@ export default function BasicInfoStep({ form }: BasicInfoStepProps) {
                             setValue('placementType', value as "ON_CAMPUS" | "OFF_CAMPUS");
                             trigger('placementType');
                         }}
-                        value={watch('placementType') || undefined}
+                        defaultValue={watch('placementType')}
                     >
                         <SelectTrigger aria-invalid={!!errors.placementType} className="w-full px-4 py-3 h-auto bg-surface-container border-outline-variant text-foreground focus:ring-ring/30">
                             <SelectValue placeholder="Select Type" />
@@ -192,7 +192,7 @@ export default function BasicInfoStep({ form }: BasicInfoStepProps) {
                             setValue('roleType', value as "FULL_TIME" | "INTERNSHIP" | "SUMMER_INTERNSHIP");
                             trigger('roleType');
                         }}
-                        value={watch('roleType') || undefined}
+                        defaultValue={watch('roleType')}
                     >
                         <SelectTrigger aria-invalid={!!errors.roleType} className="w-full px-4 py-3 h-auto bg-surface-container border-outline-variant text-foreground focus:ring-ring/30">
                             <SelectValue placeholder="Select Role Type" />
@@ -218,7 +218,7 @@ export default function BasicInfoStep({ form }: BasicInfoStepProps) {
                             setValue('workModel', value as "ON_SITE" | "WFH" | "HYBRID");
                             trigger('workModel');
                         }}
-                        value={watch('workModel') || undefined}
+                        defaultValue={watch('workModel')}
                     >
                         <SelectTrigger aria-invalid={!!errors.workModel} className="w-full px-4 py-3 h-auto bg-surface-container border-outline-variant text-foreground focus:ring-ring/30">
                             <SelectValue placeholder="Select Work Model" />
