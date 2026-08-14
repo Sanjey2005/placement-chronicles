@@ -145,6 +145,10 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                                 type: 'test' as const,
                                 roundNumber: round.roundNumber || 1,
                                 topics: round.topics || '',
+                                questions: Array.isArray(round.questions) ? round.questions.map((q: any) => ({
+                                    question: typeof q === 'string' ? q : q.question || '',
+                                    answerTip: typeof q === 'string' ? '' : q.answerTip || '',
+                                })) : [],
                                 studySources: round.studySources || '',
                             };
                         }

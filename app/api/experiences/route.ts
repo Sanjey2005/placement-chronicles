@@ -24,6 +24,9 @@ function generateSearchText(data: any): string {
             if (round.type === 'test') {
                 const topics = Array.isArray(round.topics) ? round.topics.join(' ') : (round.topics || '');
                 text += ` ${topics}`;
+                round.questions?.forEach((q: any) => {
+                    text += ` ${q.question || ''} ${q.answerTip || ''}`;
+                });
             } else if (round.type === 'hackathon') {
                 text += ` ${round.experience || ''} ${round.problemStatement || ''}`;
             } else if (round.type === 'interview') {

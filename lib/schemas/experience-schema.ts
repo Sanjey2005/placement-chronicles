@@ -156,6 +156,7 @@ export const getDefaultRound = (type: 'test' | 'hackathon' | 'interview' | 'gd',
                 type: 'test',
                 roundNumber,
                 topics: '',
+                questions: [],
                 studySources: '',
             };
         case 'hackathon':
