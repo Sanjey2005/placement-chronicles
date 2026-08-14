@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
+import { GROQ_MODELS } from '@/lib/ai-models';
 import { sanitizeForPrompt, sanitizeObject } from '@/lib/sanitize';
 
 // Initialize Groq client
@@ -115,7 +116,7 @@ export async function POST(request: NextRequest) {
         console.log('Sending to Groq... Text length:', sanitizedPdfText.length);
 
         const completion = await groq.chat.completions.create({
-            model: 'llama-3.1-8b-instant',
+            model: GROQ_MODELS.FAST,
             messages: [
                 { role: 'system', content: systemPrompt },
                 {
@@ -225,7 +226,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
             success: true,
             data: sanitizedData,
-            message: 'Extracted using Groq llama-3.3-70b-versatile',
+            message: `Extracted using Groq ${GROQ_MODELS.FAST}`,
         });
 
     } catch (error: any) {

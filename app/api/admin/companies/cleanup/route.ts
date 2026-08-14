@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
+import { GROQ_MODELS } from '@/lib/ai-models';
 import Company from '@/models/Company';
 import Experience from '@/models/Experience';
 import { requireAdmin } from '@/lib/auth-check';
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
                 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
                 const completion = await groq.chat.completions.create({
-                    model: 'llama-3.1-8b-instant',
+                    model: GROQ_MODELS.FAST,
                     messages: [
                         {
                             role: 'system',
@@ -165,7 +166,7 @@ Rules:
                 const namesForLookup = companiesWithoutLinks.map((c: any) => c.canonicalName);
 
                 const completion = await groq.chat.completions.create({
-                    model: 'llama-3.3-70b-versatile',
+                    model: GROQ_MODELS.VERSATILE,
                     messages: [
                         {
                             role: 'system',

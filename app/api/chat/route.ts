@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
+import { GROQ_MODELS } from '@/lib/ai-models';
 import dbConnect from '@/lib/db';
 import ExperienceChunk from '@/models/ExperienceChunk';
 import Company from '@/models/Company';
@@ -134,7 +135,7 @@ For roleType/verdict/topic: only set a value if it is explicit in the question o
                             : userMessage
                     }
                 ],
-                model: 'llama-3.1-8b-instant',
+                model: GROQ_MODELS.FAST,
                 temperature: 0,
                 response_format: { type: 'json_object' }
             });
@@ -358,7 +359,7 @@ INSTRUCTIONS:
         // Use Groq streaming API
         const chatCompletion = await groq.chat.completions.create({
             messages: groqMessages,
-            model: 'llama-3.3-70b-versatile',
+            model: GROQ_MODELS.VERSATILE,
             temperature: 0.5, // Slightly lower for more focused answers
             max_tokens: 2048, // Increased for more detailed answers
             stream: true,

@@ -1,4 +1,5 @@
 import Groq from 'groq-sdk';
+import { GROQ_MODELS } from '@/lib/ai-models';
 
 const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY,
@@ -51,7 +52,7 @@ interface ModerationResult {
 }
 
 /**
- * AI Content Moderator & Normalizer powered by Groq (Llama 3).
+ * AI Content Moderator & Normalizer powered by Groq AI.
  * Analyzes student interview experience data for spam, abuse, or fake content.
  * Also normalizes the company name to its canonical form.
  *
@@ -64,7 +65,7 @@ export async function moderateExperience(data: any, existingCompanies: string[] 
         const textToModerate = JSON.stringify(data, null, 2);
 
         const completion = await groq.chat.completions.create({
-            model: 'llama-3.1-8b-instant',
+            model: GROQ_MODELS.FAST,
             messages: [
                 {
                     role: 'system',

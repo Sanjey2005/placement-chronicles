@@ -23,14 +23,14 @@ When you use Placement Chronicles, we collect the following types of information
 ### PDF Extraction
 When you upload a PDF, the document text is:
 1. Extracted server-side using `pdf-parse`
-2. Sent to **Groq (Llama 3.3)** for structured data extraction
+2. Sent to **Groq (GPT-OSS)** for structured data extraction
 3. **Immediately discarded from server memory** after processing — we do not store the raw PDF
 
 ### Chat / RAG
 When you ask a question in the chatbot:
 1. Your message is converted to a vector embedding via **Hugging Face** (sentence-transformers)
 2. Relevant interview experiences are retrieved from our database
-3. Your question and the retrieved context are sent to **Groq (Llama 3.3)** for answer generation
+3. Your question and the retrieved context are sent to **Groq (GPT-OSS)** for answer generation
 4. **We do not store chat messages** — they exist only for the duration of your session
 
 ### Third-Party AI Providers
