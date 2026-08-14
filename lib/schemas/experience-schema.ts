@@ -11,11 +11,11 @@ export const basicInfoSchema = z.object({
     courseBranch: z.string().min(2, 'Course & Branch is required (e.g., BTech CSE)'),
     ctc: z.number({ error: 'Please enter the CTC/stipend' }).min(0, 'CTC must be a positive number'),
     minCGPA: z.number({ error: 'Please enter the minimum CGPA' }).min(0).max(10, 'CGPA must be between 0 and 10'),
-    placementType: z.enum(['ON_CAMPUS', 'OFF_CAMPUS'], { required_error: 'Please select placement type', invalid_type_error: 'Please select placement type' }),
-    roleType: z.enum(['FULL_TIME', 'INTERNSHIP', 'SUMMER_INTERNSHIP'], { required_error: 'Please select role type', invalid_type_error: 'Please select role type' }),
-    workModel: z.enum(['ON_SITE', 'WFH', 'HYBRID'], { required_error: 'Please select a work model', invalid_type_error: 'Please select a work model' }),
-    historyOfBacklogs: z.enum(['Allowed', 'Not Allowed'], { required_error: 'Please select backlog history', invalid_type_error: 'Please select backlog history' }),
-    standingBacklogs: z.enum(['Allowed', 'Not Allowed'], { required_error: 'Please select standing backlogs', invalid_type_error: 'Please select standing backlogs' }),
+    placementType: z.enum(['ON_CAMPUS', 'OFF_CAMPUS'], { message: 'Please select placement type' }),
+    roleType: z.enum(['FULL_TIME', 'INTERNSHIP', 'SUMMER_INTERNSHIP'], { message: 'Please select role type' }),
+    workModel: z.enum(['ON_SITE', 'WFH', 'HYBRID'], { message: 'Please select a work model' }),
+    historyOfBacklogs: z.enum(['Allowed', 'Not Allowed'], { message: 'Please select backlog history' }),
+    standingBacklogs: z.enum(['Allowed', 'Not Allowed'], { message: 'Please select standing backlogs' }),
 });
 
 // ============================================================================
