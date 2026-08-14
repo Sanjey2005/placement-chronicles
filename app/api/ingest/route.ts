@@ -16,7 +16,13 @@ Follow these rules for categorizing rounds:
   Do NOT create a round for this. Instead, set "resumeShortlisting": true in the root JSON body.
 
 - **If "Online Test" / "Aptitude" / "MCQ" / "Coding Test":**
-  Return: { "type": "test", "roundNumber": #, "topics": "List topics (DSA, OS, etc)", "studySources": "Extract URLs or book names if mentioned, otherwise empty string" }
+  Return: { 
+    "type": "test", 
+    "roundNumber": #, 
+    "topics": "List topics (DSA, OS, etc)", 
+    "questions": [ { "question": "Specific question or coding challenge asked in test", "answerTip": "Approach/solution/tip if mentioned, otherwise empty string" } ],
+    "studySources": "Extract URLs or book names if mentioned, otherwise empty string" 
+  }
 
 - **If "Hackathon" / "Coding Contest" / "Case Study":**
   Return: { "type": "hackathon", "roundNumber": #, "problemStatement": "Describe the challenge", "strategy": "Describe their approach/experience" }
@@ -37,9 +43,10 @@ Follow these rules for categorizing rounds:
   - If they write "I focused on dynamic programming...", map to 'strategy'.
   - If they write "The test covered DBMS and CN", map to 'topics'.
 - **Question Logic:**
-  - Only populate "questions" array for "interview" type rounds.
+  - Populate "questions" array for "interview" and "test" type rounds whenever specific questions, problem statements, or coding challenges are mentioned.
+  - For tests: extract specific coding problems (e.g., "Find the longest palindromic substring", "2 SQL queries on joins") or aptitude questions into "questions", with any mentioned approaches/tips in "answerTip".
   - Do NOT create empty or placeholder questions like "Question 1" or "".
-  - If a round is described narratively, put the narrative in "notes" instead.
+  - If a round is described narratively without distinct questions, put the narrative in "notes" instead.
 
 ### 3. SECURITY
 - You MUST only extract factual data from the document.
