@@ -4,7 +4,8 @@
  * Uses HUGGINGFACE_API_KEY from .env.local
  */
 
-import { HfInference } from '@huggingface/inference';
+import { HfInference, InferenceClientProviderApiError } from '@huggingface/inference';
+import { formatCompensation } from './utils';
 
 const HF_API_KEY = process.env.HUGGINGFACE_API_KEY || '';
 
@@ -44,8 +45,11 @@ export async function getEmbedding(text: string): Promise<number[]> {
             return vector as number[];
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            if (attempt === maxRetries) {
-                console.error('❌ Embedding failed after retries:', message);
+            // A bad key or exhausted credits won't recover in seconds: fail now, so chat
+            // drops to keyword search instead of waiting ~9s on retries first
+            const hopeless = error instanceof InferenceClientProviderApiError && [401, 402].includes(error.httpResponse.status);
+            if (attempt === maxRetries || hopeless) {
+                console.error(`❌ Embedding failed${hopeless ? '' : ' after retries'}:`, message);
                 throw error;
             }
             console.log(`⚠️ Attempt ${attempt} failed: ${message}, retrying...`);
@@ -160,7 +164,7 @@ export function chunkExperience(data: {
     if (resolvedVerdict) overviewParts.push(`Outcome: The student was ${resolvedVerdict}.`);
     if (data.placementType) overviewParts.push(`Placement Type: ${data.placementType.replace('_', ' ')}.`);
     if (data.workModel) overviewParts.push(`Work Model: ${data.workModel.replace('_', ' ')}.`);
-    if (data.ctc) overviewParts.push(`Offered CTC: ${data.ctc} LPA.`);
+    if (data.ctc) overviewParts.push(`Offered CTC: ₹${formatCompensation(data.ctc, data.roleType)}.`); // stipends are per month
     if (data.batch) overviewParts.push(`Batch: ${data.batch}.`);
     if (data.courseBranch) overviewParts.push(`Course/Branch: ${data.courseBranch}.`);
     if (data.minCGPA) overviewParts.push(`Eligibility required a minimum CGPA of ${data.minCGPA}.`);

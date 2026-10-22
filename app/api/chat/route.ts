@@ -9,11 +9,18 @@ import { getEmbedding, cosineSimilarity } from '@/lib/vector';
 import { chatRateLimiter } from '@/lib/redis';
 import { stripHtmlTags } from '@/lib/sanitize';
 import { formatCompensation } from '@/lib/utils';
+import { keywordScores, spreadAcross, terms } from '@/lib/retrieval';
 
 // Initialize Groq client
 const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY,
 });
+
+// A broad question (no company named) draws on this many experiences, one excerpt each, trimmed
+// to this many characters: ~3K tokens of context, inside Groq's 8K tokens a minute alongside
+// the 2048-token answer.
+const BROAD_LIMIT = 16;
+const BROAD_EXCERPT_CHARS = 700;
 
 const SSE_HEADERS = {
     'Content-Type': 'text/event-stream',
@@ -51,6 +58,7 @@ type ChatMessage = { role: string; content: string };
 // query to this shape (embedding is only selected on the vector path).
 type ChunkDoc = {
     _id: Types.ObjectId;
+    experienceId: Types.ObjectId;
     text: string;
     metadata: IExperienceChunk['metadata'];
     embedding?: number[];
@@ -121,6 +129,7 @@ export async function POST(request: NextRequest) {
         let extractedRole: string | null = null;
         let extractedVerdict: string | null = null;
         let extractedTopic: string | null = null;
+        let extractedKeywords: string[] = [];
         let searchQuery = userMessage;
         try {
             const recentTurns = conversationHistory
@@ -147,10 +156,12 @@ Return ONLY a JSON object with these fields:
   "roleType": "FULL_TIME or INTERNSHIP or SUMMER_INTERNSHIP or null",
   "verdict": "selected or rejected or null",
   "topic": "extracted technical topic like DSA, System Design, HR, etc. or null",
-  "searchQuery": "the current question restated as a standalone search query, with any company/topic/pronoun references resolved from the conversation"
+  "searchQuery": "the current question restated as a standalone search query, with any company/topic/pronoun references resolved from the conversation",
+  "keywords": ["3 to 8 search keywords or short phrases"]
 }
 For companyName: if the question refers to one of the companies listed above — even via an abbreviation, initials, ticker, or misspelling (e.g. "jpm"/"jpmc" -> "J.P. Morgan", "aws" -> "Amazon") — return that company's name EXACTLY as written in the list. If it refers to a company not in the list, return your best normalized guess. Otherwise set it to null.
-For roleType/verdict/topic: only set a value if it is explicit in the question or clearly carried over from the conversation. Otherwise set it to null.`
+For roleType/verdict/topic: only set a value if it is explicit in the question or clearly carried over from the conversation. Otherwise set it to null.
+For keywords: the words a student's write-up would use for what is asked, with acronyms spelled out, close synonyms and the specific subtopics a write-up might list (e.g. "DSA" -> "DSA", "data structures", "algorithms", "arrays", "strings", "trees", "graphs", "dynamic programming"; "CP" -> "competitive programming", "coding"). Fix misspellings. Leave out company names and filler words.`
                     },
                     {
                         role: 'user',
@@ -174,6 +185,9 @@ For roleType/verdict/topic: only set a value if it is explicit in the question o
                 if (typeof parsed.searchQuery === 'string' && parsed.searchQuery.trim()) {
                     searchQuery = parsed.searchQuery.trim();
                 }
+                if (Array.isArray(parsed.keywords)) {
+                    extractedKeywords = parsed.keywords.filter((k: unknown): k is string => typeof k === 'string').slice(0, 10);
+                }
             }
         } catch {
             // Silently fail entity extraction — retrieval continues on the raw message
@@ -187,8 +201,8 @@ For roleType/verdict/topic: only set a value if it is explicit in the question o
             console.log('⚠️ Embedding generation failed, will use text fallback');
         }
 
-        // Step 3: Hybrid Retrieval against ExperienceChunk
-        let scoredChunks: ScoredChunk[] = [];
+        // Step 3: Retrieval against ExperienceChunk, ranked best-first
+        let ranked: ScoredChunk[] = [];
 
         // Only use company name as a hard filter (it exists on all chunks).
         // Verdict and roleType are used as re-ranking boosts, not hard filters,
@@ -215,6 +229,8 @@ For roleType/verdict/topic: only set a value if it is explicit in the question o
             companyFilter['metadata.companyName'] = { $regex: exactMatch(companyName), $nin: hidden };
         }
 
+        const broad = !companyName; // no company named: the question spans companies
+
         console.log(`🔍 RAG Query: "${userMessage}" → search: "${searchQuery}"`);
         console.log(`🏢 Extracted: company=${extractedCompany}→${companyName}, role=${extractedRole}, verdict=${extractedVerdict}, topic=${extractedTopic}`);
 
@@ -226,7 +242,7 @@ For roleType/verdict/topic: only set a value if it is explicit in the question o
             const vectorFilter = { ...companyFilter, 'embedding.0': { $exists: true } };
 
             const candidateChunks = await ExperienceChunk.find(vectorFilter)
-                .select('text metadata embedding')
+                .select('text metadata embedding experienceId')
                 .lean<ChunkDoc[]>();
 
             console.log(`📦 Vector candidates found: ${candidateChunks.length} (filter: ${JSON.stringify(vectorFilter)})`);
@@ -234,7 +250,7 @@ For roleType/verdict/topic: only set a value if it is explicit in the question o
             // MiniLM cosine scores cluster narrowly; 0.30 admits noise
             const SIMILARITY_THRESHOLD = 0.45;
 
-            scoredChunks = candidateChunks
+            ranked = candidateChunks
                 .map((chunk): ScoredChunk => {
                     let similarity = chunk.embedding
                         ? cosineSimilarity(queryEmbedding, chunk.embedding)
@@ -252,65 +268,41 @@ For roleType/verdict/topic: only set a value if it is explicit in the question o
                     return { ...chunk, similarity };
                 })
                 .filter((chunk) => chunk.similarity >= SIMILARITY_THRESHOLD)
-                .sort((a, b) => b.similarity - a.similarity)
-                .slice(0, 8);
+                .sort((a, b) => b.similarity - a.similarity);
 
-            console.log(`✅ Vector results after threshold: ${scoredChunks.length}`);
-            if (scoredChunks.length > 0) {
-                console.log(`   Top score: ${scoredChunks[0].similarity.toFixed(3)}, Company: ${scoredChunks[0].metadata.companyName}`);
+            console.log(`✅ Vector results after threshold: ${ranked.length}`);
+            if (ranked.length > 0) {
+                console.log(`   Top score: ${ranked[0].similarity.toFixed(3)}, Company: ${ranked[0].metadata.companyName}`);
             }
         }
 
-        // Step 3b: Text-based fallback ONLY when embedding is unavailable
-        // (HF outage / missing key) — never to pad good vector results with
-        // keyword noise. Stays scoped to the company filter.
+        // Step 3b: Keyword fallback ONLY when embedding is unavailable (HF outage,
+        // no credits, missing key), never to pad vector results. BM25 over every
+        // chunk in the company filter, fed by the extractor's keywords so "DSA"
+        // also finds "data structures"; similarity is relative to the best match.
         if (queryEmbedding.length === 0) {
-            const searchTerms: string[] = [];
-            if (companyName) searchTerms.push(companyName);
-            if (extractedTopic) searchTerms.push(extractedTopic);
+            const queryTerms = terms([searchQuery, extractedTopic, ...extractedKeywords].filter(Boolean).join(' '));
+            const chunks = await ExperienceChunk.find(companyFilter)
+                .select('text metadata experienceId')
+                .lean<ChunkDoc[]>();
+            const scores = keywordScores(queryTerms, chunks.map((c) => c.text));
+            const best = Math.max(0, ...scores);
+            // One company: all its chunks stay candidates, the company match is the
+            // signal ("How was X's process?" has no other words to rank by). Across
+            // companies, generic-word matches stay out.
+            ranked = chunks
+                .map((chunk, i): ScoredChunk => ({ ...chunk, similarity: best ? scores[i] / best : 0 }))
+                .filter((chunk) => !broad || chunk.similarity >= 0.2)
+                .sort((a, b) => b.similarity - a.similarity);
 
-            // Extract key words from the user message (words > 3 chars, skip stop words)
-            const stopWords = new Set(['what', 'which', 'when', 'where', 'about', 'with', 'from', 'that', 'this', 'have', 'been', 'were', 'they', 'their', 'your', 'does', 'tell', 'give', 'some', 'more', 'most', 'also', 'very', 'much', 'many', 'interview', 'experience', 'placement', 'company', 'hired', 'people', 'recruit', 'process']);
-            const queryWords = userMessage
-                .toLowerCase()
-                .replace(/[^\w\s]/g, '')
-                .split(/\s+/)
-                .filter(w => w.length > 3 && !stopWords.has(w));
-            searchTerms.push(...queryWords.slice(0, 5));
-
-            // De-duplicate search terms
-            const uniqueTerms = [...new Set(searchTerms.filter(t => t && t.trim().length > 0))];
-
-            if (uniqueTerms.length > 0) {
-                const regexPattern = uniqueTerms
-                    .map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-                    .join('|');
-
-                const textFilter: FilterQuery<IExperienceChunk> = {
-                    ...companyFilter,
-                    text: { $regex: new RegExp(regexPattern, 'i') }
-                };
-
-                console.log(`📝 Text fallback search: terms=[${uniqueTerms.join(', ')}]`);
-
-                const fallbackChunks = await ExperienceChunk.find(textFilter)
-                    .select('text metadata')
-                    .lean<ChunkDoc[]>()
-                    .limit(10);
-
-                console.log(`📝 Text fallback results: ${fallbackChunks.length}`);
-
-                // Merge with existing results, avoiding duplicates
-                const existingIds = new Set(scoredChunks.map((c) => c._id.toString()));
-                const newChunks = fallbackChunks
-                    .filter((c) => !existingIds.has(c._id.toString()))
-                    .map((chunk): ScoredChunk => ({
-                        ...chunk,
-                        similarity: 0,
-                    }));
-                scoredChunks = [...scoredChunks, ...newChunks].slice(0, 8);
-            }
+            console.log(`📝 Keyword fallback: terms=[${queryTerms.join(', ')}] → ${ranked.length} matches`);
         }
+
+        // No company named: one excerpt per experience, spread across companies, so
+        // a broad question hears from many students rather than the top chunks of two
+        // write-ups. One company: its best matches, at most 3 from any one write-up.
+        const keyOf = (c: ScoredChunk) => ({ company: c.metadata.companyName, experience: String(c.experienceId) });
+        const scoredChunks = broad ? spreadAcross(ranked, BROAD_LIMIT, keyOf) : spreadAcross(ranked, 8, keyOf, 3);
 
         // Step 3c: Nothing relevant found — say so honestly instead of feeding
         // arbitrary chunks to a context-only prompt.
@@ -319,7 +311,7 @@ For roleType/verdict/topic: only set a value if it is explicit in the question o
             return noDataReply(companyName);
         }
 
-        console.log(`📊 Final chunk count for LLM: ${scoredChunks.length}`);
+        console.log(`📊 Final chunk count for LLM: ${scoredChunks.length}${broad ? ' (broad: spread across companies)' : ''}`);
 
         // Step 4: Build Rich Context
         const context = scoredChunks
@@ -337,30 +329,36 @@ For roleType/verdict/topic: only set a value if it is explicit in the question o
                 if (m.workModel) headerParts.push(`Work Model: ${(m.workModel || '').replace('_', ' ')}`);
                 if (m.placementType) headerParts.push(`Type: ${(m.placementType || '').replace('_', ' ')}`);
 
+                // ponytail: chunks built before the stipend fix in lib/vector.ts say
+                // "Offered CTC: 70000 LPA." for internships too; rewritten here until
+                // scripts/backfill-chunks.ts re-chunks them
+                let text = m.ctc
+                    ? chunk.text.replace(/Offered CTC: [\d.]+ LPA\./, `Offered CTC: ₹${formatCompensation(m.ctc, m.roleType)}.`)
+                    : chunk.text;
+                if (broad && text.length > BROAD_EXCERPT_CHARS) text = `${text.slice(0, BROAD_EXCERPT_CHARS)}…`;
+
                 return `[Source ${index + 1}] (${headerParts.join(' | ')}):
-${chunk.text}`.trim();
+${text}`.trim();
             })
             .join('\n\n---\n\n');
 
-        // Step 5: Enhanced System Prompt with structured guidance
-        const systemPrompt = `You are the **Placement Chronicles Assistant**, an AI helping students prepare for job interviews. You answer questions based STRICTLY on collected interview experiences from real students.
+        // Step 5: System prompt. The aspects are there to draw on, not a template to
+        // fill: answers lead with what was asked and skip what the question didn't need.
+        const experienceCount = new Set(scoredChunks.map((c) => String(c.experienceId))).size;
+        const companyCount = new Set(scoredChunks.map((c) => c.metadata.companyName)).size;
+        const systemPrompt = `You are the **Placement Chronicles Assistant**, helping PSG Tech students prepare for placements. You answer STRICTLY from the interview experiences below, which real students shared.
 
-CONTEXT (Retrieved Interview Experiences):
-${context || 'No specific experiences matching the query were found in the database.'}
+EXPERIENCES (${scoredChunks.length} excerpts from ${experienceCount} experiences across ${companyCount} ${companyCount === 1 ? 'company' : 'companies'}):
+${context}
 
 INSTRUCTIONS:
-1. **ONLY use the provided context.** Do NOT generate information that is not present in the sources above.
-2. **If the context is empty or does not contain relevant information**, respond: "I don't have specific experiences about that in my database yet. Try asking about a specific company or topic, or check back later as more experiences are added."
-3. **Cite your sources** by referring to the student's name and company in your answer (e.g., "According to [Student]'s experience at [Company]...").
-4. **Structure your answers clearly** using these sections as appropriate, each opening with a level-3 markdown heading in plain words (no emoji):
-   - "### Interview process": Describe the rounds, their types, and flow
-   - "### Key questions asked": List specific interview questions from the experiences
-   - "### Tips and preparation": Share tips the students provided
-   - "### Outcome": Mention if the student was selected or rejected (if available)
-   - "### Compensation and eligibility": CTC, CGPA requirements, backlog policies (if available)
-5. **Be specific and detailed**. Include actual questions, topics, and strategies mentioned by students rather than generic advice.
-6. **If multiple experiences are available**, compare and synthesize them to give a comprehensive picture.
-7. Use markdown formatting (bold, bullet points, ### headings) for readability. Do not use emoji.`;
+1. **Only use these experiences.** Never fill gaps with general knowledge: no topics, example problems or figures that aren't in the excerpts. If they don't cover the question, say: "I don't have specific experiences about that in my database yet." If they cover part of it, answer that part and say in one line what isn't covered.
+2. **Answer the question that was asked, directly**, starting with the answer itself. Fit the length to the question: a narrow question gets a short answer.
+3. **Cite where each point comes from**, by student and company or as [Source N].
+4. **Worth covering only when it helps answer this question:** the process and rounds, questions that were asked, preparation tips and resources, eligibility (CGPA, backlogs), and, only when asked, the outcome and pay. Skip everything else silently: no section or note about what wasn't asked or isn't mentioned.
+5. **Be specific**: quote real questions, topics and advice instead of generic tips.
+6. Format for easy reading: short paragraphs and lists, **bold** for key terms, ### headings only when a longer answer needs sections. Do not use emoji.${broad ? `
+7. **This question spans companies.** Bring together what students across the companies said: lead with what came up most, say how widely out of the ${experienceCount} experiences above (e.g. "in 5 of ${experienceCount}"), and name the companies. Count an experience only where its excerpt says so, and list only what the excerpts name: if students mostly wrote just "DSA", say that, then give the specific topics the others named; don't break a topic down further yourself, and don't add "implied" topics or a study plan beyond what the excerpts name.` : ''}`;
 
         // Build the messages array for Groq, including conversation history for multi-turn
         const groqMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
@@ -404,6 +402,9 @@ INSTRUCTIONS:
                             const data = `data: ${JSON.stringify({ text })}\n\n`;
                             controller.enqueue(encoder.encode(data));
                         }
+                        // The final chunk reports usage; the account allows 8K tokens a minute
+                        const usage = chunk.x_groq?.usage;
+                        if (usage) console.log(`🧮 Groq tokens: ${usage.prompt_tokens} prompt + ${usage.completion_tokens} completion`);
                     }
 
                     // Send sources and completion signal

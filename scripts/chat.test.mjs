@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 
 // Node 24 strips TS types natively, so lib/chat.ts imports as-is.
 const { takeEvents, apiHistory, uniqueSources, sourcesLabel, initials, roleLabel, rehypeCaret } = await import('../lib/chat.ts');
+const { terms, keywordScores, spreadAcross } = await import('../lib/retrieval.ts');
 
 // An event cut mid-JSON waits in `rest` until the next chunk completes it.
 let buf = 'data: {"text":"Five "}\n\ndata: {"te';
@@ -75,6 +76,38 @@ assert.deepEqual(list.children[0].children[1].children.map((c) => c.type), ['tex
 const rule = withCaret({ type: 'root', children: [el('p', [txt('Five rounds')]), el('hr')] });
 assert.equal(rule.children[1].children.length, 0); // never inside a void element
 assert.equal(rule.children[2].properties.className[0], 'caret');
+
+// Retrieval, server side. Stop words go (generic ones like "rounds" too), short acronyms stay, plurals fold.
+assert.deepEqual(terms('What DSA questions did they ask in the C++ rounds, generally?'), ['dsa', 'question', 'ask', 'c++']);
+
+// Keyword ranking (embeddings down): more and rarer matching terms rank higher; no shared term scores 0.
+const docs = [
+    'Round 1 (test): Topics: arrays, graphs, dynamic programming',
+    'Overview: the student was selected. Work model: hybrid.',
+    'Tips: practise graphs and trees daily. Graphs come up again in the hackathon.',
+];
+const scores = keywordScores(terms('graph and tree questions'), docs);
+assert.equal(scores[1], 0);
+assert.ok(scores[2] > scores[0] && scores[0] > 0);
+
+// A broad question spreads across companies: one excerpt per experience, round-robin by company,
+// so a company with many write-ups can't fill the context.
+const ranked = [
+    { id: 'T1a', company: 'Thorogood', experience: 'e1' },
+    { id: 'T1b', company: 'Thorogood', experience: 'e1' },
+    { id: 'T2', company: 'Thorogood', experience: 'e2' },
+    { id: 'T3', company: 'Thorogood', experience: 'e3' },
+    { id: 'J1', company: 'J.P. Morgan', experience: 'e4' },
+    { id: 'K1', company: 'KLA', experience: 'e5' },
+    { id: 'J2', company: 'J.P. Morgan', experience: 'e6' },
+];
+const pick = (limit) => spreadAcross(ranked, limit, (x) => x).map((x) => x.id);
+assert.deepEqual(pick(4), ['T1a', 'J1', 'K1', 'T2']);
+assert.deepEqual(pick(10), ['T1a', 'J1', 'K1', 'T2', 'J2', 'T3']);
+// One company: ranked order, capped per write-up so a few students are heard, not one.
+const thorogood = ranked.filter((x) => x.company === 'Thorogood');
+assert.deepEqual(spreadAcross(thorogood, 3, (x) => x, 2).map((x) => x.id), ['T1a', 'T1b', 'T2']);
+assert.deepEqual(spreadAcross(thorogood, 3, (x) => x, 1).map((x) => x.id), ['T1a', 'T2', 'T3']);
 
 assert.equal(roleLabel('SUMMER_INTERNSHIP'), 'Summer internship');
 assert.equal(roleLabel('APPRENTICE'), 'APPRENTICE');
