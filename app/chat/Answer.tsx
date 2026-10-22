@@ -7,7 +7,7 @@ import remarkGfm from 'remark-gfm';
 import { Check, ChevronDown, Clock, Copy, Lock, RotateCcw, TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { initials, rehypeCaret, roleLabel, sourcesLabel, type ChatTurn } from '@/lib/chat';
+import { experienceHref, initials, rehypeCaret, roleLabel, sourcesLabel, type ChatTurn } from '@/lib/chat';
 
 // Answer markdown on the typography plugin. Its colours point at the theme tokens, so one set
 // works in light and dark; ### section headings read as small violet labels and numbered lists
@@ -177,13 +177,29 @@ function Answer({ turn, waitSecs = 0, onRetry }: AnswerProps) {
                     )}
                     {showSources && (
                         <ul ref={listRef} id={listId} className="w-full max-w-[520px] basis-full scroll-mb-40 overflow-hidden rounded-2xl border border-hairline">
-                            {sources.map((s) => (
-                                <li key={`${s.student}|${s.company}`} className="grid grid-cols-[26px_minmax(0,1fr)_auto] items-center gap-3 border-t border-hairline px-3.5 py-2.5 text-sm first:border-t-0">
-                                    <Avatar name={s.student} />
-                                    <span className="truncate font-bold">{s.student || 'A student'}</span>
-                                    <span className="text-xs text-outline">{[s.company, roleLabel(s.role)].filter(Boolean).join(' · ')}</span>
-                                </li>
-                            ))}
+                            {sources.map((s) => {
+                                const href = experienceHref(s);
+                                const row = (
+                                    <>
+                                        <Avatar name={s.student} />
+                                        <span className="truncate font-bold">{s.student || 'A student'}</span>
+                                        <span className="text-xs text-outline">{[s.company, roleLabel(s.role)].filter(Boolean).join(' · ')}</span>
+                                    </>
+                                );
+                                const grid = 'grid min-h-11 grid-cols-[26px_minmax(0,1fr)_auto] items-center gap-3 px-3.5 py-2.5 text-sm';
+                                return (
+                                    <li key={s.experienceId ?? `${s.student}|${s.company}`} className="border-t border-hairline first:border-t-0">
+                                        {/* A real link, so middle-click and "open in new tab" work */}
+                                        {href ? (
+                                            <Link href={href} className={cn(grid, 'transition-colors hover:bg-surface-container focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary')}>
+                                                {row}
+                                            </Link>
+                                        ) : (
+                                            <div className={grid}>{row}</div>
+                                        )}
+                                    </li>
+                                );
+                            })}
                         </ul>
                     )}
                 </div>

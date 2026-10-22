@@ -9,6 +9,7 @@ import { Plus, MessageSquare, LogOut, Home, Shield, Menu, X } from 'lucide-react
 import ThemeToggle from '@/components/ThemeToggle';
 import { useSession } from '@/components/Providers';
 import { logout } from '@/actions/auth';
+import { clearSavedChat } from '@/lib/chat';
 
 export default function Navbar() {
     const { isAuthenticated, isAdmin } = useSession();
@@ -33,6 +34,7 @@ export default function Navbar() {
     }, [isMobileMenuOpen]);
 
     const handleLogout = async () => {
+        clearSavedChat(); // a shared lab computer must not hand the next student this chat
         await logout(); // server action: the session cookie is httpOnly
         router.push('/login');
         router.refresh(); // re-render the root layout so the navbar drops its auth state

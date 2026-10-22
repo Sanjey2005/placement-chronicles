@@ -8,7 +8,7 @@
 import assert from 'node:assert/strict';
 
 // Node 24 strips TS types natively, so lib/chat.ts imports as-is.
-const { takeEvents, apiHistory, uniqueSources, sourcesLabel, initials, roleLabel, rehypeCaret } = await import('../lib/chat.ts');
+const { takeEvents, apiHistory, uniqueSources, sourcesLabel, initials, roleLabel, rehypeCaret, experienceHref, readSavedChat, savedChatJson, SAVED_CHAT_TTL_MS } = await import('../lib/chat.ts');
 const { terms, keywordScores, spreadAcross } = await import('../lib/retrieval.ts');
 
 // An event cut mid-JSON waits in `rest` until the next chunk completes it.
@@ -108,6 +108,19 @@ assert.deepEqual(pick(10), ['T1a', 'J1', 'K1', 'T2', 'J2', 'T3']);
 const thorogood = ranked.filter((x) => x.company === 'Thorogood');
 assert.deepEqual(spreadAcross(thorogood, 3, (x) => x, 2).map((x) => x.id), ['T1a', 'T1b', 'T2']);
 assert.deepEqual(spreadAcross(thorogood, 3, (x) => x, 1).map((x) => x.id), ['T1a', 'T2', 'T3']);
+
+// Sources link to the company reader on that experience; old answers without an id don't link.
+assert.equal(experienceHref({ company: 'J.P. Morgan', role: 'INTERNSHIP', experienceId: 'abc123', similarity: 1 }), '/?company=J.P.+Morgan&view=all&exp=abc123');
+assert.equal(experienceHref({ company: 'KLA', role: 'INTERNSHIP', similarity: 1 }), null);
+assert.equal(uniqueSources([{ company: 'KLA', experienceId: 'x' }, { company: 'KLA', experienceId: 'x' }, { company: 'KLA', experienceId: 'y' }]).length, 2);
+
+// Saved chat: only its owner's, only for 5 hours, and a half-streamed answer comes back stopped.
+const saved = savedChatJson([{ id: 0, role: 'user', content: 'Q' }, { id: 1, role: 'assistant', content: 'half', status: 'streaming' }], 'me', 1000);
+assert.equal(readSavedChat(saved, 'me', 1000 + SAVED_CHAT_TTL_MS - 1)[1].status, 'stopped');
+assert.equal(readSavedChat(saved, 'me', 1000 + SAVED_CHAT_TTL_MS), null);
+assert.equal(readSavedChat(saved, 'someone else', 2000), null);
+assert.equal(readSavedChat('{not json', 'me', 2000), null);
+assert.equal(readSavedChat(null, 'me', 2000), null);
 
 assert.equal(roleLabel('SUMMER_INTERNSHIP'), 'Summer internship');
 assert.equal(roleLabel('APPRENTICE'), 'APPRENTICE');

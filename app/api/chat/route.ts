@@ -412,6 +412,7 @@ INSTRUCTIONS:
                         company: chunk.metadata.companyName,
                         role: chunk.metadata.roleType,
                         student: chunk.metadata.studentName,
+                        experienceId: String(chunk.experienceId), // the chat links each source to it
                         similarity: chunk.similarity,
                     }));
 

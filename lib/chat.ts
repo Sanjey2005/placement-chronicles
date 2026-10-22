@@ -7,6 +7,8 @@ export interface ChatSource {
     company: string;
     role: string;
     student?: string;
+    /** The experience's _id; answers from before it was sent have none. */
+    experienceId?: string;
     similarity: number;
 }
 
@@ -51,16 +53,58 @@ export function apiHistory(turns: ChatTurn[]): Array<{ role: ChatTurn['role']; c
         .map((t) => ({ role: t.role, content: t.content }));
 }
 
-/** One entry per student at a company, in the route's relevance order. */
+/** One entry per experience (or student at a company, without an id), in the route's relevance order. */
 export function uniqueSources(sources: ChatSource[]): ChatSource[] {
     const seen = new Set<string>();
     return sources.filter((s) => {
-        const key = `${s.student ?? ''}|${s.company}`;
+        const key = s.experienceId ?? `${s.student ?? ''}|${s.company}`;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
     });
 }
+
+/** The company page's reader, opened on this experience. */
+export const experienceHref = (s: ChatSource) =>
+    s.experienceId ? `/?${new URLSearchParams({ company: s.company, view: 'all', exp: s.experienceId })}` : null;
+
+// The conversation lives in this browser only, for 5 hours after the last activity, tagged
+// with a hash of the signed-in user so a shared lab computer never shows one student another's chat.
+const SAVED_CHAT_KEY = 'placement-chronicles:chat';
+export const SAVED_CHAT_TTL_MS = 5 * 60 * 60 * 1000;
+
+/** The saved turns if they belong to `owner` and are fresh; an answer cut off mid-stream comes back stopped. */
+export function readSavedChat(raw: string | null, owner: string, now: number): ChatTurn[] | null {
+    try {
+        const saved = raw ? JSON.parse(raw) : null;
+        if (saved?.owner !== owner || !(now - saved.savedAt < SAVED_CHAT_TTL_MS) || !Array.isArray(saved.turns)) return null;
+        return (saved.turns as ChatTurn[]).map((t) => (t.status === 'streaming' ? { ...t, status: 'stopped' } : t));
+    } catch {
+        return null;
+    }
+}
+
+export const savedChatJson = (turns: ChatTurn[], owner: string, now: number) => JSON.stringify({ owner, savedAt: now, turns });
+
+// Storage can throw (private mode, blocked site data); a lost save only costs the restore.
+export function loadChat(owner: string): ChatTurn[] | null {
+    try {
+        return readSavedChat(localStorage.getItem(SAVED_CHAT_KEY), owner, Date.now());
+    } catch {
+        return null;
+    }
+}
+
+export function saveChat(turns: ChatTurn[], owner: string) {
+    try {
+        if (turns.length) localStorage.setItem(SAVED_CHAT_KEY, savedChatJson(turns, owner, Date.now()));
+        else localStorage.removeItem(SAVED_CHAT_KEY);
+    } catch {
+        // not saved; the chat still works
+    }
+}
+
+export const clearSavedChat = () => saveChat([], '');
 
 /** "4 J.P. Morgan experiences"; the company is left out when the sources span several. */
 export function sourcesLabel(sources: ChatSource[]): string {

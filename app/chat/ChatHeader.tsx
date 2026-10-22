@@ -7,6 +7,7 @@ import { LogOut, Menu, SquarePen } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
 import { useSession } from '@/components/Providers';
 import { logout } from '@/actions/auth';
+import { clearSavedChat } from '@/lib/chat';
 import { cn } from '@/lib/utils';
 
 const LINK = 'inline-flex h-10 items-center gap-2 rounded-full px-3.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-surface-container-high hover:text-foreground';
@@ -22,6 +23,7 @@ export default function ChatHeader({ onNewChat }: { onNewChat?: () => void }) {
     const router = useRouter();
 
     const signOut = async () => {
+        clearSavedChat(); // a shared lab computer must not hand the next student this chat
         await logout(); // server action: the session cookie is httpOnly
         router.push('/login');
         router.refresh();

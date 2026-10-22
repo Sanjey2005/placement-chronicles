@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { apiHistory, takeEvents, uniqueSources, type ChatSource, type ChatTurn } from '@/lib/chat';
+import { apiHistory, loadChat, saveChat, takeEvents, uniqueSources, type ChatSource, type ChatTurn } from '@/lib/chat';
 import Answer from './Answer';
 import ChatHeader from './ChatHeader';
 
@@ -43,7 +43,13 @@ function ProgressiveBlur({ side }: { side: 'top' | 'bottom' }) {
     );
 }
 
-export default function Chat({ stats }: { stats: { experiences: number; companies: number } | null }) {
+interface ChatProps {
+    stats: { experiences: number; companies: number } | null;
+    /** Hash of the signed-in user; a chat saved in this browser by anyone else is ignored. */
+    owner: string;
+}
+
+export default function Chat({ stats, owner }: ChatProps) {
     const [turns, setTurns] = useState<ChatTurn[]>([]);
     const [input, setInput] = useState('');
     const [limitUntil, setLimitUntil] = useState<number | null>(null);
@@ -56,6 +62,8 @@ export default function Chat({ stats }: { stats: { experiences: number; companie
     const pinned = useRef(true);
     const lastTop = useRef(0);
     const smoothNext = useRef(false);
+    const [restored, setRestored] = useState(false);
+    const restoredTurns = useRef<ChatTurn[] | null>(null);
 
     const empty = turns.length === 0;
     const streaming = turns.at(-1)?.status === 'streaming';
@@ -194,6 +202,23 @@ export default function Chat({ stats }: { stats: { experiences: number; companie
         const el = scrollRef.current;
         if (el && pinned.current) el.scrollTo({ top: el.scrollHeight, behavior: 'instant' });
     }, [input]);
+
+    // Bring back this user's chat if it is under 5 hours old (browser storage, after hydration)
+    useEffect(() => {
+        const saved = loadChat(owner);
+        if (saved) {
+            nextId.current = Math.max(...saved.map((t) => t.id)) + 1;
+            restoredTurns.current = saved;
+            setTurns(saved);
+        }
+        setRestored(true);
+    }, [owner]);
+
+    // Save once an answer has finished, never mid-stream; New chat (no turns) clears it.
+    // Just reopening the page isn't activity, so the restored chat keeps its old timestamp.
+    useEffect(() => {
+        if (restored && !streaming && turns !== restoredTurns.current) saveChat(turns, owner);
+    }, [turns, streaming, restored, owner]);
 
     // Rate-limit countdown, ticking only while a limit is in force
     useEffect(() => {

@@ -43,7 +43,7 @@ When you ask a question in the chatbot:
 1. Your message is converted to a vector embedding via **Hugging Face** (sentence-transformers)
 2. Relevant interview experiences are retrieved from our database
 3. Your question and the retrieved context are sent to **Groq (GPT-OSS)** for answer generation
-4. **We do not store chat messages** — they exist only for the duration of your session
+4. **We do not store chat messages** on our servers. To let you pick up where you left off, your current conversation is kept in your own browser (local storage) for 5 hours after your last message, or until you start a new chat or log out, whichever comes first. It is tied to your account, so someone else signing in on the same computer does not see it.
 
 ### Third-Party AI Providers
 We use the following external AI services to process data:
