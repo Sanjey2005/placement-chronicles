@@ -6,24 +6,15 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ChevronDown, ChevronUp, Share2, Github, Youtube, HardDrive, Link as LinkIcon, ThumbsUp } from 'lucide-react';
 import { useSession } from '@/components/Providers';
 import { getRound } from '@/lib/rounds';
-import { formatMinutes, parseMinutes, payLabel, questionsOf, roundKind, isInternship, type GuideRound } from '@/lib/guide';
+import { formatMinutes, parseMinutes, payLabel, questionsOf, roundBlocks, roundKind, isInternship, type GuideRound } from '@/lib/guide';
 import { cn } from '@/lib/utils';
+import Linkified from './Linkified';
 import type { CompanyExperience, Helpful } from './CompanyView';
 
-// Every field a round may carry. Rounds are Mongoose Mixed, so any subset can appear.
-type RoundFields = GuideRound & {
-    roundNumber?: number;
-    experience?: string;
-    problemStatement?: string;
-    strategy?: string;
-    studySources?: string;
-    tips?: string;
-    links?: Array<{ type?: string; url?: string }>;
-};
+// Rounds are Mongoose Mixed, so any subset of fields can appear; roundBlocks reads their text.
+type RoundFields = GuideRound & { links?: Array<{ type?: string; url?: string }> };
 
 const PREVIEW_QUESTIONS = 6;
-
-const topicsText = (t: RoundFields['topics']) => (Array.isArray(t) ? t.join(', ') : String(t ?? '')).trim();
 
 function LinkGlyph({ type }: { type?: string }) {
     if (type === 'youtube') return <Youtube className="h-4 w-4 shrink-0" aria-hidden />;
@@ -178,8 +169,8 @@ export default function ExperienceDetail({
                 const questions = questionsOf(r);
                 const open = openRounds.has(i);
                 const shown = open ? questions : questions.slice(0, PREVIEW_QUESTIONS);
-                const links = (r.links ?? []).filter((l) => l.url && /^https?:\/\//i.test(l.url));
-                const topics = topicsText(r.topics);
+                const links = (Array.isArray(r.links) ? r.links : []).filter((l) => typeof l?.url === 'string' && /^https?:\/\//i.test(l.url));
+                const blocks = roundBlocks(r);
                 return (
                     <section key={i} id={anchor(`r${i}`)} aria-labelledby={`${anchor(`r${i}`)}-h`} className="scroll-mt-28 space-y-3 border-t border-hairline pt-5">
                         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -192,14 +183,18 @@ export default function ExperienceDetail({
                             </span>
                         </div>
                         <div className="max-w-[76ch] space-y-3">
-                            {r.description && <p className="text-[15px] leading-relaxed text-muted-foreground whitespace-pre-line">{r.description}</p>}
-                            {r.experience && <p className="text-[15px] leading-relaxed text-muted-foreground whitespace-pre-line">{r.experience}</p>}
-                            {r.problemStatement && <Block title="Problem">{r.problemStatement}</Block>}
-                            {r.strategy && <Block title="Approach">{r.strategy}</Block>}
-                            {topics && <Block title="Topics">{topics}</Block>}
-                            {r.studySources && <Block title="Prepared with">{r.studySources}</Block>}
-                            {r.notes && <Block title="Notes">{r.notes}</Block>}
-                            {r.tips && <Block title="Tips">{r.tips}</Block>}
+                            {blocks.map((b) =>
+                                b.title ? (
+                                    <Block key={b.field} title={b.title}>
+                                        <Linkified text={b.text} />
+                                    </Block>
+                                ) : (
+                                    <p key={b.field} className="text-[15px] leading-relaxed text-muted-foreground whitespace-pre-line">
+                                        <Linkified text={b.text} />
+                                    </p>
+                                )
+                            )}
+                            {blocks.length === 0 && questions.length === 0 && links.length === 0 && <p className="text-[15px] text-outline">No details shared for this round.</p>}
                             {links.length > 0 && (
                                 <ul className="flex flex-col gap-2">
                                     {links.map((l, li) => (
@@ -224,7 +219,11 @@ export default function ExperienceDetail({
                                             <span className="pt-0.5 font-mono text-xs text-outline">{String(qi + 1).padStart(2, '0')}</span>
                                             <span className="min-w-0">
                                                 {q.question}
-                                                {q.answerTip && <span className="mt-1 block text-sm italic text-muted-foreground">{q.answerTip}</span>}
+                                                {q.answerTip && (
+                                                    <span className="mt-1 block text-sm italic text-muted-foreground whitespace-pre-line">
+                                                        <Linkified text={q.answerTip} />
+                                                    </span>
+                                                )}
                                             </span>
                                         </li>
                                     ))}

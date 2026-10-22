@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import { ArrowRight, ThumbsUp } from 'lucide-react';
-import { canonicalRoles, MIN_EVIDENCE, payLabel, type Guide, type QuestionGroup } from '@/lib/guide';
+import { canonicalRoles, MIN_EVIDENCE, payLabel, stepBody, type Guide, type QuestionGroup } from '@/lib/guide';
 import { cn } from '@/lib/utils';
+import Linkified from './Linkified';
 import type { CompanyExperience, Helpful } from './CompanyView';
 
 const initials = (name: string) => {
@@ -115,7 +116,31 @@ export default function PrepGuide({
                                     <h4 className="text-lg font-bold">{step.label}</h4>
                                     <span className="ml-auto text-[13px] text-outline">{step.count === n ? `All ${n}` : `${step.count} of ${n}`}</span>
                                 </div>
-                                {step.kind === 'test' && (
+                                {stepBody(guide, step) === 'details' && (
+                                    <div className="space-y-1">
+                                        <p className="pb-1 text-xs font-semibold text-outline">In students&apos; words</p>
+                                        <ul className="space-y-2.5">
+                                            {step.details.slice(0, 4).map((d) => (
+                                                <li key={`${d.id}-${d.text}`} className="space-y-0.5">
+                                                    <p className="line-clamp-3 text-[15px] leading-relaxed whitespace-pre-line">
+                                                        <Linkified text={d.text} />
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onOpen(d.id)}
+                                                        className="min-h-9 text-[13px] font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+                                                    >
+                                                        {d.name}
+                                                        {d.batch ? ` (${d.batch})` : ''}
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        {step.details.length > 4 && <p className="text-[13px] text-muted-foreground">And {step.details.length - 4} more in the accounts below.</p>}
+                                    </div>
+                                )}
+                                {stepBody(guide, step) === 'none' && <p className="text-[15px] text-muted-foreground">No one has described this round yet.</p>}
+                                {stepBody(guide, step) === 'test' && (
                                     <>
                                         {guide.testComponents.length > 0 && (
                                             <p className="text-[15px] leading-relaxed text-muted-foreground">
@@ -333,28 +358,29 @@ export default function PrepGuide({
 }
 
 function QuestionRow({ q, index, onOpen }: { q: QuestionGroup; index: number; onOpen: (id: string) => void }) {
-    const many = q.students.length >= 2;
+    // Same row for every company: who asked it, even when that is one student
     return (
         <li className="border-b border-hairline">
             <details className="group">
                 <summary className="flex cursor-pointer list-none items-center gap-4 rounded-md px-1 py-3.5 hover:bg-foreground/[0.03] focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
                     <span className="w-6 shrink-0 font-mono text-xs text-outline">{String(index + 1).padStart(2, '0')}</span>
-                    <span className="flex-1 text-[15px] font-semibold leading-snug sm:text-base">{q.text}</span>
-                    {many && (
-                        <span className="hidden shrink-0 items-center sm:inline-flex" aria-hidden>
-                            {q.students.slice(0, 5).map((s) => (
-                                <span key={s.id} className="-ml-2 inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-card bg-primary-fixed text-[10px] font-bold text-primary first:ml-0">
-                                    {initials(s.name)}
-                                </span>
-                            ))}
-                        </span>
-                    )}
-                    <span className="w-[92px] shrink-0 text-right text-[13px] text-muted-foreground">{many ? `${q.students.length} students` : q.tips.length ? 'Has a tip' : ''}</span>
+                    {/* Long coding-test prompts stay two lines until opened, so every bank scans like a list of short questions */}
+                    <span className="line-clamp-2 min-w-0 flex-1 wrap-anywhere text-[15px] font-semibold leading-snug group-open:line-clamp-none sm:text-base">{q.text}</span>
+                    <span className="hidden shrink-0 items-center sm:inline-flex" aria-hidden>
+                        {q.students.slice(0, 5).map((s) => (
+                            <span key={s.id} className="-ml-2 inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-card bg-primary-fixed text-[10px] font-bold text-primary first:ml-0">
+                                {initials(s.name)}
+                            </span>
+                        ))}
+                    </span>
+                    <span className="w-[92px] shrink-0 text-right text-[13px] text-muted-foreground">
+                        {q.students.length} {q.students.length === 1 ? 'student' : 'students'}
+                    </span>
                 </summary>
                 <div className="space-y-2.5 pb-4 pl-10 pr-2">
                     {q.tips.map((tip, ti) => (
-                        <p key={ti} className="text-sm italic leading-relaxed text-muted-foreground">
-                            {tip}
+                        <p key={ti} className="text-sm italic leading-relaxed text-muted-foreground whitespace-pre-line">
+                            <Linkified text={tip} />
                         </p>
                     ))}
                     <p className="flex flex-wrap items-center gap-x-1 gap-y-1 text-sm text-muted-foreground">

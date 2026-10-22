@@ -74,6 +74,42 @@ assert.ok(guide.themes.find((t) => t.label === 'Communication and confidence').c
 assert.ok(guide.quote && guide.quote.text.length >= 40 && exps.find((e) => e.id === guide.quote.id).tipsForJuniors.includes(guide.quote.text));
 assert.equal(guide.duration.label, '30 min to 55 min'); // [20, 30, 40, 52.5, 60]: the middle half
 
+// Round shapes: every one that stores text shows it, in the reader and on the guide's process cards
+const gd = { type: 'gd', roundNumber: 2, topics: 'Is AI a threat to jobs?', tips: 'Speak early' };
+const hack = { type: 'hackathon', roundNumber: 1, problemStatement: 'Build a route optimiser', strategy: 'Greedy first', links: [{ type: 'github', url: 'https://x.y' }] };
+assert.deepEqual(g.roundBlocks(gd).map((b) => [b.title, b.text]), [['Topics', 'Is AI a threat to jobs?'], ['Tips', 'Speak early']]);
+assert.deepEqual(g.roundBlocks(hack).map((b) => b.title), ['Problem', 'Approach']); // links render as links, not text
+assert.deepEqual(g.roundBlocks({ type: 'gd', topic: 'Remote work' }), [{ field: 'topic', title: 'Topic', text: 'Remote work', extra: true }]); // unexpected field still shown
+assert.deepEqual(g.roundBlocks({ type: 'gd', topics: ['EVs', 'UPI'] }).map((b) => b.text), ['EVs, UPI']);
+assert.deepEqual(g.roundBlocks({ type: 'gd', topics: '', tips: '  ' }), []); // nothing stored, nothing shown
+// Questions in every stored shape
+assert.deepEqual(g.questionsOf({ questions: ['What is SQL?', { question: 'Why us?', answerTip: 'Be honest' }] }).map((q) => q.question), ['What is SQL?', 'Why us?']);
+assert.deepEqual(g.questionsOf({ questions: [{ question: '', answerTip: 'Two-pointer on a sorted array' }] }), [{ question: 'Two-pointer on a sorted array', answerTip: '' }]); // tip-only entry is kept
+assert.deepEqual(g.questionsOf({ questions: [{ q: 'Reverse a list', answer: 'Iterate' }] }), [{ question: 'Reverse a list', answerTip: 'Iterate' }]);
+assert.equal(g.questionsOf({ questions: 'Explain OOP\nWhat is a deadlock?' }).length, 2);
+assert.equal(g.questionsOf({ questions: [null, '', 'ok'] }).length, 0);
+assert.deepEqual(g.questionsOf({ questions: [{ question: 'CN', answerTip: 'OSI layers' }] }), [{ question: 'CN', answerTip: 'OSI layers' }]); // a short label with a tip is a topic, not junk
+// Legacy free-text labels resolve to a kind
+assert.equal(g.roundKind({ roundType: 'Group Discussion' }), 'gd');
+assert.equal(g.roundKind({ interviewType: 'hr' }), 'interview');
+assert.equal(g.roundKind({ roundType: 'Hackathon round' }), 'hackathon');
+// GD and hackathon cards carry each student's own description; a round nobody described says so
+const varied = g.buildGuide(
+    [
+        { id: 'g1', role: 'SDE', studentName: 'Gita', batch: '2026', rounds: [hack, gd] },
+        { id: 'g2', role: 'SDE', studentName: 'Hari', batch: '2026', rounds: [{ type: 'hackathon' }, { type: 'gd', topics: 'Is AI a threat to jobs?' }] },
+        { id: 'g3', role: 'SDE', studentName: 'Ila', batch: '2026', rounds: [{ type: 'test', topics: 'Verbal' }, { type: 'gd', topics: 'UPI vs cash' }] },
+    ],
+    'Varied'
+);
+const step = (kind) => varied.steps.find((s) => s.kind === kind);
+assert.deepEqual(step('gd').details.map((d) => [d.text, d.name]), [['Is AI a threat to jobs?', 'Gita'], ['UPI vs cash', 'Ila']]); // repeats once
+assert.equal(g.stepBody(varied, step('gd')), 'details');
+assert.deepEqual(step('hackathon').details.map((d) => d.text), ['Build a route optimiser']);
+assert.equal(g.stepBody(varied, step('test')), 'details'); // one student's topic is no pattern, so their words show instead
+const bare = g.buildGuide([1, 2, 3].map((i) => ({ id: `b${i}`, role: 'SDE', rounds: [{ type: 'hackathon' }] })), 'Bare');
+assert.equal(g.stepBody(bare, bare.steps[0]), 'none');
+
 // Thin data never invents sections
 const thin = g.buildGuide([{ id: 'x', role: 'SDE', batch: '2026', ctc: 0, roleType: 'FULL_TIME', minCGPA: 0, rounds: [] }], 'Tiny');
 assert.deepEqual(thin.pay, [{ basis: 'ctc', label: 'Not shared', shared: 0, total: 1 }]);

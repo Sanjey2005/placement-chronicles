@@ -67,18 +67,83 @@ export function roundKind(r: GuideRound): RoundKind {
         case 'gd': return 'gd';
         case 'hackathon': return 'hackathon';
     }
-    const label = String(r.roundType ?? '').toLowerCase(); // legacy free-text rows
+    const label = String(r.roundType ?? r.interviewType ?? r.type ?? '').toLowerCase(); // legacy free-text rows
     if (/online|assessment|aptitude|mcq|\btest\b/.test(label)) return 'test';
     if (/group discussion|\bgd\b/.test(label)) return 'gd';
     if (/hackathon/.test(label)) return 'hackathon';
-    if (/interview|technical|\bhr\b|managerial/.test(label)) return 'interview';
+    if (/interview|technical|\bhr\b|managerial|mixed/.test(label)) return 'interview';
     return 'other';
 }
 
-export const questionsOf = (r: GuideRound): Array<{ question: string; answerTip: string }> =>
-    (Array.isArray(r.questions) ? r.questions : [])
-        .map((q) => (typeof q === 'string' ? { question: q, answerTip: '' } : { question: q?.question ?? '', answerTip: q?.answerTip ?? '' }))
-        .filter((q) => q.question.trim().length > 2);
+/** Any stored value as display text: strings trimmed, lists joined, objects flattened to their text. */
+export function textOf(v: unknown): string {
+    if (typeof v === 'string') return v.trim();
+    if (typeof v === 'number') return String(v);
+    if (Array.isArray(v)) {
+        const parts = v.map(textOf).filter(Boolean);
+        return parts.join(parts.every((p) => p.length < 60 && !p.includes('\n')) ? ', ' : '\n');
+    }
+    if (v && typeof v === 'object') return Object.values(v).map(textOf).filter(Boolean).join(' — ');
+    return '';
+}
+
+const pick = (o: Record<string, unknown>, keys: string[]) => keys.map((k) => textOf(o[k])).find(Boolean) ?? '';
+
+/** A round's questions, whatever shape they were stored in: strings, objects, or one block of lines. */
+export const questionsOf = (r: GuideRound): Array<{ question: string; answerTip: string }> => {
+    const raw: unknown = r.questions;
+    const list: unknown[] = Array.isArray(raw) ? raw : typeof raw === 'string' ? raw.split(/\n+/) : [];
+    return list
+        .map((q) => {
+            if (typeof q === 'string') return { question: q.trim(), answerTip: '' };
+            const o = (q ?? {}) as Record<string, unknown>;
+            const question = pick(o, ['question', 'q', 'text', 'title']);
+            const answerTip = pick(o, ['answerTip', 'answer', 'tip', 'tips']);
+            // The form accepts a tip with no question; that tip is the content, so it stands in as the question
+            return question ? { question, answerTip } : { question: answerTip, answerTip: '' };
+        })
+        .filter((q) => q.question.length > 2 || (q.question && q.answerTip)); // "CN" with a tip is a real topic
+};
+
+/** Round fields the reader shows by name, in order. An empty title is a plain paragraph. */
+const ROUND_FIELDS: Array<[string, string]> = [
+    ['description', ''],
+    ['experience', ''],
+    ['problemStatement', 'Problem'],
+    ['strategy', 'Approach'],
+    ['topics', 'Topics'],
+    ['studySources', 'Prepared with'],
+    ['notes', 'Notes'],
+    ['tips', 'Tips'],
+];
+
+/** Fields that label a round or are shown elsewhere (header, links, question list), never as text blocks. */
+const ROUND_META = new Set(['type', 'roundType', 'interviewType', 'roundNumber', 'duration', 'links', 'questions', '_id', 'id']);
+
+const humanize = (key: string) => key.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' ').replace(/^./, (c) => c.toUpperCase());
+
+/**
+ * Every piece of text a round carries, as titled blocks. Named fields come first;
+ * any other text-bearing field is still shown (marked `extra`) so a round never
+ * renders empty just because its data used a field name the code didn't expect.
+ */
+export function roundBlocks(r: GuideRound): Array<{ field: string; title: string; text: string; extra?: true }> {
+    const o = r as Record<string, unknown>;
+    const out: Array<{ field: string; title: string; text: string; extra?: true }> = [];
+    for (const [field, title] of ROUND_FIELDS) {
+        const text = textOf(o[field]);
+        if (text) out.push({ field, title, text });
+    }
+    for (const [field, v] of Object.entries(o)) {
+        if (ROUND_META.has(field) || ROUND_FIELDS.some(([f]) => f === field)) continue;
+        const text = textOf(v);
+        if (text) out.push({ field, title: humanize(field), text, extra: true });
+    }
+    return out;
+}
+
+/** The first thing a round says: its first text block, else its first question. */
+const roundSummary = (r: GuideRound) => roundBlocks(r)[0]?.text || questionsOf(r)[0]?.question || '';
 
 // ── Small formatters ──────────────────────────────────────────────────────
 
@@ -309,7 +374,8 @@ export interface Guide {
     batchRange: string | null;
     pay: Array<{ basis: 'stipend' | 'ctc'; label: string; shared: number; total: number }>;
     sequence: { label: string; count: number } | null;
-    steps: Array<{ kind: RoundKind; label: string; count: number }>;
+    /** `details`: each student's own description of the round (e.g. their GD topic), for kinds with nothing to count. */
+    steps: Array<{ kind: RoundKind; label: string; count: number; details: Array<{ text: string; id: string; name: string; batch?: string }> }>;
     interviewTypes: Array<{ label: string; count: number }>;
     interviewRounds: number;
     duration: { label: string; reports: number } | null;
@@ -322,6 +388,16 @@ export interface Guide {
     quote: { text: string; id: string; name: string; role: string; batch?: string } | null;
     timeline: Array<{ batch: string; roles: Array<{ role: string; count: number }>; pay: string | null }>;
     headline: string | null;
+}
+
+/**
+ * What a process card shows: the test's counted topics, the interview figures,
+ * else students' own descriptions of the round, else one honest line. Never an empty card.
+ */
+export function stepBody(g: Guide, step: Guide['steps'][number]): 'test' | 'interview' | 'details' | 'none' {
+    if (step.kind === 'interview') return 'interview';
+    if (step.kind === 'test' && (g.testComponents.length > 0 || g.testTopics.length > 0)) return 'test';
+    return step.details.length > 0 ? 'details' : 'none';
 }
 
 const INTERVIEW_TYPE_LABEL: Record<string, string> = {
@@ -383,10 +459,24 @@ export function buildGuide(exps: GuideExperience[], company: string): Guide {
     const sequence = topSeq
         ? { label: topSeq[0].split('>').map((k) => KIND_LABEL[k as RoundKind]).join(' → '), count: topSeq[1] }
         : null;
+    const detailsFor = (kind: RoundKind) => {
+        const seen = new Set<string>();
+        const out: Guide['steps'][number]['details'] = [];
+        for (const e of exps) {
+            for (const r of roundsOf(e).filter((x) => roundKind(x) === kind)) {
+                const text = roundSummary(r);
+                const key = normalizeQuestion(text);
+                if (!key || seen.has(key)) continue;
+                seen.add(key);
+                out.push({ text, id: e.id, name: nameOf(e), batch: e.batch });
+            }
+        }
+        return out;
+    };
     const steps = [...kindCount]
         .map(([kind, v]) => ({ kind, label: KIND_LABEL[kind], count: v.count, avgPos: v.pos / v.count }))
         .sort((a, b) => a.avgPos - b.avgPos || b.count - a.count)
-        .map(({ kind, label, count }) => ({ kind, label, count }));
+        .map(({ kind, label, count }) => ({ kind, label, count, details: kind === 'interview' ? [] : detailsFor(kind) }));
     const interviewTypes = [...interviewTypeCount]
         .map(([t, count]) => ({ label: INTERVIEW_TYPE_LABEL[t] ?? titleCase(t), count }))
         .sort((a, b) => b.count - a.count);
