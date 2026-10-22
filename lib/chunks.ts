@@ -6,7 +6,7 @@
 import type { Types } from 'mongoose';
 import { getEmbedding, chunkExperience } from './vector';
 import ExperienceChunk from '../models/ExperienceChunk';
-import type { IExperience } from '../models/Experience';
+import Experience, { type IExperience } from '../models/Experience';
 
 /** The experience fields chunking reads; satisfied by hydrated documents and lean objects alike. */
 export type ChunkableExperience = Pick<
@@ -24,11 +24,17 @@ export type RebuildResult = { status: 'replaced'; chunks: number } | { status: '
  * ones by _id, so readers never see the experience with no chunks. If any
  * embedding fails (no credits, bad key, network, empty vector) the old chunks stay
  * and the result says the refresh was skipped; callers carry on regardless.
- * `deps` exists for the offline self-check.
+ * Rebuilds run after the response, so an admin can reject or delete the experience
+ * while it embeds: approval is re-checked before and after the insert, and a
+ * rejected experience never keeps chunks. `deps` exists for the offline self-check.
  */
 export async function rebuildChunksForExperience(
     exp: ChunkableExperience,
-    deps: { embed: (text: string) => Promise<number[]>; store: typeof ExperienceChunk } = { embed: getEmbedding, store: ExperienceChunk }
+    deps: {
+        embed: (text: string) => Promise<number[]>;
+        store: typeof ExperienceChunk;
+        isApproved: (id: ChunkableExperience['_id']) => Promise<boolean>;
+    } = { embed: getEmbedding, store: ExperienceChunk, isApproved: async (id) => !!(await Experience.exists({ _id: id, status: 'APPROVED' })) }
 ): Promise<RebuildResult> {
     const chunks = chunkExperience({
         companyName: exp.company,
@@ -63,11 +69,20 @@ export async function rebuildChunksForExperience(
         docs.push({ experienceId: exp._id, text: chunk.text, metadata: chunk.metadata, embedding });
     }
 
-    // Swap: new chunks in first, then the old ones out, so there is never a moment with none.
+    if (!(await deps.isApproved(exp._id))) return skipped(exp, 'no longer approved');
+
+    // Swap: new chunks in first, then this experience's older chunks out, so there is never a
+    // moment with none. "Older" is _id below our first insert (ObjectIds grow with time), so of
+    // two overlapping rebuilds the later insert wins: no leftover duplicates, and never zero.
     // ponytail: a reader can briefly see both sets (duplicates, not a gap); a transaction would close that.
-    const old = await deps.store.find({ experienceId: exp._id }).select('_id').lean();
-    await deps.store.insertMany(docs);
-    await deps.store.deleteMany({ _id: { $in: old.map((c) => c._id) } });
+    const inserted = await deps.store.insertMany(docs);
+    const ours = inserted.map((c) => c._id);
+    if (!(await deps.isApproved(exp._id))) {
+        // rejected or deleted while we inserted: its own delete may already have run
+        await deps.store.deleteMany({ _id: { $in: ours } });
+        return skipped(exp, 'rejected or deleted during the rebuild');
+    }
+    await deps.store.deleteMany({ experienceId: exp._id, _id: { $lt: ours[0] } });
     return { status: 'replaced', chunks: docs.length };
 }
 

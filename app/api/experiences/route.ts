@@ -3,10 +3,9 @@ import dbConnect from '@/lib/db';
 import Experience, { type IExperience } from '@/models/Experience';
 import type { FilterQuery } from 'mongoose';
 import Company from '@/models/Company';
-import { getEmbedding } from '@/lib/vector';
 import { rebuildChunksForExperience, deleteChunksForExperience } from '@/lib/chunks';
 import ExperienceChunk from '@/models/ExperienceChunk';
-import { experienceFormSchema, type ExperienceFormData } from '@/lib/schemas/experience-schema';
+import { experienceFormSchema } from '@/lib/schemas/experience-schema';
 import AdminLog from '@/models/AdminLog';
 import { escapeRegex, sanitizeObject } from '@/lib/sanitize';
 import { moderateExperience } from '@/lib/moderation';
@@ -16,32 +15,6 @@ import HelpfulVote from '@/models/HelpfulVote';
 import { getSession } from '@/lib/auth-check';
 
 const MAX_DOCUMENTS = 5000;
-
-// Helper function to generate searchable text from experience data
-function generateSearchText(data: ExperienceFormData): string {
-    let text = `${data.company} ${data.role} ${data.batch || ''} ${data.minCGPA || ''} ${data.tipsForJuniors || ''}`;
-
-    // Add round-specific text
-    if (data.rounds && Array.isArray(data.rounds)) {
-        data.rounds.forEach(round => {
-            if (round.type === 'test') {
-                const topics = Array.isArray(round.topics) ? round.topics.join(' ') : (round.topics || '');
-                text += ` ${topics}`;
-                round.questions?.forEach(q => {
-                    text += ` ${q.question || ''} ${q.answerTip || ''}`;
-                });
-            } else if (round.type === 'hackathon') {
-                text += ` ${round.problemStatement || ''}`;
-            } else if (round.type === 'interview') {
-                round.questions?.forEach(q => {
-                    text += ` ${q.question || ''} ${q.answerTip || ''}`;
-                });
-            }
-        });
-    }
-
-    return text;
-}
 
 import sanitizeHtml from 'sanitize-html';
 
@@ -250,8 +223,6 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // Searchable text; its embedding is computed after the response (below)
-        const searchText = generateSearchText(validatedData);
 
         // Derive legacy verdict field from finalVerdict
         // Default to ACCEPTED if selected, otherwise REJECTED if rejected.
@@ -289,24 +260,19 @@ export async function POST(request: NextRequest) {
 
         const savedExperience = await experience.save();
 
-        // ── Embeddings after the response: the student never waits on the model ──
+        // ── RAG chunks after the response: the student never waits on the model ──
         // after() runs once the response is sent (waitUntil on Vercel). A failed or
         // slow rebuild keeps any old chunks; a backfill rerun recovers missed ones.
-        after(async () => {
-            try {
-                const embedding = await getEmbedding(searchText);
-                if (embedding.length) await Experience.updateOne({ _id: savedExperience._id }, { embedding });
-            } catch (embeddingError) {
-                console.error('Experience embedding failed (saved without it):', embeddingError);
-            }
-            if (status === 'APPROVED') {
+        // (Experience.embedding is no longer computed: nothing reads it; chat uses the chunks.)
+        if (status === 'APPROVED') {
+            after(async () => {
                 try {
                     await rebuildChunksForExperience(savedExperience);
                 } catch (chunkError) {
                     console.error('Chunk creation failed (recover via backfill):', chunkError);
                 }
-            }
-        });
+            });
+        }
 
         // ── Activity Log: Record submission + moderation outcome ──
         try {

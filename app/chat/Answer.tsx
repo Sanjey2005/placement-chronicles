@@ -39,6 +39,9 @@ const COMPONENTS: Components = {
             <table>{children}</table>
         </div>
     ),
+    // No images: an injected experience could get the model to emit one whose URL carries the
+    // student's question off-site, and the browser would fetch it unasked
+    img: () => null,
 };
 
 const ACTION = 'inline-flex h-11 items-center gap-1.5 rounded-xl px-2.5 text-[13px] font-semibold text-outline transition-colors hover:bg-surface-container hover:text-foreground sm:h-9';
