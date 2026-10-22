@@ -16,14 +16,20 @@ export type ChunkableExperience = Pick<
     | 'resumeShortlisting' | 'historyOfBacklogs' | 'standingBacklogs'
 > & { _id: Types.ObjectId | string };
 
-/**
- * Rebuild the RAG chunks for one experience: delete existing chunks,
- * re-chunk, embed, and insert. Returns the number of chunks stored.
- * Chunks whose embedding fails are skipped — rerun the backfill to recover.
- */
-export async function rebuildChunksForExperience(exp: ChunkableExperience): Promise<number> {
-    await ExperienceChunk.deleteMany({ experienceId: exp._id });
+export type RebuildResult = { status: 'replaced'; chunks: number } | { status: 'skipped'; reason: string };
 
+/**
+ * Rebuild the RAG chunks for one experience: re-chunk and embed everything first,
+ * and only when every chunk embedded, insert the new ones and then delete the old
+ * ones by _id, so readers never see the experience with no chunks. If any
+ * embedding fails (no credits, bad key, network, empty vector) the old chunks stay
+ * and the result says the refresh was skipped; callers carry on regardless.
+ * `deps` exists for the offline self-check.
+ */
+export async function rebuildChunksForExperience(
+    exp: ChunkableExperience,
+    deps: { embed: (text: string) => Promise<number[]>; store: typeof ExperienceChunk } = { embed: getEmbedding, store: ExperienceChunk }
+): Promise<RebuildResult> {
     const chunks = chunkExperience({
         companyName: exp.company,
         roleType: exp.roleType!, // ponytail: chunkExperience requires it; add a guard if legacy docs without roleType surface
@@ -47,24 +53,27 @@ export async function rebuildChunksForExperience(exp: ChunkableExperience): Prom
 
     const docs = [];
     for (const chunk of chunks) {
+        let embedding: number[];
         try {
-            const embedding = await getEmbedding(chunk.text);
-            if (embedding.length === 0) continue; // no key configured — skip, don't store empty
-            docs.push({
-                experienceId: exp._id,
-                text: chunk.text,
-                metadata: chunk.metadata,
-                embedding,
-            });
-        } catch {
-            // skip this chunk; backfill rerun recovers it
+            embedding = await deps.embed(chunk.text);
+        } catch (error) {
+            return skipped(exp, error instanceof Error ? error.message : String(error));
         }
+        if (embedding.length === 0) return skipped(exp, 'empty embedding (no Hugging Face key?)');
+        docs.push({ experienceId: exp._id, text: chunk.text, metadata: chunk.metadata, embedding });
     }
 
-    if (docs.length > 0) {
-        await ExperienceChunk.insertMany(docs);
-    }
-    return docs.length;
+    // Swap: new chunks in first, then the old ones out, so there is never a moment with none.
+    // ponytail: a reader can briefly see both sets (duplicates, not a gap); a transaction would close that.
+    const old = await deps.store.find({ experienceId: exp._id }).select('_id').lean();
+    await deps.store.insertMany(docs);
+    await deps.store.deleteMany({ _id: { $in: old.map((c) => c._id) } });
+    return { status: 'replaced', chunks: docs.length };
+}
+
+function skipped(exp: ChunkableExperience, reason: string): RebuildResult {
+    console.error(`Chunk refresh skipped for ${exp.company} (${exp._id}), old chunks kept: ${reason}`);
+    return { status: 'skipped', reason };
 }
 
 export async function deleteChunksForExperience(experienceId: Types.ObjectId | string): Promise<void> {
