@@ -182,9 +182,10 @@ const batchNum = (b?: string) => {
  * A range becomes its midpoint; a bare number above 4 is minutes; anything
  * unreadable or outside 5 min to 5 hr is ignored rather than guessed.
  */
-export function parseMinutes(text?: string): number | null {
-    if (!text) return null;
-    const tokens = [...text.toLowerCase().matchAll(/(\d+(?:\.\d+)?)\s*(hours?|hrs?|h\b|minutes?|mins?|m\b)?/g)];
+export function parseMinutes(text?: unknown): number | null {
+    const raw = textOf(text); // Mixed rows may store a number or an object here
+    if (!raw) return null;
+    const tokens = [...raw.toLowerCase().matchAll(/(\d+(?:\.\d+)?)\s*(hours?|hrs?|h\b|minutes?|mins?|m\b)?/g)];
     const values: number[] = [];
     for (const [, num, unit] of tokens) {
         const n = Number(num);
@@ -447,7 +448,7 @@ export function buildGuide(exps: GuideExperience[], company: string): Guide {
         });
         const interviews = roundsOf(e).filter((r) => roundKind(r) === 'interview');
         if (interviews.length) interviewRoundCounts.push(interviews.length);
-        for (const t of new Set(interviews.map((r) => r.interviewType || 'technical'))) {
+        for (const t of new Set(interviews.map((r) => textOf(r.interviewType) || 'technical'))) {
             interviewTypeCount.set(t, (interviewTypeCount.get(t) ?? 0) + 1);
         }
         for (const r of interviews) {

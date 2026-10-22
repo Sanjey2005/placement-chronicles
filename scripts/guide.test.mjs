@@ -89,6 +89,13 @@ assert.deepEqual(g.questionsOf({ questions: [{ q: 'Reverse a list', answer: 'Ite
 assert.equal(g.questionsOf({ questions: 'Explain OOP\nWhat is a deadlock?' }).length, 2);
 assert.equal(g.questionsOf({ questions: [null, '', 'ok'] }).length, 0);
 assert.deepEqual(g.questionsOf({ questions: [{ question: 'CN', answerTip: 'OSI layers' }] }), [{ question: 'CN', answerTip: 'OSI layers' }]); // a short label with a tip is a topic, not junk
+// Odd Mixed rows (numbers or objects where text is expected) never crash the page
+assert.equal(g.parseMinutes(45), 45);
+assert.equal(g.parseMinutes({ minutes: '30 mins' }), 30);
+assert.deepEqual(g.questionsOf({ questions: [42, { question: 1234 }, { question: { text: 'Nested?' } }] }).map((q) => q.question), ['1234', 'Nested?']);
+const odd = g.buildGuide([1, 2, 3].map((i) => ({ id: `o${i}`, role: 'SDE', rounds: [{ type: 'interview', interviewType: 7, duration: 40, questions: [{ question: 99 }] }] })), 'Odd');
+assert.equal(odd.duration.label, 'About 40 min');
+assert.deepEqual(odd.interviewTypes, [{ label: '7', count: 3 }]);
 // Legacy free-text labels resolve to a kind
 assert.equal(g.roundKind({ roundType: 'Group Discussion' }), 'gd');
 assert.equal(g.roundKind({ interviewType: 'hr' }), 'interview');

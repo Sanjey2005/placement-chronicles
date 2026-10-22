@@ -189,7 +189,11 @@ export default function ExperienceReader({
                     )}
                 </div>
                 {current ? (
-                    <ExperienceDetail key={current.id} exp={current} role={roleOf.get(current.role) ?? current.role} position={index + 1} total={list.length} onPrev={prev} onNext={next} helpful={helpful[current.id]} onHelpful={() => onHelpful(current.id)} />
+                    <ExperienceDetail key={current.id} exp={current} role={roleOf.get(current.role) ?? current.role} position={index + 1} total={list.length} onPrev={prev} onNext={next} helpful={helpful[current.id]} onHelpful={() => {
+                            onSelect(current.id); // pin it: under "Most helpful" a vote re-sorts the list, and list[0] would become another experience
+                            onHelpful(current.id);
+                        }}
+                    />
                 ) : (
                     <p className="p-8 text-center text-muted-foreground">No experiences match this filter.</p>
                 )}

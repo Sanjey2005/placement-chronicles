@@ -6,7 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ChevronDown, ChevronUp, Share2, Github, Youtube, HardDrive, Link as LinkIcon, ThumbsUp } from 'lucide-react';
 import { useSession } from '@/components/Providers';
 import { getRound } from '@/lib/rounds';
-import { formatMinutes, parseMinutes, payLabel, questionsOf, roundBlocks, roundKind, isInternship, type GuideRound } from '@/lib/guide';
+import { formatMinutes, parseMinutes, payLabel, questionsOf, roundBlocks, roundKind, isInternship, textOf, type GuideRound } from '@/lib/guide';
 import { cn } from '@/lib/utils';
 import Linkified from './Linkified';
 import type { CompanyExperience, Helpful } from './CompanyView';
@@ -62,7 +62,7 @@ export default function ExperienceDetail({
     const anchor = (part: string) => `exp-${exp.id}-${part}`;
 
     const pay = payLabel(exp.ctc, exp.roleType);
-    const interview = rounds.find((r) => roundKind(r) === 'interview' && r.duration);
+    const interview = rounds.find((r) => roundKind(r) === 'interview' && textOf(r.duration));
     const minutes = parseMinutes(interview?.duration);
     const process = rounds.map((r) => getRound(r).label).join(' → ');
     const verdict = exp.finalVerdict === 'selected' ? 'Selected' : exp.finalVerdict === 'rejected' ? 'Not selected' : null;
@@ -70,7 +70,7 @@ export default function ExperienceDetail({
     const facts = [
         { label: isInternship(exp.roleType) ? 'Stipend' : 'CTC', value: pay ? `${pay}${isInternship(exp.roleType) ? ' /mo' : ''}` : 'Not shared', muted: !pay },
         rounds.length > 0 && { label: 'Process', value: process },
-        interview?.duration && { label: 'Interview', value: minutes ? formatMinutes(minutes) : interview.duration },
+        interview && { label: 'Interview', value: minutes ? formatMinutes(minutes) : textOf(interview.duration) },
         { label: 'Min CGPA', value: exp.minCGPA ? exp.minCGPA.toFixed(1) : 'Not given', muted: !exp.minCGPA },
     ].filter(Boolean) as Array<{ label: string; value: string; muted?: boolean }>;
 
@@ -179,7 +179,7 @@ export default function ExperienceDetail({
                                 {getRound(r).label}
                             </h3>
                             <span className="ml-auto text-[13px] text-outline">
-                                {[r.duration, questions.length > 0 && `${questions.length} question${questions.length === 1 ? '' : 's'}`].filter(Boolean).join(' · ')}
+                                {[textOf(r.duration), questions.length > 0 && `${questions.length} question${questions.length === 1 ? '' : 's'}`].filter(Boolean).join(' · ')}
                             </span>
                         </div>
                         <div className="max-w-[76ch] space-y-3">
