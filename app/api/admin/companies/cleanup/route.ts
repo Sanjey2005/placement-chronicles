@@ -6,6 +6,7 @@ import Experience from '@/models/Experience';
 import ExperienceChunk from '@/models/ExperienceChunk';
 import { requireAdmin } from '@/lib/auth-check';
 import { enforceCanonicalName } from '@/lib/moderation';
+import { toBareHostname } from '@/lib/sanitize';
 
 /**
  * POST /api/admin/companies/cleanup
@@ -211,10 +212,11 @@ Rules:
 
                 if (parsed.links && typeof parsed.links === 'object') {
                     for (const [companyName, domain] of Object.entries(parsed.links)) {
-                        if (domain && typeof domain === 'string' && domain.trim().length > 0) {
+                        const host = toBareHostname(domain);
+                        if (host) {
                             const updateResult = await Company.updateOne(
                                 { canonicalName: companyName },
-                                { $set: { link: domain.trim().replace(/^(https?:\/\/)?(www\.)?/, '') } }
+                                { $set: { link: host } }
                             );
                             if (updateResult.matchedCount > 0) {
                                 linksBackfilled++;

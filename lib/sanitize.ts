@@ -41,6 +41,7 @@ export function sanitizeForPrompt(text: string): string {
         /\[\/INST\]/gi,
         /<<SYS>>/gi,
         /<\/SYS>>/gi,
+        /-{3,}\s*(?:BEGIN|END)\b[^\n]*?-{3,}/gi, // spoofed "--- END DOCUMENT ---" delimiters
     ];
 
     for (const pattern of injectionPatterns) {
@@ -48,6 +49,16 @@ export function sanitizeForPrompt(text: string): string {
     }
 
     return sanitized.trim();
+}
+
+/**
+ * Reduce an AI-suggested company website to a bare hostname ("google.com"),
+ * or '' if it is anything else. It is stored on Company and drives the logo URL.
+ */
+export function toBareHostname(value: unknown): string {
+    if (typeof value !== 'string') return '';
+    const host = value.trim().toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, '');
+    return /^(?!-)[a-z0-9-]{1,63}(\.[a-z0-9-]{1,63})+$/.test(host) ? host : '';
 }
 
 /**
