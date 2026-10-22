@@ -6,6 +6,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/next";
 import DisclaimerModal from "@/components/DisclaimerModal";
 import Providers from "@/components/Providers";
+import { cookies } from "next/headers";
+import { verifySession, SESSION_COOKIE } from "@/lib/session";
 
 const quicksand = Quicksand({
   variable: "--font-quicksand",
@@ -109,11 +111,15 @@ const jsonLd = [
   },
 ];
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Verified server-side from the httpOnly cookie; only booleans reach the client.
+  const session = await verifySession((await cookies()).get(SESSION_COOKIE)?.value);
+  const clientSession = { isAuthenticated: !!session, isAdmin: session?.role === 'admin' };
+
   return (
     // suppressHydrationWarning belongs on <html>: next-themes writes the theme
     // class onto this element before paint, so the server markup can't match.
@@ -125,7 +131,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${quicksand.variable} ${geistMono.variable} antialiased`}>
-        <Providers>
+        <Providers session={clientSession}>
           {children}
           <Suspense fallback={null}>
             <DisclaimerModal />

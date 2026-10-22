@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Feedback from '@/models/Feedback';
+import { getSession } from '@/lib/auth-check';
 
 export async function POST(request: NextRequest) {
     try {
-        await connectToDatabase();
-
-        const studentId = request.cookies.get('user-id')?.value;
-
-        if (!studentId) {
+        // Identity comes from the signed session, never from a client-writable cookie
+        const session = await getSession(request);
+        if (!session) {
             return NextResponse.json(
                 { success: false, error: 'You must be logged in to submit feedback' },
                 { status: 401 }
@@ -17,15 +16,17 @@ export async function POST(request: NextRequest) {
 
         const { message } = await request.json();
 
-        if (!message || message.trim().length === 0) {
+        if (typeof message !== 'string' || message.trim().length === 0) {
             return NextResponse.json(
                 { success: false, error: 'Feedback message cannot be empty' },
                 { status: 400 }
             );
         }
 
+        await connectToDatabase();
+
         await Feedback.create({
-            studentId,
+            studentId: session.sub,
             message,
         });
 

@@ -1,7 +1,18 @@
 'use client';
 
+import { createContext, useContext } from 'react';
 import { ThemeProvider } from 'next-themes';
 import { MotionConfig } from 'framer-motion';
+
+export interface ClientSession {
+    isAuthenticated: boolean;
+    isAdmin: boolean;
+}
+
+// Auth state is verified server-side in the root layout from the httpOnly
+// session cookie and passed down here; client code never parses cookies.
+const SessionContext = createContext<ClientSession>({ isAuthenticated: false, isAdmin: false });
+export const useSession = () => useContext(SessionContext);
 
 /**
  * Client providers for the root layout, which must stay a server component
@@ -10,15 +21,17 @@ import { MotionConfig } from 'framer-motion';
  * `reducedMotion="user"` covers every framer-motion animation in the app from
  * one place; CSS animations are handled by the media query in globals.css.
  */
-export default function Providers({ children }: { children: React.ReactNode }) {
+export default function Providers({ children, session }: { children: React.ReactNode; session: ClientSession }) {
     return (
-        <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-        >
-            <MotionConfig reducedMotion="user">{children}</MotionConfig>
-        </ThemeProvider>
+        <SessionContext.Provider value={session}>
+            <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+            >
+                <MotionConfig reducedMotion="user">{children}</MotionConfig>
+            </ThemeProvider>
+        </SessionContext.Provider>
     );
 }

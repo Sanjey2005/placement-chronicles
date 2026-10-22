@@ -4,7 +4,7 @@ import AdminLog from '@/models/AdminLog';
 import { requireAdmin } from '@/lib/auth-check';
 
 export async function GET(request: NextRequest) {
-    if (!requireAdmin(request)) {
+    if (!(await requireAdmin(request))) {
         return NextResponse.json({ success: false, error: 'Forbidden: Admin access only' }, { status: 403 });
     }
 
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
         const serialized = logs.map(log => ({
             ...log,
-            _id: (log._id as any).toString(),
+            _id: String(log._id),
         }));
 
         return NextResponse.json({
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 
 // DELETE: Clear all activity logs
 export async function DELETE(request: NextRequest) {
-    if (!requireAdmin(request)) {
+    if (!(await requireAdmin(request))) {
         return NextResponse.json({ success: false, error: 'Forbidden: Admin access only' }, { status: 403 });
     }
 

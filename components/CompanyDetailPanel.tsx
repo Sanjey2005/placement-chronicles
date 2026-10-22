@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -10,39 +10,41 @@ import ExperienceModal from './ExperienceModal';
 import CompanyLogo from './CompanyLogo';
 import { averageCTC, selectionRate } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useSession } from '@/components/Providers';
+import type { IExperience } from '@/models/Experience';
 
-function getCookie(name: string): string | null {
-    if (typeof document === 'undefined') return null;
-    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-    return match ? decodeURIComponent(match[2]) : null;
-}
+// The feed's experiences are lean, serialised rows: no Document methods, and
+// `_id` is an ObjectId on the server but a string once it reaches the client.
+export type ExperienceItem = Pick<
+    IExperience,
+    | 'company' | 'role' | 'ctc' | 'studentName' | 'courseBranch' | 'batch' | 'year'
+    | 'roleType' | 'placementType' | 'verdict' | 'finalVerdict' | 'minCGPA'
+    | 'historyOfBacklogs' | 'standingBacklogs' | 'resumeShortlisting'
+    | 'rounds' | 'tags' | 'overallExperience' | 'tipsForJuniors' | 'createdAt'
+> & { _id?: { toString(): string } };
 
 interface CompanyDetailPanelProps {
     companyName: string;
-    experiences: any[];
+    experiences: ExperienceItem[];
     logoUrl?: string;
     onBack: () => void;
 }
 
 export default function CompanyDetailPanel({ companyName, experiences, logoUrl, onBack }: CompanyDetailPanelProps) {
+    const { isAuthenticated } = useSession();
     const [roleTypeFilter, setRoleTypeFilter] = useState('all');
     const [batchFilter, setBatchFilter] = useState('all');
     const [verdictFilter, setVerdictFilter] = useState('all');
     const [cgpaFilter, setCgpaFilter] = useState('all');
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
     const [currentPage, setCurrentPage] = useState(1);
-    const [selectedExperience, setSelectedExperience] = useState<any | null>(null);
+    const [selectedExperience, setSelectedExperience] = useState<ExperienceItem | null>(null);
     const router = useRouter();
     const ITEMS_PER_PAGE = 10;
 
-    // Reset page to 1 whenever filters change
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [roleTypeFilter, batchFilter, verdictFilter, cgpaFilter, sortOrder]);
-
     // Available filter options from this company's experiences
     const batches = useMemo(() =>
-        Array.from(new Set(experiences.map(e => e.batch).filter(Boolean))).sort().reverse(),
+        Array.from(new Set(experiences.map(e => e.batch).filter((b): b is string => !!b))).sort().reverse(),
         [experiences]
     );
 
@@ -86,8 +88,8 @@ export default function CompanyDetailPanel({ companyName, experiences, logoUrl, 
     // One modal for the whole list. Previously every ExperienceCard rendered its
     // own, so a page mounted 10 portals whose scroll-locks fought each other.
     // The auth gate lives here now, with the thing it actually gates.
-    const openExperience = (exp: any) => {
-        if (!getCookie('auth-token')) {
+    const openExperience = (exp: ExperienceItem) => {
+        if (!isAuthenticated) {
             toast.info('Please log in to view experience details');
             router.push('/login');
             return;
@@ -142,12 +144,12 @@ export default function CompanyDetailPanel({ companyName, experiences, logoUrl, 
                 </div>
             </div>
 
-            {/* Inner Filters */}
+            {/* Inner Filters — any filter or sort change starts again from page 1 */}
             <div className="bg-card border border-outline-variant rounded-xl p-4">
                 <div className="flex flex-wrap items-center gap-3">
                     {/* Role Type */}
                     <div className="min-w-[130px]">
-                        <Select value={roleTypeFilter} onValueChange={setRoleTypeFilter}>
+                        <Select value={roleTypeFilter} onValueChange={(v) => { setRoleTypeFilter(v); setCurrentPage(1); }}>
                             <SelectTrigger className="w-full h-9 px-3 py-1.5 bg-surface-container border-outline-variant text-foreground text-sm focus:ring-ring/30">
                                 <SelectValue placeholder="All Roles" />
                             </SelectTrigger>
@@ -162,7 +164,7 @@ export default function CompanyDetailPanel({ companyName, experiences, logoUrl, 
 
                     {/* Batch */}
                     <div className="min-w-[110px]">
-                        <Select value={batchFilter} onValueChange={setBatchFilter}>
+                        <Select value={batchFilter} onValueChange={(v) => { setBatchFilter(v); setCurrentPage(1); }}>
                             <SelectTrigger className="w-full h-9 px-3 py-1.5 bg-surface-container border-outline-variant text-foreground text-sm focus:ring-ring/30">
                                 <SelectValue placeholder="All Batches" />
                             </SelectTrigger>
@@ -177,7 +179,7 @@ export default function CompanyDetailPanel({ companyName, experiences, logoUrl, 
 
                     {/* Verdict */}
                     <div className="min-w-[120px]">
-                        <Select value={verdictFilter} onValueChange={setVerdictFilter}>
+                        <Select value={verdictFilter} onValueChange={(v) => { setVerdictFilter(v); setCurrentPage(1); }}>
                             <SelectTrigger className="w-full h-9 px-3 py-1.5 bg-surface-container border-outline-variant text-foreground text-sm focus:ring-ring/30">
                                 <SelectValue placeholder="All Verdicts" />
                             </SelectTrigger>
@@ -191,7 +193,7 @@ export default function CompanyDetailPanel({ companyName, experiences, logoUrl, 
 
                     {/* CGPA */}
                     <div className="min-w-[120px]">
-                        <Select value={cgpaFilter} onValueChange={setCgpaFilter}>
+                        <Select value={cgpaFilter} onValueChange={(v) => { setCgpaFilter(v); setCurrentPage(1); }}>
                             <SelectTrigger className="w-full h-9 px-3 py-1.5 bg-surface-container border-outline-variant text-foreground text-sm focus:ring-ring/30">
                                 <SelectValue placeholder="All CGPAs" />
                             </SelectTrigger>
@@ -207,7 +209,7 @@ export default function CompanyDetailPanel({ companyName, experiences, logoUrl, 
 
                     {/* Sort order */}
                     <button
-                        onClick={() => setSortOrder(s => s === 'newest' ? 'oldest' : 'newest')}
+                        onClick={() => { setSortOrder(s => s === 'newest' ? 'oldest' : 'newest'); setCurrentPage(1); }}
                         className="flex items-center gap-1.5 px-3 py-1.5 h-9 text-sm bg-surface-container hover:bg-surface-container-high border border-outline-variant rounded-md text-muted-foreground transition-colors"
                     >
                         {sortOrder === 'newest' ? <SortDesc className="h-3.5 w-3.5" /> : <SortAsc className="h-3.5 w-3.5" />}

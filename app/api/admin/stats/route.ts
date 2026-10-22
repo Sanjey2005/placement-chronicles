@@ -4,7 +4,7 @@ import Experience from '@/models/Experience';
 import { requireAdmin } from '@/lib/auth-check';
 
 export async function GET(request: NextRequest) {
-    if (!requireAdmin(request)) {
+    if (!(await requireAdmin(request))) {
         return NextResponse.json({ success: false, error: 'Forbidden: Admin access only' }, { status: 403 });
     }
 

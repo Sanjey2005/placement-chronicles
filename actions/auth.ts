@@ -1,6 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import { createSession, SESSION_COOKIE, SESSION_TTL_MS } from '@/lib/session';
 
 interface LoginResponse {
     success: boolean;
@@ -45,32 +46,21 @@ export async function login(formData: FormData): Promise<LoginResponse> {
         const data = await response.json();
 
         if (data.success) {
-            // Set cookies strictly on the server side to survive mobile navigation
+            // Signed, httpOnly session set server-side. The UI gets its auth
+            // state from the root layout (see Providers), not from this cookie.
             const cookieStore = await cookies();
             const isAdmin = data.role === 'ADMIN';
-            const roleValue = isAdmin ? 'admin' : 'authenticated';
-            const expiryTime = Date.now() + 60 * 60 * 1000;
-            const cookieValue = `${roleValue}|${expiryTime}`;
+            const token = await createSession(isAdmin ? 'admin' : 'user', isAdmin ? 'admin' : username);
 
-            // Set the primary auth token (30 min expiry)
-            cookieStore.set('auth-token', cookieValue, {
-                maxAge: 60 * 60,
+            cookieStore.set(SESSION_COOKIE, token, {
+                maxAge: SESSION_TTL_MS / 1000,
                 path: '/',
                 sameSite: 'lax',
-                httpOnly: false, // Required false so Navbar.tsx can read it
+                httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
             });
-
-            // Set the user ID cookie for feedback if not admin
-            if (!isAdmin && username) {
-                cookieStore.set('user-id', username, {
-                    maxAge: 60 * 60,
-                    path: '/',
-                    sameSite: 'lax',
-                    httpOnly: false,
-                    secure: process.env.NODE_ENV === 'production',
-                });
-            }
+            // Legacy plaintext cookie from the old scheme; identity now lives in the session
+            cookieStore.delete('user-id');
 
             return {
                 success: true,
@@ -100,4 +90,14 @@ export async function loginWithCredentials(
     formData.append('password', password);
 
     return login(formData);
+}
+
+/**
+ * Clears the session. A server action because the cookie is httpOnly and
+ * cannot be cleared from the browser.
+ */
+export async function logout(): Promise<void> {
+    const cookieStore = await cookies();
+    cookieStore.delete(SESSION_COOKIE);
+    cookieStore.delete('user-id');
 }

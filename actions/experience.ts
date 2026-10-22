@@ -5,6 +5,7 @@ import dbConnect from '@/lib/db';
 import Experience, { IExperience } from '@/models/Experience';
 import Company from '@/models/Company';
 import { deleteChunksForExperience } from '@/lib/chunks';
+import { verifySession, SESSION_COOKIE } from '@/lib/session';
 
 /**
  * Server action to get all experiences
@@ -29,7 +30,7 @@ export async function getAllExperiences(): Promise<{
         // Serialize _id and handle serialization for client components
         const serializedExperiences = experiences.map(exp => ({
             ...exp,
-            _id: (exp._id as any).toString(),
+            _id: String(exp._id),
             studentId: undefined, // Fix Data Leakage (remove PII — roll number)
             company: exp.company || '',
             role: exp.role || '',
@@ -49,11 +50,11 @@ export async function getAllExperiences(): Promise<{
         const companyLinks: Record<string, string> = {};
         const hiddenCompanies = new Set<string>();
         for (const c of companiesData) {
-            if ((c as any).link) {
-                companyLinks[(c as any).canonicalName] = (c as any).link;
+            if (c.link) {
+                companyLinks[c.canonicalName] = c.link;
             }
-            if ((c as any).isHidden) {
-                hiddenCompanies.add((c as any).canonicalName);
+            if (c.isHidden) {
+                hiddenCompanies.add(c.canonicalName);
             }
         }
 
@@ -95,7 +96,7 @@ export async function getExperiencesByCompany(company: string): Promise<{
         // Serialize data
         const serializedExperiences = experiences.map(exp => ({
             ...exp,
-            _id: (exp._id as any).toString(),
+            _id: String(exp._id),
             studentId: undefined, // Fix Data Leakage (remove PII)
             studentName: undefined, // Fix Data Leakage (remove PII)
         }));
@@ -124,11 +125,11 @@ export async function deleteExperience(id: string): Promise<{
     error?: string;
 }> {
     try {
-        // IDOR Fix: Check if user is an admin before allowing delete
+        // Only a validly signed admin session may delete
         const cookieStore = await cookies();
-        const rawToken = cookieStore.get('auth-token')?.value;
+        const session = await verifySession(cookieStore.get(SESSION_COOKIE)?.value);
 
-        if (!rawToken || !rawToken.startsWith('admin|')) {
+        if (session?.role !== 'admin') {
             return {
                 success: false,
                 error: 'Forbidden: Admin access required to delete experiences',

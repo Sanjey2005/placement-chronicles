@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
-import Company from '@/models/Company';
+import Company, { type ICompany } from '@/models/Company';
 import Experience from '@/models/Experience';
 import { requireAdmin } from '@/lib/auth-check';
 
 export async function GET(request: NextRequest) {
-    if (!requireAdmin(request)) {
+    if (!(await requireAdmin(request))) {
         return NextResponse.json({ success: false, error: 'Forbidden: Admin access only' }, { status: 403 });
     }
 
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-    if (!requireAdmin(request)) {
+    if (!(await requireAdmin(request))) {
         return NextResponse.json({ success: false, error: 'Forbidden: Admin access only' }, { status: 403 });
     }
 
@@ -64,7 +64,7 @@ export async function PATCH(request: NextRequest) {
         }
 
         // Build update object
-        const update: Record<string, any> = {};
+        const update: Partial<Pick<ICompany, 'link' | 'isHidden'>> = {};
 
         if (link !== undefined) {
             // Clean link to bare domain if possible

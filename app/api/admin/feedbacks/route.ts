@@ -1,32 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Feedback from '@/models/Feedback';
+import { requireAdmin } from '@/lib/auth-check';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+    if (!(await requireAdmin(request))) {
+        return NextResponse.json({ success: false, error: 'Forbidden: Admin access only' }, { status: 403 });
+    }
+
     try {
-        const rawToken = request.cookies.get('auth-token')?.value;
-
-        let authToken: string | undefined;
-        if (rawToken) {
-            authToken = rawToken.split('|')[0];
-            const expiry = rawToken.split('|')[1];
-            if (expiry && Date.now() > parseInt(expiry, 10)) {
-                return NextResponse.json(
-                    { success: false, error: 'Session expired' },
-                    { status: 401 }
-                );
-            }
-        }
-
-        if (authToken !== 'admin') {
-            return NextResponse.json(
-                { success: false, error: 'Unauthorized' },
-                { status: 401 }
-            );
-        }
-
         await connectToDatabase();
 
         const feedbacks = await Feedback.find().sort({ createdAt: -1 });

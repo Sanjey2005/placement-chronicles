@@ -45,6 +45,9 @@ export default function LoginPage() {
 
                 // Show the success tick, then hand off to the existing redirect.
                 setSuccess(true);
+                // The session cookie just changed: re-render the root layout so
+                // the navbar has the new auth state before we navigate.
+                router.refresh();
                 setTimeout(() => {
                     router.push(isAdmin ? '/admin?disclaimer=1' : '/?disclaimer=1');
                 }, 1100);

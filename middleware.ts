@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { globalApiRateLimit } from './lib/ratelimit';
+import { verifySession, SESSION_COOKIE } from './lib/session';
 
 // Public routes that don't require authentication (SEO: /about is crawlable)
 const publicRoutes = ['/login', '/about', '/api/auth', '/api/feedback', '/robots.txt', '/sitemap.xml'];
@@ -37,31 +38,12 @@ export async function middleware(request: NextRequest) {
     const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route));
     const isAdminApiRoute = adminApiRoutes.some(route => pathname.startsWith(route));
 
-    // Get the auth token from cookies
-    const rawToken = request.cookies.get('auth-token')?.value;
-    let authToken: string | undefined;
-    let tokenExpiry: number | undefined;
+    // Verified, signed session (null when missing, forged, malformed or expired)
+    const session = await verifySession(request.cookies.get(SESSION_COOKIE)?.value);
 
-    if (rawToken) {
-        const parts = rawToken.split('|');
-        authToken = parts[0];
-        if (parts.length > 1) {
-            tokenExpiry = parseInt(parts[1], 10);
-        }
-    }
-
-    // Check if token is expired
-    if (tokenExpiry && Date.now() > tokenExpiry) {
-        // Token expired
-        const response = NextResponse.redirect(new URL('/login', request.url));
-        response.cookies.delete('auth-token');
-        response.cookies.delete('user-id');
-        return response;
-    }
-
-    // Admin route checks — must have admin cookie value
+    // Admin route checks — must have a signed admin session
     if (isAdminRoute || isAdminApiRoute) {
-        if (authToken !== 'admin') {
+        if (session?.role !== 'admin') {
             if (isAdminApiRoute) {
                 return NextResponse.json(
                     { success: false, error: 'Admin access required' },
@@ -75,8 +57,8 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next();
     }
 
-    // If trying to access any non-public route without auth token
-    if (!isPublicRoute && !authToken) {
+    // If trying to access any non-public route without a valid session
+    if (!isPublicRoute && !session) {
         // If it's an API route, return 401 instead of redirecting
         // to avoid 405 Method Not Allowed on POST/PATCH/DELETE requests
         if (pathname.startsWith('/api')) {
@@ -85,15 +67,16 @@ export async function middleware(request: NextRequest) {
                 { status: 401 }
             );
         }
-        // Redirect to login for pages
-        const loginUrl = new URL('/login', request.url);
-        return NextResponse.redirect(loginUrl);
+        // Redirect to login for pages, dropping any stale or invalid cookie
+        const response = NextResponse.redirect(new URL('/login', request.url));
+        response.cookies.delete(SESSION_COOKIE);
+        return response;
     }
 
     // If already logged in and trying to access login page
-    if (pathname === '/login' && authToken) {
+    if (pathname === '/login' && session) {
         // Redirect to home (or admin if admin)
-        const redirectUrl = authToken === 'admin' ? '/admin' : '/';
+        const redirectUrl = session.role === 'admin' ? '/admin' : '/';
         const targetUrl = new URL(redirectUrl, request.url);
         return NextResponse.redirect(targetUrl);
     }

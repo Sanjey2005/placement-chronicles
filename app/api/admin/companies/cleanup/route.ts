@@ -19,7 +19,7 @@ import { moderateExperience, enforceCanonicalName } from '@/lib/moderation';
  * 3. Ensures the canonical Company entry exists
  */
 export async function POST(request: NextRequest) {
-    if (!requireAdmin(request)) {
+    if (!(await requireAdmin(request))) {
         return NextResponse.json({ success: false, error: 'Forbidden: Admin access only' }, { status: 403 });
     }
 

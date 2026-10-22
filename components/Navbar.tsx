@@ -7,14 +7,18 @@ import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, MessageSquare, LogOut, Home, Shield, Menu, X } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
+import { useSession } from '@/components/Providers';
+import { logout } from '@/actions/auth';
 
 export default function Navbar() {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [isAdmin, setIsAdmin] = useState(false);
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const { isAuthenticated, isAdmin } = useSession();
     const mobileNavRef = useRef<HTMLElement>(null);
     const router = useRouter();
     const pathname = usePathname();
+    // The drawer remembers the path it was opened on, so a navigation closes it
+    // without an effect.
+    const [menuPath, setMenuPath] = useState<string | null>(null);
+    const isMobileMenuOpen = menuPath === pathname;
 
     // Off-canvas drawer: focus the first link and let Esc close it, same as
     // the mobile filter sheet in FeedGrid.
@@ -22,49 +26,16 @@ export default function Navbar() {
         if (!isMobileMenuOpen) return;
         mobileNavRef.current?.querySelector<HTMLElement>('a, button')?.focus();
         const onKey = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') setIsMobileMenuOpen(false);
+            if (e.key === 'Escape') setMenuPath(null);
         };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, [isMobileMenuOpen]);
 
-    // Check authentication only on client side to avoid hydration mismatch
-    // Run whenever the pathname changes so we catch logins/logouts via router.push
-    useEffect(() => {
-        setIsMobileMenuOpen(false);
-        const getCookie = (name: string) => {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) {
-                const encodedCookie = parts.pop()?.split(';').shift();
-                return encodedCookie ? decodeURIComponent(encodedCookie) : undefined;
-            }
-        };
-
-        const token = getCookie('auth-token');
-        if (token) {
-            const [role, expiry] = token.split('|');
-            if (expiry && Date.now() > parseInt(expiry, 10)) {
-                setIsAuthenticated(false);
-                setIsAdmin(false);
-                // Optionally clear cookie if expired
-                document.cookie = 'auth-token=; path=/; max-age=0';
-            } else {
-                setIsAuthenticated(true);
-                setIsAdmin(role === 'admin');
-            }
-        } else {
-            setIsAuthenticated(false);
-            setIsAdmin(false);
-        }
-    }, [pathname]);
-
-    const handleLogout = () => {
-        // Clear auth cookie and user-id
-        document.cookie = 'auth-token=; path=/; max-age=0';
-        document.cookie = 'user-id=; path=/; max-age=0';
-        // Redirect to login
+    const handleLogout = async () => {
+        await logout(); // server action: the session cookie is httpOnly
         router.push('/login');
+        router.refresh(); // re-render the root layout so the navbar drops its auth state
     };
 
     return (
@@ -144,7 +115,7 @@ export default function Navbar() {
 
                             {/* Mobile Menu Toggle */}
                             <button
-                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                                onClick={() => setMenuPath(isMobileMenuOpen ? null : pathname)}
                                 aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
                                 aria-expanded={isMobileMenuOpen}
                                 aria-controls="mobile-nav"
@@ -168,7 +139,7 @@ export default function Navbar() {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     className="sm:hidden fixed inset-0 z-[60] bg-black/40"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    onClick={() => setMenuPath(null)}
                 >
                 <motion.nav
                     ref={mobileNavRef}
@@ -183,7 +154,7 @@ export default function Navbar() {
                     <div className="flex items-center justify-between mb-4">
                         <span className="text-lg font-bold text-foreground">Menu</span>
                         <button
-                            onClick={() => setIsMobileMenuOpen(false)}
+                            onClick={() => setMenuPath(null)}
                             aria-label="Close menu"
                             className="p-2 rounded-full bg-surface-container hover:bg-surface-container-high text-foreground transition-colors cursor-pointer"
                         >

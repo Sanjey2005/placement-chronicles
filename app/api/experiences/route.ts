@@ -5,32 +5,33 @@ import Company from '@/models/Company';
 import { getEmbedding } from '@/lib/vector';
 import { rebuildChunksForExperience, deleteChunksForExperience } from '@/lib/chunks';
 import ExperienceChunk from '@/models/ExperienceChunk';
-import { experienceFormSchema } from '@/lib/schemas/experience-schema';
+import { experienceFormSchema, type ExperienceFormData } from '@/lib/schemas/experience-schema';
 import AdminLog from '@/models/AdminLog';
 import { escapeRegex, sanitizeObject } from '@/lib/sanitize';
 import { moderateExperience } from '@/lib/moderation';
 import { groqApiRateLimit } from '@/lib/ratelimit';
 import { batchBackupAndDelete } from '@/lib/backup';
+import { getSession } from '@/lib/auth-check';
 
 const MAX_DOCUMENTS = 5000;
 
 // Helper function to generate searchable text from experience data
-function generateSearchText(data: any): string {
+function generateSearchText(data: ExperienceFormData): string {
     let text = `${data.company} ${data.role} ${data.batch || ''} ${data.minCGPA || ''} ${data.tipsForJuniors || ''}`;
 
     // Add round-specific text
     if (data.rounds && Array.isArray(data.rounds)) {
-        data.rounds.forEach((round: any) => {
+        data.rounds.forEach(round => {
             if (round.type === 'test') {
                 const topics = Array.isArray(round.topics) ? round.topics.join(' ') : (round.topics || '');
                 text += ` ${topics}`;
-                round.questions?.forEach((q: any) => {
+                round.questions?.forEach(q => {
                     text += ` ${q.question || ''} ${q.answerTip || ''}`;
                 });
             } else if (round.type === 'hackathon') {
-                text += ` ${round.experience || ''} ${round.problemStatement || ''}`;
+                text += ` ${round.problemStatement || ''}`;
             } else if (round.type === 'interview') {
-                round.questions?.forEach((q: any) => {
+                round.questions?.forEach(q => {
                     text += ` ${q.question || ''} ${q.answerTip || ''}`;
                 });
             }
@@ -59,17 +60,17 @@ function aggressiveSanitize(input: string): string {
 }
 
 // Helper function to process all strings in an object through sanitizeHtml
-function deepSanitize(obj: any): any {
+function deepSanitize<T>(obj: T): T {
     if (typeof obj === 'string') {
-        return aggressiveSanitize(obj);
+        return aggressiveSanitize(obj) as T;
     }
     if (Array.isArray(obj)) {
-        return obj.map(deepSanitize);
+        return obj.map(deepSanitize) as T;
     }
     if (obj && typeof obj === 'object') {
         return Object.fromEntries(
             Object.entries(obj).map(([k, v]) => [k, deepSanitize(v)])
-        );
+        ) as T;
     }
     return obj;
 }
@@ -120,7 +121,7 @@ export async function POST(request: NextRequest) {
             let existingCompaniesList: string[] = [];
             try {
                 const allCompanies = await Company.find({}).select('canonicalName').lean();
-                existingCompaniesList = allCompanies.map((c: any) => c.canonicalName);
+                existingCompaniesList = allCompanies.map(c => c.canonicalName);
             } catch (err) {
                 console.error('Failed to fetch existing companies for moderation:', err);
             }
@@ -155,11 +156,11 @@ export async function POST(request: NextRequest) {
 
                 for (const pending of pendingExperiences) {
                     try {
-                        const pendingId = (pending._id as any).toString();
+                        const pendingId = String(pending._id);
                         const oldName = pending.company;
 
                         const allCompanies = await Company.find({}).select('canonicalName').lean();
-                        const companyList = allCompanies.map((c: any) => c.canonicalName);
+                        const companyList = allCompanies.map(c => c.canonicalName);
 
                         const normResult = await moderateExperience(
                             { company: oldName, role: pending.role },
@@ -260,8 +261,8 @@ export async function POST(request: NextRequest) {
         // Default to ACCEPTED if selected, otherwise REJECTED if rejected.
         const derivedVerdict = validatedData.finalVerdict === 'rejected' ? 'REJECTED' : 'ACCEPTED';
 
-        // Retrieve student roll number from session cookie if available
-        const studentId = request.cookies.get('user-id')?.value || 'anonymous';
+        // Roll number comes from the signed session, never from a client-writable cookie
+        const studentId = (await getSession(request))?.sub || 'anonymous';
 
         // Create experience document
         const experience = new Experience({

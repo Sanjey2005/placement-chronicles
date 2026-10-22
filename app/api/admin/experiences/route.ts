@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { FilterQuery } from 'mongoose';
 import dbConnect from '@/lib/db';
-import Experience from '@/models/Experience';
+import Experience, { type IExperience } from '@/models/Experience';
 import Company from '@/models/Company';
 import AdminLog from '@/models/AdminLog';
 import { requireAdmin } from '@/lib/auth-check';
@@ -9,7 +10,7 @@ import { rebuildChunksForExperience, deleteChunksForExperience } from '@/lib/chu
 
 // GET: Fetch experiences with optional status filter
 export async function GET(request: NextRequest) {
-    if (!requireAdmin(request)) {
+    if (!(await requireAdmin(request))) {
         return NextResponse.json({ success: false, error: 'Forbidden: Admin access only' }, { status: 403 });
     }
 
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
         const page = parseInt(searchParams.get('page') || '1');
         const limit = parseInt(searchParams.get('limit') || '50');
 
-        const query: any = {};
+        const query: FilterQuery<IExperience> = {};
         if (status && status !== 'ALL') {
             query.status = status;
         }
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
 
         const serialized = experiences.map(exp => ({
             ...exp,
-            _id: (exp._id as any).toString(),
+            _id: String(exp._id),
         }));
 
         return NextResponse.json({
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
 
 // PATCH: Update experience status (approve/reject)
 export async function PATCH(request: NextRequest) {
-    if (!requireAdmin(request)) {
+    if (!(await requireAdmin(request))) {
         return NextResponse.json({ success: false, error: 'Forbidden: Admin access only' }, { status: 403 });
     }
 
@@ -114,14 +115,14 @@ export async function PATCH(request: NextRequest) {
         // to replace the alias with the canonical name and clean up stale entries.
         if (newStatus === 'APPROVED') {
             try {
-                const oldCompanyName = (experience as any).company;
+                const oldCompanyName = experience.company;
 
                 // Fetch existing companies to guide LLM normalization
                 const allCompanies = await Company.find({}).select('canonicalName').lean();
-                const existingCompaniesList = allCompanies.map((c: any) => c.canonicalName);
+                const existingCompaniesList = allCompanies.map(c => c.canonicalName);
 
                 const moderationResult = await moderateExperience(
-                    { company: oldCompanyName, role: (experience as any).role },
+                    { company: oldCompanyName, role: experience.role },
                     existingCompaniesList
                 );
 
@@ -151,7 +152,7 @@ export async function PATCH(request: NextRequest) {
                     }
 
                     // Update the experience object for the response
-                    (experience as any).company = canonicalName;
+                    experience.company = canonicalName;
                 }
 
                 // Normalization succeeded, ensure flag is cleared
@@ -183,12 +184,12 @@ export async function PATCH(request: NextRequest) {
             action: action.toUpperCase(),
             adminId: 'admin',
             targetId: id,
-            details: `${(experience as any).studentName || 'Unknown'} uploaded an experience for ${(experience as any).company || 'Unknown'}`,
+            details: `${experience.studentName || 'Unknown'} uploaded an experience for ${experience.company || 'Unknown'}`,
         });
 
         return NextResponse.json({
             success: true,
-            data: { ...experience, _id: (experience._id as any).toString() },
+            data: { ...experience, _id: String(experience._id) },
         });
     } catch (error) {
         return NextResponse.json(
@@ -200,7 +201,7 @@ export async function PATCH(request: NextRequest) {
 
 // DELETE: Permanently delete an experience (admin only)
 export async function DELETE(request: NextRequest) {
-    if (!requireAdmin(request)) {
+    if (!(await requireAdmin(request))) {
         return NextResponse.json({ success: false, error: 'Forbidden: Admin access only' }, { status: 403 });
     }
 
@@ -235,7 +236,7 @@ export async function DELETE(request: NextRequest) {
             action: 'DELETE',
             adminId: 'admin',
             targetId: id,
-            details: `${(experience as any).studentName || 'Unknown'} uploaded an experience for ${(experience as any).company || 'Unknown'}`,
+            details: `${experience.studentName || 'Unknown'} uploaded an experience for ${experience.company || 'Unknown'}`,
         });
 
         return NextResponse.json({ success: true });
