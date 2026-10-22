@@ -5,7 +5,7 @@ import Company from '@/models/Company';
 import Experience from '@/models/Experience';
 import ExperienceChunk from '@/models/ExperienceChunk';
 import { requireAdmin } from '@/lib/auth-check';
-import { moderateExperience, enforceCanonicalName } from '@/lib/moderation';
+import { enforceCanonicalName } from '@/lib/moderation';
 
 /**
  * POST /api/admin/companies/cleanup
@@ -28,13 +28,13 @@ export async function POST(request: NextRequest) {
         await dbConnect();
 
         const allCompanies = await Company.find().lean();
-        const companyNames = allCompanies.map((c: any) => c.canonicalName);
+        const companyNames = allCompanies.map((c) => c.canonicalName);
 
         const merges: { from: string; to: string; source: 'local' | 'ai' }[] = [];
 
         // ── Phase 1: Local deterministic alias resolution ────────────
         for (const company of allCompanies) {
-            const name = (company as any).canonicalName;
+            const name = company.canonicalName;
             const canonical = enforceCanonicalName(name);
 
             if (canonical !== name) {
@@ -124,13 +124,13 @@ Rules:
             if (!canonicalExists) {
                 // Try to preserve the link from the source company being merged
                 const sourceCompany = await Company.findOne({ canonicalName: from }).lean();
-                const preservedLink = (sourceCompany as any)?.link || '';
+                const preservedLink = sourceCompany?.link || '';
                 await Company.create({ canonicalName: to, link: preservedLink });
             } else if (!canonicalExists.link) {
                 // If canonical exists but has no link, inherit from source
                 const sourceCompany = await Company.findOne({ canonicalName: from }).lean();
-                if ((sourceCompany as any)?.link) {
-                    await Company.updateOne({ canonicalName: to }, { $set: { link: (sourceCompany as any).link } });
+                if (sourceCompany?.link) {
+                    await Company.updateOne({ canonicalName: to }, { $set: { link: sourceCompany.link } });
                 }
             }
 
@@ -152,7 +152,7 @@ Rules:
         const allCompaniesAfter = await Company.find().lean();
         let orphansRemoved = 0;
         for (const company of allCompaniesAfter) {
-            const count = await Experience.countDocuments({ company: (company as any).canonicalName });
+            const count = await Experience.countDocuments({ company: company.canonicalName });
             if (count === 0) {
                 await Company.deleteOne({ _id: company._id });
                 orphansRemoved++;
@@ -174,7 +174,7 @@ Rules:
                 const Groq = (await import('groq-sdk')).default;
                 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-                const namesForLookup = companiesWithoutLinks.map((c: any) => c.canonicalName);
+                const namesForLookup = companiesWithoutLinks.map((c) => c.canonicalName);
 
                 const completion = await groq.chat.completions.create({
                     model: GROQ_MODELS.VERSATILE,
