@@ -1,33 +1,75 @@
+import { timingSafeEqual } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
+import { loginIpRateLimit, loginRateLimit, retryAfterSeconds } from '@/lib/ratelimit';
 
 const ECAMPUS_LOGIN_URL = 'https://ecampus.psgtech.ac.in/studzone/Login/StudLogin';
 const ECAMPUS_POST_URL = 'https://ecampus.psgtech.ac.in/studzone';
 
+/** Constant-time string compare; a length mismatch is simply false. */
+function safeEqual(a: string, b: string): boolean {
+    const x = Buffer.from(a);
+    const y = Buffer.from(b);
+    return x.length === y.length && timingSafeEqual(x, y);
+}
+
+/**
+ * Every credential failure (unknown roll number, wrong password, admin
+ * mismatch, eCampus re-rendering its form with a validation message) returns
+ * exactly this, so the endpoint cannot be used to tell outcomes apart.
+ */
+function invalidCredentials() {
+    return NextResponse.json(
+        { success: false, error: 'Invalid roll number or password' },
+        { status: 401 }
+    );
+}
+
 /**
  * Direct HTTP login to PSG eCampus Student Zone.
- * 
+ *
  * Flow:
+ *  0. Rate limit per roll number and per client IP (fails open without Redis)
  *  1. GET login page → extract __RequestVerificationToken + cookies
  *  2. POST credentials with the token
  *  3. Success = 302 redirect to /studzone/Home/Menu
+ *
+ * Manual check: six rapid wrong-password POSTs to
+ * http://localhost:3000/api/auth/login with the same rollno — the sixth is 429.
  */
 export async function POST(request: NextRequest) {
     try {
         const { rollno: rawRollno, password } = await request.json();
-        const rollno = rawRollno?.trim().toUpperCase();
+        const rollno = typeof rawRollno === 'string' ? rawRollno.trim().toUpperCase() : '';
 
-        if (!rollno || !password) {
+        if (!rollno || typeof password !== 'string' || !password) {
             return NextResponse.json(
                 { success: false, error: 'Roll number and password are required' },
                 { status: 400 }
             );
         }
 
+        // ── Step 0: Brute-force guard, before the admin check or any eCampus call ──
+        const ip = request.headers.get('x-real-ip') || request.headers.get('x-forwarded-for') || '127.0.0.1';
+        const wait = await retryAfterSeconds([loginRateLimit, rollno], [loginIpRateLimit, ip]);
+        if (wait > 0) {
+            return NextResponse.json(
+                { success: false, error: 'Too many login attempts. Please try again later.' },
+                { status: 429, headers: { 'Retry-After': String(wait) } }
+            );
+        }
+        // A successful login clears both counters so a legitimate user's typos
+        // (and the shared egress IP, see lib/ratelimit.ts) don't accumulate.
+        const clearAttempts = () => Promise.all([
+            loginRateLimit?.resetUsedTokens(rollno),
+            loginIpRateLimit?.resetUsedTokens(ip),
+        ]).catch(() => {});
+
         // ── Admin Bypass: Environment variables ───────────────
         const adminUser = process.env.ADMIN_USERNAME;
         const adminPass = process.env.ADMIN_PASSWORD;
 
-        if (adminUser && adminPass && rollno === adminUser.toUpperCase() && password === adminPass) {
+        if (adminUser && adminPass && safeEqual(rollno, adminUser.toUpperCase()) && safeEqual(password, adminPass)) {
+            await clearAttempts();
             return NextResponse.json({
                 success: true,
                 message: 'Admin login successful',
@@ -37,10 +79,7 @@ export async function POST(request: NextRequest) {
 
         const ROLL_REGEX = /^\d{2}(pw|pd|pc|pt)\d{2}$/i;
         if (!ROLL_REGEX.test(rollno)) {
-            return NextResponse.json(
-                { success: false, error: 'Access Denied' },
-                { status: 403 }
-            );
+            return invalidCredentials();
         }
 
         // ── Step 1: GET the login page ──────────────────────────────
@@ -116,6 +155,7 @@ export async function POST(request: NextRequest) {
         // Successful login usually redirects to /studzone/Home/Menu
         // But we allow anything starting with /studzone/ as a success if it's a 302
         if (status === 302 && (location.includes('/studzone/Home') || location.includes('/studzone/Default'))) {
+            await clearAttempts();
             return NextResponse.json({
                 success: true,
                 message: 'Login successful',
@@ -123,30 +163,15 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        // If it redirects to login again, it failed
-        if (status === 302 && location.includes('Login/StudLogin')) {
-            return NextResponse.json({
-                success: false,
-                error: 'Invalid roll number or password',
-            });
-        }
+        // Anything else — redirect back to the login form, a 200 re-render with
+        // eCampus's own validation text, a forced password change — is reported
+        // identically. Never echo eCampus's error text: it told callers whether
+        // the roll number existed.
+        return invalidCredentials();
 
-        // If 200 — page re-rendered with a validation error
-        if (status === 200) {
-            const body = await loginRes.text();
-            const errorMatch = body.match(/class="text-danger[^"]*"[^>]*>([^<]+)</i)
-                || body.match(/class="validation-summary-errors"[^>]*>[\s\S]*?<li>([^<]+)</i);
-            const errorMsg = errorMatch?.[1]?.trim() || 'Invalid roll number or password';
-            return NextResponse.json({ success: false, error: errorMsg });
-        }
-
-        return NextResponse.json({
-            success: false,
-            error: 'Invalid roll number or password or account requires manual eCampus login (e.g. password change)',
-        });
-
-    } catch (error: any) {
-        if (error.name === 'TimeoutError' || error.name === 'AbortError') {
+    } catch (error) {
+        const name = error instanceof Error ? error.name : '';
+        if (name === 'TimeoutError' || name === 'AbortError') {
             return NextResponse.json(
                 { success: false, error: 'eCampus server timed out — try again later' },
                 { status: 504 }
