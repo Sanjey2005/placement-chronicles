@@ -10,16 +10,18 @@ import GlassCard from '@/components/GlassCard';
 export default function DisclaimerModal() {
     const searchParams = useSearchParams();
     const router = useRouter();
-    const [isOpen, setIsOpen] = useState(false);
-
     // Show disclaimer whenever the URL arrives at ?disclaimer=1 (the login page
-    // sets this param after a successful login). Evaluated during render on each
-    // searchParams change instead of in an effect; once open it stays open until
-    // acknowledged, even if the URL changes underneath.
-    const [seenParams, setSeenParams] = useState<typeof searchParams | null>(null);
-    if (seenParams !== searchParams) {
-        setSeenParams(searchParams);
-        if (searchParams.get('disclaimer') === '1') setIsOpen(true);
+    // sets this param after a successful login). Opens on the rising edge of the
+    // param (React's adjust-state-on-change form, keyed on the boolean, not on
+    // the searchParams object, whose identity can change mid-navigation while the
+    // param is still present); once open it stays open until acknowledged, even
+    // if the URL changes underneath.
+    const wantsOpen = searchParams.get('disclaimer') === '1';
+    const [isOpen, setIsOpen] = useState(wantsOpen);
+    const [prevWantsOpen, setPrevWantsOpen] = useState(wantsOpen);
+    if (wantsOpen !== prevWantsOpen) {
+        setPrevWantsOpen(wantsOpen);
+        if (wantsOpen) setIsOpen(true);
     }
 
     const handleAcknowledge = () => {
