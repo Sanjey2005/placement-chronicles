@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { existsSync } from "node:fs";
 
 const ONNX_RUNTIME_FILES = [
   'node_modules/onnxruntime-node/package.json',
@@ -12,6 +13,11 @@ const ONNX_RUNTIME_FILES = [
 ];
 
 const nextConfig: NextConfig = {
+  // Baked in at build: did scripts/fetch-model.mjs leave the weights here before `next build`?
+  // /api/health reports it, telling "the fetch never ran" apart from "it ran but didn't ship".
+  env: {
+    MODEL_FETCHED_AT_BUILD: existsSync('.model-cache/Xenova/all-MiniLM-L6-v2/onnx/model.onnx') ? 'yes' : 'no',
+  },
   /* config options here */
   // transformers.js runs the embedding model in-process through onnxruntime-node's native binary
   serverExternalPackages: ['pdf-parse', '@huggingface/transformers', 'onnxruntime-node'],

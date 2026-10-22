@@ -15,11 +15,21 @@ const MAX_TOKENS = 256; // sentence-transformers' max_seq_length for this model;
 type Embed = (text: string) => Promise<number[]>;
 let loading: Promise<Embed> | null = null;
 
+/** Safe facts for /api/health: whether the bundled weights are at the path this process resolves. */
+export const modelFiles = () => ({
+    bundledFilesPresent: localModels() !== null,
+    foundAtCwd: localModels() === join(process.cwd(), '.model-cache'),
+    cwdName: process.cwd().split('/').pop() ?? '',
+});
+
 /** Where this process's weights came from, once loading has started (/api/health reports it). */
 export let modelSource: 'bundled' | 'downloaded' | null = null;
 
-// scripts/fetch-model.mjs puts the files here at build time, and next.config.ts ships them with the routes
-const LOCAL_MODELS = join(process.cwd(), '.model-cache');
+// scripts/fetch-model.mjs puts the files in <project>/.model-cache at build time and next.config.ts
+// ships them with the routes. That is the cwd locally; /var/task is Vercel's function root, in case
+// the function runs from elsewhere.
+const localModels = () =>
+    [join(process.cwd(), '.model-cache'), '/var/task/.model-cache'].find((dir) => existsSync(join(dir, MODEL, 'onnx', 'model.onnx'))) ?? null;
 
 /**
  * Loads the tokenizer and fp32 weights once per process; a failed load is retried next call.
@@ -28,9 +38,10 @@ const LOCAL_MODELS = join(process.cwd(), '.model-cache');
 export function loadModel(): Promise<Embed> {
     loading ??= (async (): Promise<Embed> => {
         const { AutoModel, AutoTokenizer, env, mean_pooling } = await import('@huggingface/transformers');
-        env.localModelPath = LOCAL_MODELS;
+        const bundled = localModels();
         // Bundled files are the normal path; without them, download (to /tmp on Vercel's read-only disk)
-        env.allowRemoteModels = !existsSync(join(LOCAL_MODELS, MODEL, 'onnx', 'model.onnx'));
+        if (bundled) env.localModelPath = bundled;
+        env.allowRemoteModels = !bundled;
         modelSource = env.allowRemoteModels ? 'downloaded' : 'bundled';
         if (env.allowRemoteModels) {
             console.warn(`⚠️ ${MODEL} is not bundled (run scripts/fetch-model.mjs); downloading it at runtime`);
