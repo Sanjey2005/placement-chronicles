@@ -35,15 +35,17 @@ export const loginRateLimit = redis
     })
     : null;
 
-// 4. Login spraying: 20 attempts per client IP per 15 minutes.
-//    Stops one caller walking many roll numbers with one password. Looser
-//    than the per-roll budget because actions/auth.ts reaches this route via
-//    a server-side fetch, so on Vercel every legitimate login shares the
-//    function's egress IP; the route also clears both counters on success.
+// 4. Login spraying: 100 attempts per client IP per 15 minutes.
+//    Stops one caller walking many roll numbers with one password. Much
+//    looser than the per-roll budget because actions/auth.ts reaches this
+//    route via a server-side fetch, so on Vercel every legitimate login
+//    shares the function's egress IP: this counter is effectively campus-wide,
+//    and failed attempts (including eCampus outages) would otherwise lock
+//    everyone out. The route clears both counters on success.
 export const loginIpRateLimit = redis
     ? new Ratelimit({
         redis,
-        limiter: Ratelimit.slidingWindow(20, '15 m'),
+        limiter: Ratelimit.slidingWindow(100, '15 m'),
         analytics: true,
         prefix: '@upstash/ratelimit/login_ip',
     })
