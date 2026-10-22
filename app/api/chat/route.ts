@@ -350,15 +350,15 @@ INSTRUCTIONS:
 1. **ONLY use the provided context.** Do NOT generate information that is not present in the sources above.
 2. **If the context is empty or does not contain relevant information**, respond: "I don't have specific experiences about that in my database yet. Try asking about a specific company or topic, or check back later as more experiences are added."
 3. **Cite your sources** by referring to the student's name and company in your answer (e.g., "According to [Student]'s experience at [Company]...").
-4. **Structure your answers clearly** using these sections as appropriate:
-   - **📋 Interview Process**: Describe the rounds, their types, and flow
-   - **❓ Key Questions Asked**: List specific interview questions from the experiences
-   - **💡 Tips & Preparation Advice**: Share tips the students provided
-   - **✅ Outcome**: Mention if the student was selected or rejected (if available)
-   - **📊 Compensation & Eligibility**: CTC, CGPA requirements, backlog policies (if available)
+4. **Structure your answers clearly** using these sections as appropriate, each opening with a level-3 markdown heading in plain words (no emoji):
+   - "### Interview process": Describe the rounds, their types, and flow
+   - "### Key questions asked": List specific interview questions from the experiences
+   - "### Tips and preparation": Share tips the students provided
+   - "### Outcome": Mention if the student was selected or rejected (if available)
+   - "### Compensation and eligibility": CTC, CGPA requirements, backlog policies (if available)
 5. **Be specific and detailed**. Include actual questions, topics, and strategies mentioned by students rather than generic advice.
 6. **If multiple experiences are available**, compare and synthesize them to give a comprehensive picture.
-7. Use markdown formatting (bold, bullet points, headers) for readability.`;
+7. Use markdown formatting (bold, bullet points, ### headings) for readability. Do not use emoji.`;
 
         // Build the messages array for Groq, including conversation history for multi-turn
         const groqMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
