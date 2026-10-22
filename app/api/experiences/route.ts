@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
-import Experience from '@/models/Experience';
+import Experience, { type IExperience } from '@/models/Experience';
+import type { FilterQuery } from 'mongoose';
 import Company from '@/models/Company';
 import { getEmbedding } from '@/lib/vector';
 import { rebuildChunksForExperience, deleteChunksForExperience } from '@/lib/chunks';
@@ -361,9 +362,13 @@ export async function GET(request: NextRequest) {
         const batch = searchParams.get('batch');
         const search = searchParams.get('search');
 
-        // Only show APPROVED experiences to public users
-        const query: any = { status: 'APPROVED' };
-        if (company) query.company = company;
+        // Only show APPROVED experiences to public users, and never from a
+        // hidden company (same rule the home feed applies in actions/experience.ts)
+        const hidden = await Company.distinct('canonicalName', { isHidden: true });
+        const query: FilterQuery<IExperience> = {
+            status: 'APPROVED',
+            company: company ? { $eq: company, $nin: hidden } : { $nin: hidden },
+        };
         if (batch) query.batch = batch;
         if (search) {
             // SECURITY: Escape regex special chars to prevent ReDoS
@@ -385,7 +390,7 @@ export async function GET(request: NextRequest) {
             success: true,
             data: experiences,
         });
-    } catch (error) {
+    } catch {
         return NextResponse.json(
             {
                 success: false,

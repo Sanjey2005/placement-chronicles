@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 import { GROQ_MODELS } from '@/lib/ai-models';
 import dbConnect from '@/lib/db';
-import ExperienceChunk from '@/models/ExperienceChunk';
+import type { FilterQuery, Types } from 'mongoose';
+import ExperienceChunk, { type IExperienceChunk } from '@/models/ExperienceChunk';
 import Company from '@/models/Company';
 import { getEmbedding, cosineSimilarity } from '@/lib/vector';
 import { chatRateLimiter } from '@/lib/redis';
@@ -33,6 +34,28 @@ function sseText(text: string): Response {
     return new Response(body, { headers: SSE_HEADERS });
 }
 
+// Honest no-data reply. A hidden company gets the same one, so hidden is
+// indistinguishable from absent.
+function noDataReply(companyName: string | null): Response {
+    return sseText(
+        companyName
+            ? `I don't have any experiences for **${companyName}** in my database yet. Try asking about another company, or check back later as more experiences are added.`
+            : `I don't have specific experiences about that in my database yet. Try asking about a specific company or topic covered on the site.`
+    );
+}
+
+type ChatMessage = { role: string; content: string };
+
+// The fields retrieval reads off a chunk; `.lean<ChunkDoc[]>()` narrows each
+// query to this shape (embedding is only selected on the vector path).
+type ChunkDoc = {
+    _id: Types.ObjectId;
+    text: string;
+    metadata: IExperienceChunk['metadata'];
+    embedding?: number[];
+};
+type ScoredChunk = ChunkDoc & { similarity: number };
+
 export async function POST(request: NextRequest) {
     try {
         // Parse request body
@@ -40,7 +63,7 @@ export async function POST(request: NextRequest) {
         const { messages } = body;
 
         let userMessage: string;
-        let conversationHistory: Array<{ role: string; content: string }> = [];
+        let conversationHistory: ChatMessage[] = [];
 
         if (Array.isArray(messages)) {
             const lastMessage = messages[messages.length - 1];
@@ -48,8 +71,8 @@ export async function POST(request: NextRequest) {
             // Capture conversation history (up to last 10 messages) for multi-turn context
             conversationHistory = messages
                 .slice(-10)
-                .filter((m: any) => m.role && m.content)
-                .map((m: any) => ({ role: m.role, content: m.content }));
+                .filter((m): m is ChatMessage => typeof m?.role === 'string' && typeof m?.content === 'string')
+                .map((m) => ({ role: m.role, content: m.content }));
         } else {
             return NextResponse.json(
                 { error: 'Messages array is required' },
@@ -151,7 +174,7 @@ For roleType/verdict/topic: only set a value if it is explicit in the question o
                     searchQuery = parsed.searchQuery.trim();
                 }
             }
-        } catch (extractErr) {
+        } catch {
             // Silently fail entity extraction — retrieval continues on the raw message
         }
 
@@ -159,19 +182,21 @@ For roleType/verdict/topic: only set a value if it is explicit in the question o
         let queryEmbedding: number[] = [];
         try {
             queryEmbedding = await getEmbedding(searchQuery);
-        } catch (embeddingError) {
+        } catch {
             console.log('⚠️ Embedding generation failed, will use text fallback');
         }
 
         // Step 3: Hybrid Retrieval against ExperienceChunk
-        let scoredChunks: any[] = [];
+        let scoredChunks: ScoredChunk[] = [];
 
         // Only use company name as a hard filter (it exists on all chunks).
         // Verdict and roleType are used as re-ranking boosts, not hard filters,
         // because existing chunks may not have these metadata fields.
         // Resolve the extracted name against the Company collection (canonical
         // name or alias) and match exactly — no partial-prefix false positives.
-        const companyFilter: any = {};
+        // Hidden companies never reach the chatbot, in either retrieval path.
+        const hidden = await Company.distinct('canonicalName', { isHidden: true });
+        const companyFilter: FilterQuery<IExperienceChunk> = { 'metadata.companyName': { $nin: hidden } };
         let companyName: string | null = null;
         if (extractedCompany) {
             // Extraction already resolved the name against the live company
@@ -182,7 +207,11 @@ For roleType/verdict/topic: only set a value if it is explicit in the question o
                 $or: [{ canonicalName: rx }, { aliases: rx }],
             }).lean();
             companyName = known?.canonicalName ?? extractedCompany;
-            companyFilter['metadata.companyName'] = exactMatch(companyName);
+            if (known?.isHidden) {
+                console.log(`🙈 ${companyName} is hidden — returning no-data reply`);
+                return noDataReply(companyName);
+            }
+            companyFilter['metadata.companyName'] = { $regex: exactMatch(companyName), $nin: hidden };
         }
 
         console.log(`🔍 RAG Query: "${userMessage}" → search: "${searchQuery}"`);
@@ -197,7 +226,7 @@ For roleType/verdict/topic: only set a value if it is explicit in the question o
 
             const candidateChunks = await ExperienceChunk.find(vectorFilter)
                 .select('text metadata embedding')
-                .lean();
+                .lean<ChunkDoc[]>();
 
             console.log(`📦 Vector candidates found: ${candidateChunks.length} (filter: ${JSON.stringify(vectorFilter)})`);
 
@@ -205,7 +234,7 @@ For roleType/verdict/topic: only set a value if it is explicit in the question o
             const SIMILARITY_THRESHOLD = 0.45;
 
             scoredChunks = candidateChunks
-                .map((chunk: any) => {
+                .map((chunk): ScoredChunk => {
                     let similarity = chunk.embedding
                         ? cosineSimilarity(queryEmbedding, chunk.embedding)
                         : 0;
@@ -221,8 +250,8 @@ For roleType/verdict/topic: only set a value if it is explicit in the question o
 
                     return { ...chunk, similarity };
                 })
-                .filter((chunk: any) => chunk.similarity >= SIMILARITY_THRESHOLD)
-                .sort((a: any, b: any) => b.similarity - a.similarity)
+                .filter((chunk) => chunk.similarity >= SIMILARITY_THRESHOLD)
+                .sort((a, b) => b.similarity - a.similarity)
                 .slice(0, 8);
 
             console.log(`✅ Vector results after threshold: ${scoredChunks.length}`);
@@ -256,7 +285,7 @@ For roleType/verdict/topic: only set a value if it is explicit in the question o
                     .map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
                     .join('|');
 
-                const textFilter: any = {
+                const textFilter: FilterQuery<IExperienceChunk> = {
                     ...companyFilter,
                     text: { $regex: new RegExp(regexPattern, 'i') }
                 };
@@ -265,16 +294,16 @@ For roleType/verdict/topic: only set a value if it is explicit in the question o
 
                 const fallbackChunks = await ExperienceChunk.find(textFilter)
                     .select('text metadata')
-                    .lean()
+                    .lean<ChunkDoc[]>()
                     .limit(10);
 
                 console.log(`📝 Text fallback results: ${fallbackChunks.length}`);
 
                 // Merge with existing results, avoiding duplicates
-                const existingIds = new Set(scoredChunks.map((c: any) => c._id?.toString()));
+                const existingIds = new Set(scoredChunks.map((c) => c._id.toString()));
                 const newChunks = fallbackChunks
-                    .filter((c: any) => !existingIds.has(c._id?.toString()))
-                    .map((chunk: any) => ({
+                    .filter((c) => !existingIds.has(c._id.toString()))
+                    .map((chunk): ScoredChunk => ({
                         ...chunk,
                         similarity: 0,
                     }));
@@ -286,18 +315,14 @@ For roleType/verdict/topic: only set a value if it is explicit in the question o
         // arbitrary chunks to a context-only prompt.
         if (scoredChunks.length === 0) {
             console.log('🚫 No relevant chunks — returning honest no-data reply');
-            return sseText(
-                companyName
-                    ? `I don't have any experiences for **${companyName}** in my database yet. Try asking about another company, or check back later as more experiences are added.`
-                    : `I don't have specific experiences about that in my database yet. Try asking about a specific company or topic covered on the site.`
-            );
+            return noDataReply(companyName);
         }
 
         console.log(`📊 Final chunk count for LLM: ${scoredChunks.length}`);
 
         // Step 4: Build Rich Context
         const context = scoredChunks
-            .map((chunk: any, index: number) => {
+            .map((chunk, index) => {
                 const m = chunk.metadata;
                 const headerParts = [
                     `Student: ${m.studentName}`,
@@ -380,7 +405,7 @@ INSTRUCTIONS:
                     }
 
                     // Send sources and completion signal
-                    const sources = scoredChunks.map((chunk: any) => ({
+                    const sources = scoredChunks.map((chunk) => ({
                         company: chunk.metadata.companyName,
                         role: chunk.metadata.roleType,
                         student: chunk.metadata.studentName,
@@ -402,7 +427,7 @@ INSTRUCTIONS:
 
         // Return streaming response
         return new Response(stream, { headers: SSE_HEADERS });
-    } catch (error) {
+    } catch {
         return NextResponse.json(
             {
                 error: 'An internal server error occurred while processing your chat message.',

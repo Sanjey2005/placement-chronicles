@@ -3,8 +3,9 @@ import dbConnect from '@/lib/db';
 import { GROQ_MODELS } from '@/lib/ai-models';
 import Company from '@/models/Company';
 import Experience from '@/models/Experience';
+import ExperienceChunk from '@/models/ExperienceChunk';
 import { requireAdmin } from '@/lib/auth-check';
-import { moderateExperience, enforceCanonicalName } from '@/lib/moderation';
+import { enforceCanonicalName } from '@/lib/moderation';
 
 /**
  * POST /api/admin/companies/cleanup
@@ -14,9 +15,9 @@ import { moderateExperience, enforceCanonicalName } from '@/lib/moderation';
  * for fuzzy matching against the existing canonical names.
  * 
  * For each alias found:
- * 1. Updates all experiences referencing the alias → canonical name
- * 2. Deletes the stale alias Company entry
- * 3. Ensures the canonical Company entry exists
+ * 1. Updates all experiences (and their RAG chunks) referencing the alias → canonical name
+ * 2. Ensures the canonical Company entry exists and records the alias on it
+ * 3. Deletes the stale alias Company entry
  */
 export async function POST(request: NextRequest) {
     if (!(await requireAdmin(request))) {
@@ -27,13 +28,13 @@ export async function POST(request: NextRequest) {
         await dbConnect();
 
         const allCompanies = await Company.find().lean();
-        const companyNames = allCompanies.map((c: any) => c.canonicalName);
+        const companyNames = allCompanies.map((c) => c.canonicalName);
 
         const merges: { from: string; to: string; source: 'local' | 'ai' }[] = [];
 
         // ── Phase 1: Local deterministic alias resolution ────────────
         for (const company of allCompanies) {
-            const name = (company as any).canonicalName;
+            const name = company.canonicalName;
             const canonical = enforceCanonicalName(name);
 
             if (canonical !== name) {
@@ -110,21 +111,31 @@ Rules:
                 { company: from },
                 { $set: { company: to } }
             );
+            // Keep RAG chunk metadata in sync — the chatbot hard-filters on
+            // metadata.companyName, so without this a merged company vanishes
+            // from chat answers.
+            await ExperienceChunk.updateMany(
+                { 'metadata.companyName': from },
+                { $set: { 'metadata.companyName': to } }
+            );
 
             // 2. Ensure canonical Company entry exists
             const canonicalExists = await Company.findOne({ canonicalName: to });
             if (!canonicalExists) {
                 // Try to preserve the link from the source company being merged
                 const sourceCompany = await Company.findOne({ canonicalName: from }).lean();
-                const preservedLink = (sourceCompany as any)?.link || '';
+                const preservedLink = sourceCompany?.link || '';
                 await Company.create({ canonicalName: to, link: preservedLink });
             } else if (!canonicalExists.link) {
                 // If canonical exists but has no link, inherit from source
                 const sourceCompany = await Company.findOne({ canonicalName: from }).lean();
-                if ((sourceCompany as any)?.link) {
-                    await Company.updateOne({ canonicalName: to }, { $set: { link: (sourceCompany as any).link } });
+                if (sourceCompany?.link) {
+                    await Company.updateOne({ canonicalName: to }, { $set: { link: sourceCompany.link } });
                 }
             }
+
+            // Record the merge so the old name still resolves (chat alias lookup)
+            await Company.updateOne({ canonicalName: to }, { $addToSet: { aliases: from } });
 
             // 3. Delete the stale alias Company entry
             if (from !== to) {
@@ -141,7 +152,7 @@ Rules:
         const allCompaniesAfter = await Company.find().lean();
         let orphansRemoved = 0;
         for (const company of allCompaniesAfter) {
-            const count = await Experience.countDocuments({ company: (company as any).canonicalName });
+            const count = await Experience.countDocuments({ company: company.canonicalName });
             if (count === 0) {
                 await Company.deleteOne({ _id: company._id });
                 orphansRemoved++;
@@ -163,7 +174,7 @@ Rules:
                 const Groq = (await import('groq-sdk')).default;
                 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-                const namesForLookup = companiesWithoutLinks.map((c: any) => c.canonicalName);
+                const namesForLookup = companiesWithoutLinks.map((c) => c.canonicalName);
 
                 const completion = await groq.chat.completions.create({
                     model: GROQ_MODELS.VERSATILE,
