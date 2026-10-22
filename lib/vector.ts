@@ -15,6 +15,9 @@ const MAX_TOKENS = 256; // sentence-transformers' max_seq_length for this model;
 type Embed = (text: string) => Promise<number[]>;
 let loading: Promise<Embed> | null = null;
 
+/** Where this process's weights came from, once loading has started (/api/health reports it). */
+export let modelSource: 'bundled' | 'downloaded' | null = null;
+
 // scripts/fetch-model.mjs puts the files here at build time, and next.config.ts ships them with the routes
 const LOCAL_MODELS = join(process.cwd(), '.model-cache');
 
@@ -28,6 +31,7 @@ export function loadModel(): Promise<Embed> {
         env.localModelPath = LOCAL_MODELS;
         // Bundled files are the normal path; without them, download (to /tmp on Vercel's read-only disk)
         env.allowRemoteModels = !existsSync(join(LOCAL_MODELS, MODEL, 'onnx', 'model.onnx'));
+        modelSource = env.allowRemoteModels ? 'downloaded' : 'bundled';
         if (env.allowRemoteModels) {
             console.warn(`⚠️ ${MODEL} is not bundled (run scripts/fetch-model.mjs); downloading it at runtime`);
             if (process.env.VERCEL) env.cacheDir = '/tmp/transformers-cache';

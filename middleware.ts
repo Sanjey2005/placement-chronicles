@@ -4,7 +4,7 @@ import { globalApiRateLimit } from './lib/ratelimit';
 import { verifySession, SESSION_COOKIE } from './lib/session';
 
 // Public routes that don't require authentication (SEO: /about is crawlable)
-const publicRoutes = ['/login', '/about', '/api/auth', '/api/feedback', '/robots.txt', '/sitemap.xml'];
+const publicRoutes = ['/login', '/about', '/api/auth', '/api/feedback', '/api/health', '/robots.txt', '/sitemap.xml'];
 
 // Admin-only routes
 const adminRoutes = ['/admin'];

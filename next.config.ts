@@ -21,7 +21,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: Object.fromEntries(
     // full route ids: Next matches these keys as substrings, so '/api/experiences' alone would
     // also catch /api/experiences/[id]/helpful
-    ['/api/chat/route', '/api/experiences/route', '/api/admin/experiences/route'].map((route) => [route, ONNX_RUNTIME_FILES])
+    ['/api/chat/route', '/api/experiences/route', '/api/admin/experiences/route', '/api/health/route'].map((route) => [route, ONNX_RUNTIME_FILES])
   ),
   // Pages that merely import lib/vector get the model traced in too; only the three routes above
   // keep it (excludes don't filter includes). A stray transformers.js download cache never ships.
