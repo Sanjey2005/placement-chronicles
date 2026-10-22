@@ -26,6 +26,10 @@ When you're signed in, the site records which page you opened, roughly how long 
 - Each record carries a code that is derived one-way from your roll number and changes every day. It lets us count each student once per day without keeping a list of who visited, and visits can't be linked from one day to the next.
 - Records are deleted automatically after 13 months.
 
+### Helpful votes
+
+When you mark an experience as helpful, we store a one-way code instead of your roll number, so each student counts once and can take the vote back. Only the total is shown to anyone.
+
 ## How We Process Your Data with AI
 
 ### PDF Extraction

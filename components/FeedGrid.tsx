@@ -3,7 +3,8 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import CompanyCard from './CompanyCard';
-import CompanyView, { type ExperienceItem } from './company/CompanyView';
+import CompanyView, { type ExperienceItem, type Helpful } from './company/CompanyView';
+import { toast } from 'sonner';
 import { replaceSearchParams } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -36,6 +37,29 @@ export default function FeedGrid({ experiences, companies, batches, companyLinks
     const openCompany = (name: string) => {
         setSelectedCompany(name);
         rootRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    };
+
+    // Helpful votes live here so a vote survives switching companies
+    const [helpful, setHelpful] = useState<Record<string, Helpful>>(() =>
+        Object.fromEntries(experiences.map((e) => [String(e._id), { count: e.helpfulCount ?? 0, mine: !!e.helpfulByMe }]))
+    );
+    const toggleHelpful = async (id: string) => {
+        const before = helpful[id] ?? { count: 0, mine: false };
+        const wanted = !before.mine;
+        setHelpful((h) => ({ ...h, [id]: { count: Math.max(0, before.count + (wanted ? 1 : -1)), mine: wanted } })); // optimistic
+        try {
+            const res = await fetch(`/api/experiences/${id}/helpful`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ helpful: wanted }),
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) throw new Error(data.error || 'Could not save your vote');
+            setHelpful((h) => ({ ...h, [id]: { count: data.count, mine: data.helpful } }));
+        } catch (error) {
+            setHelpful((h) => ({ ...h, [id]: before }));
+            toast.error(error instanceof Error ? error.message : 'Could not save your vote');
+        }
     };
     const [currentPage, setCurrentPage] = useState(1);
     const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
@@ -313,6 +337,8 @@ export default function FeedGrid({ experiences, companies, batches, companyLinks
                     experiences={experiences.filter(e => e.company === selectedCompany)}
                     logoUrl={companyLinks[selectedCompany] || ''}
                     onBack={() => setSelectedCompany(null)}
+                    helpful={helpful}
+                    onHelpful={toggleHelpful}
                 />
             ) : (
                 /* Company Cards Grid */

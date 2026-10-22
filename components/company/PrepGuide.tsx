@@ -1,10 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ThumbsUp } from 'lucide-react';
 import { canonicalRoles, MIN_EVIDENCE, payLabel, type Guide, type QuestionGroup } from '@/lib/guide';
 import { cn } from '@/lib/utils';
-import type { CompanyExperience } from './CompanyView';
+import type { CompanyExperience, Helpful } from './CompanyView';
 
 const initials = (name: string) => {
     const words = name.replace(/[^A-Za-z ]/g, ' ').trim().split(/\s+/).filter(Boolean);
@@ -33,11 +33,13 @@ type Filter = (typeof FILTERS)[number];
 export default function PrepGuide({
     guide,
     items,
+    helpful,
     onOpen,
     onShowAll,
 }: {
     guide: Guide;
     items: CompanyExperience[];
+    helpful: Record<string, Helpful>;
     onOpen: (id: string) => void;
     onShowAll: () => void;
 }) {
@@ -52,8 +54,13 @@ export default function PrepGuide({
     const shownQuestions = allQuestions ? questions : questions.slice(0, 8);
     const topAsked = guide.questions.groups.find((q) => q.kind === 'interview' && q.students.length >= 2);
     const tipCount = guide.questions.groups.filter((q) => q.tips.length > 0).length;
-    const recent = [...items]
-        .sort((a, b) => (Number.parseInt(b.batch ?? '', 10) || 0) - (Number.parseInt(a.batch ?? '', 10) || 0) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    const accounts = [...items]
+        .sort(
+            (a, b) =>
+                (helpful[b.id]?.count ?? 0) - (helpful[a.id]?.count ?? 0) || // most helpful first
+                (Number.parseInt(b.batch ?? '', 10) || 0) - (Number.parseInt(a.batch ?? '', 10) || 0) ||
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
         .slice(0, 6);
 
     const [mainPay, otherPay] = guide.pay;
@@ -286,7 +293,7 @@ export default function PrepGuide({
                     </button>
                 </div>
                 <ul className="flex flex-wrap gap-3">
-                    {recent.map((e) => {
+                    {accounts.map((e) => {
                         const pay = payLabel(e.ctc, e.roleType);
                         return (
                             <li key={e.id} className="min-w-[260px] flex-1">
@@ -302,6 +309,13 @@ export default function PrepGuide({
                                     <span className="text-[13px] text-muted-foreground">
                                         {e.studentName?.trim() || 'Anonymous'}
                                         {e.batch ? ` · Batch ${e.batch}` : ''}
+                                        {(helpful[e.id]?.count ?? 0) > 0 && (
+                                            <span className="ml-2 inline-flex items-center gap-1">
+                                                <ThumbsUp className="h-3 w-3" aria-hidden />
+                                                {helpful[e.id].count}
+                                                <span className="sr-only"> found this helpful</span>
+                                            </span>
+                                        )}
                                     </span>
                                 </button>
                             </li>

@@ -1,11 +1,11 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import { ArrowDownUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowDownUp, ChevronLeft, ChevronRight, ThumbsUp } from 'lucide-react';
 import ExperienceDetail from './ExperienceDetail';
 import { canonicalRoles, formatMinutes, parseMinutes, payLabel, questionsOf, roundKind, type GuideRound } from '@/lib/guide';
 import { cn } from '@/lib/utils';
-import type { CompanyExperience } from './CompanyView';
+import type { CompanyExperience, Helpful } from './CompanyView';
 
 const batchNum = (b?: string) => Number.parseInt(b ?? '', 10) || 0;
 const time = (d?: string | Date) => (d ? new Date(d).getTime() || 0 : 0);
@@ -34,14 +34,18 @@ export default function ExperienceReader({
     items,
     selectedId,
     onSelect,
+    helpful,
+    onHelpful,
 }: {
     items: CompanyExperience[];
     selectedId: string | null;
     onSelect: (id: string) => void;
+    helpful: Record<string, Helpful>;
+    onHelpful: (id: string) => void;
 }) {
     const roleOf = useMemo(() => canonicalRoles(items.map((e) => e.role)), [items]);
     const [role, setRole] = useState<string | null>(null);
-    const [oldestFirst, setOldestFirst] = useState(false);
+    const [sort, setSort] = useState<'newest' | 'oldest' | 'helpful'>('newest');
     const [paneOpen, setPaneOpen] = useState(() => selectedId !== null);
     const paneRef = useRef<HTMLElement>(null);
 
@@ -55,11 +59,17 @@ export default function ExperienceReader({
         () =>
             items
                 .filter((e) => !role || roleOf.get(e.role) === role)
-                .sort((a, b) => (batchNum(b.batch) - batchNum(a.batch)) * (oldestFirst ? -1 : 1) || time(b.createdAt) - time(a.createdAt)),
-        [items, role, roleOf, oldestFirst]
+                .sort(
+                    (a, b) =>
+                        (sort === 'helpful' ? (helpful[b.id]?.count ?? 0) - (helpful[a.id]?.count ?? 0) : 0) ||
+                        (batchNum(b.batch) - batchNum(a.batch)) * (sort === 'oldest' ? -1 : 1) ||
+                        time(b.createdAt) - time(a.createdAt)
+                ),
+        [items, role, roleOf, sort, helpful]
     );
 
     const groups = useMemo(() => {
+        if (sort === 'helpful') return [{ batch: 'Most helpful first', rows: list }];
         const out: Array<{ batch: string; rows: CompanyExperience[] }> = [];
         for (const e of list) {
             const batch = e.batch || 'Batch not given';
@@ -67,7 +77,7 @@ export default function ExperienceReader({
             out.at(-1)!.rows.push(e);
         }
         return out;
-    }, [list]);
+    }, [list, sort]);
 
     const current = list.find((e) => e.id === selectedId) ?? list[0] ?? null;
     const index = current ? list.indexOf(current) : -1;
@@ -108,10 +118,15 @@ export default function ExperienceReader({
                             ))}
                         </>
                     )}
-                    <button type="button" onClick={() => setOldestFirst((v) => !v)} className={cn(chip(false), 'ml-auto')}>
+                    <label className={cn(chip(false), 'ml-auto cursor-pointer')}>
                         <ArrowDownUp className="h-3.5 w-3.5" aria-hidden />
-                        {oldestFirst ? 'Oldest batch first' : 'Newest batch first'}
-                    </button>
+                        <span className="sr-only">Sort experiences</span>
+                        <select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} className="cursor-pointer bg-transparent font-semibold outline-none">
+                            <option value="newest">Newest batch first</option>
+                            <option value="oldest">Oldest batch first</option>
+                            <option value="helpful">Most helpful</option>
+                        </select>
+                    </label>
                 </div>
                 {groups.map((g) => (
                     <div key={g.batch}>
@@ -142,7 +157,16 @@ export default function ExperienceReader({
                                                 {e.studentName?.trim() || 'Anonymous'}
                                                 {e.courseBranch ? ` · ${e.courseBranch}` : ''}
                                             </span>
-                                            <span className="font-mono text-[11px] uppercase tracking-wide text-outline">{meta(e)}</span>
+                                            <span className="flex items-center gap-2.5 font-mono text-[11px] uppercase tracking-wide text-outline">
+                                                <span>{meta(e)}</span>
+                                                {(helpful[e.id]?.count ?? 0) > 0 && (
+                                                    <span className="inline-flex items-center gap-1">
+                                                        <ThumbsUp className="h-3 w-3" aria-hidden />
+                                                        {helpful[e.id].count}
+                                                        <span className="sr-only"> found this helpful</span>
+                                                    </span>
+                                                )}
+                                            </span>
                                         </button>
                                     </li>
                                 );
@@ -165,7 +189,7 @@ export default function ExperienceReader({
                     )}
                 </div>
                 {current ? (
-                    <ExperienceDetail key={current.id} exp={current} role={roleOf.get(current.role) ?? current.role} position={index + 1} total={list.length} onPrev={prev} onNext={next} />
+                    <ExperienceDetail key={current.id} exp={current} role={roleOf.get(current.role) ?? current.role} position={index + 1} total={list.length} onPrev={prev} onNext={next} helpful={helpful[current.id]} onHelpful={() => onHelpful(current.id)} />
                 ) : (
                     <p className="p-8 text-center text-muted-foreground">No experiences match this filter.</p>
                 )}

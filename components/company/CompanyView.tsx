@@ -18,7 +18,10 @@ export type ExperienceItem = Pick<
     | 'roleType' | 'placementType' | 'verdict' | 'finalVerdict' | 'minCGPA'
     | 'historyOfBacklogs' | 'standingBacklogs' | 'resumeShortlisting'
     | 'rounds' | 'tags' | 'overallExperience' | 'tipsForJuniors' | 'createdAt'
-> & { _id?: { toString(): string } };
+> & { _id?: { toString(): string }; helpfulCount?: number; helpfulByMe?: boolean; isOwn?: boolean };
+
+/** One experience's helpful votes: the total, and whether this student is one of them. */
+export type Helpful = { count: number; mine: boolean };
 
 export type CompanyExperience = ExperienceItem & { id: string };
 
@@ -37,11 +40,15 @@ export default function CompanyView({
     experiences,
     logoUrl,
     onBack,
+    helpful,
+    onHelpful,
 }: {
     companyName: string;
     experiences: ExperienceItem[];
     logoUrl?: string;
     onBack: () => void;
+    helpful: Record<string, Helpful>;
+    onHelpful: (id: string) => void;
 }) {
     const params = useSearchParams();
     const rootRef = useRef<HTMLDivElement>(null);
@@ -106,9 +113,9 @@ export default function CompanyView({
             </header>
 
             {view === 'guide' && guide ? (
-                <PrepGuide guide={guide} items={items} onOpen={showReader} onShowAll={() => showReader(null)} />
+                <PrepGuide guide={guide} items={items} helpful={helpful} onOpen={showReader} onShowAll={() => showReader(null)} />
             ) : (
-                <ExperienceReader items={items} selectedId={selectedId} onSelect={setSelectedId} />
+                <ExperienceReader items={items} selectedId={selectedId} onSelect={setSelectedId} helpful={helpful} onHelpful={onHelpful} />
             )}
         </div>
     );

@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { ChevronDown, ChevronUp, Link2, Github, Youtube, HardDrive, Link as LinkIcon } from 'lucide-react';
+import { ChevronDown, ChevronUp, Link2, Github, Youtube, HardDrive, Link as LinkIcon, ThumbsUp } from 'lucide-react';
+import { useSession } from '@/components/Providers';
 import { getRound } from '@/lib/rounds';
 import { formatMinutes, parseMinutes, payLabel, questionsOf, roundKind, isInternship, type GuideRound } from '@/lib/guide';
 import { cn } from '@/lib/utils';
-import type { CompanyExperience } from './CompanyView';
+import type { CompanyExperience, Helpful } from './CompanyView';
 
 // Every field a round may carry. Rounds are Mongoose Mixed, so any subset can appear.
 type RoundFields = GuideRound & {
@@ -49,6 +50,8 @@ export default function ExperienceDetail({
     total,
     onPrev,
     onNext,
+    helpful,
+    onHelpful,
 }: {
     exp: CompanyExperience;
     role: string;
@@ -56,7 +59,11 @@ export default function ExperienceDetail({
     total: number;
     onPrev?: () => void;
     onNext?: () => void;
+    helpful?: Helpful;
+    onHelpful?: () => void;
 }) {
+    const { isAdmin } = useSession();
+    const canVote = !isAdmin && !exp.isOwn; // admins and the author see the count but don't vote
     const [openRounds, setOpenRounds] = useState<Set<number>>(new Set());
     const [fullStory, setFullStory] = useState(false);
     const rounds = (Array.isArray(exp.rounds) ? exp.rounds : []) as RoundFields[];
@@ -117,6 +124,7 @@ export default function ExperienceDetail({
                     <button type="button" onClick={onNext} disabled={!onNext} aria-label="Next experience" className={cn(navButton, 'hidden lg:inline-flex')}>
                         <ChevronDown className="h-[18px] w-[18px]" />
                     </button>
+                    <HelpfulButton helpful={helpful} onHelpful={onHelpful} canVote={canVote} />
                     <button type="button" onClick={copyLink} aria-label="Copy link to this experience" className={navButton}>
                         <Link2 className="h-[18px] w-[18px]" />
                     </button>
@@ -248,11 +256,48 @@ export default function ExperienceDetail({
                 </p>
             )}
 
+            {canVote && (
+                <div className="flex flex-wrap items-center gap-3 border-t border-hairline pt-5">
+                    <p className="text-[15px] font-semibold">Did this help you prepare?</p>
+                    <HelpfulButton helpful={helpful} onHelpful={onHelpful} canVote />
+                </div>
+            )}
+
             <p className="text-xs text-outline">
                 As submitted: backlog history {exp.historyOfBacklogs?.toLowerCase() ?? 'not given'}, standing backlogs {exp.standingBacklogs?.toLowerCase() ?? 'not given'}
                 {exp.resumeShortlisting ? ', resume shortlisting round' : ''}.
             </p>
         </div>
+    );
+}
+
+/** Marks an experience as helpful (one vote per student); shows the total. */
+function HelpfulButton({ helpful, onHelpful, canVote }: { helpful?: Helpful; onHelpful?: () => void; canVote: boolean }) {
+    const count = helpful?.count ?? 0;
+    if (!canVote) {
+        return count > 0 ? (
+            <span className="inline-flex h-10 items-center gap-1.5 px-1 text-sm text-muted-foreground">
+                <ThumbsUp className="h-4 w-4" aria-hidden />
+                {count} found this helpful
+            </span>
+        ) : null;
+    }
+    const on = !!helpful?.mine;
+    return (
+        <button
+            type="button"
+            onClick={onHelpful}
+            aria-pressed={on}
+            className={cn(
+                'inline-flex h-10 items-center gap-2 rounded-xl border px-3.5 text-sm font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+                on ? 'border-transparent bg-primary-fixed text-primary' : 'border-hairline text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground'
+            )}
+        >
+            <ThumbsUp className={cn('h-4 w-4', on && 'fill-current')} aria-hidden />
+            Helpful
+            {count > 0 && <span className="tabular-nums">{count}</span>}
+            {count > 0 && <span className="sr-only">{count === 1 ? 'student' : 'students'} found this helpful</span>}
+        </button>
     );
 }
 

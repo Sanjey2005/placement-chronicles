@@ -7,6 +7,7 @@ import AdminLog from '@/models/AdminLog';
 import { requireAdmin } from '@/lib/auth-check';
 import { moderateExperience } from '@/lib/moderation';
 import { rebuildChunksForExperience, deleteChunksForExperience } from '@/lib/chunks';
+import HelpfulVote from '@/models/HelpfulVote';
 
 // GET: Fetch experiences with optional status filter
 export async function GET(request: NextRequest) {
@@ -230,6 +231,7 @@ export async function DELETE(request: NextRequest) {
         // PERMANENT DELETE: Remove document immediately (no backups)
         await Experience.findByIdAndDelete(id);
         await deleteChunksForExperience(id);
+        await HelpfulVote.deleteMany({ experienceId: id });
 
         // Create admin log entry
         await AdminLog.create({

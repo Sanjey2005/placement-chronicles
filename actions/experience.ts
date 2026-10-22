@@ -6,6 +6,8 @@ import Experience, { IExperience } from '@/models/Experience';
 import Company from '@/models/Company';
 import { deleteChunksForExperience } from '@/lib/chunks';
 import { verifySession, SESSION_COOKIE } from '@/lib/session';
+import { helpfulVoterId } from '@/lib/helpful';
+import HelpfulVote from '@/models/HelpfulVote';
 
 /**
  * Server action to get all experiences
@@ -27,10 +29,24 @@ export async function getAllExperiences(): Promise<{
             .lean()
             .exec();
 
+        // Helpful votes: totals for everyone, plus which ones this student marked
+        const [totals, session] = await Promise.all([
+            HelpfulVote.aggregate<{ _id: unknown; n: number }>([{ $group: { _id: '$experienceId', n: { $sum: 1 } } }]),
+            verifySession((await cookies()).get(SESSION_COOKIE)?.value),
+        ]);
+        const helpfulCount = new Map(totals.map((t) => [String(t._id), t.n]));
+        const voterId = session?.role === 'user' ? helpfulVoterId(session.sub) : null;
+        const mine = new Set(
+            voterId ? (await HelpfulVote.find({ voterId }).select('experienceId').lean()).map((v) => String(v.experienceId)) : []
+        );
+
         // Serialize _id and handle serialization for client components
         const serializedExperiences = experiences.map(exp => ({
             ...exp,
             _id: String(exp._id),
+            helpfulCount: helpfulCount.get(String(exp._id)) ?? 0,
+            helpfulByMe: mine.has(String(exp._id)),
+            isOwn: session?.role === 'user' && exp.studentId === session.sub, // the author sees the count, not a vote button
             studentId: undefined, // Fix Data Leakage (remove PII — roll number)
             company: exp.company || '',
             role: exp.role || '',
@@ -150,6 +166,7 @@ export async function deleteExperience(id: string): Promise<{
 
         await Experience.findByIdAndDelete(id);
         await deleteChunksForExperience(id);
+        await HelpfulVote.deleteMany({ experienceId: id });
 
         revalidatePath('/');
 

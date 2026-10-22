@@ -12,6 +12,7 @@ import { escapeRegex, sanitizeObject } from '@/lib/sanitize';
 import { moderateExperience } from '@/lib/moderation';
 import { groqApiRateLimit } from '@/lib/ratelimit';
 import { batchBackupAndDelete } from '@/lib/backup';
+import HelpfulVote from '@/models/HelpfulVote';
 import { getSession } from '@/lib/auth-check';
 
 const MAX_DOCUMENTS = 5000;
@@ -242,6 +243,7 @@ export async function POST(request: NextRequest) {
                     const archivedData = await Experience.find({ status: 'ARCHIVED' }).lean();
                     const backedUpSuccessfully = await batchBackupAndDelete(archivedData);
                     if (backedUpSuccessfully) {
+                        await HelpfulVote.deleteMany({ experienceId: { $in: archivedData.map((e) => e._id) } });
                         await Experience.deleteMany({ status: 'ARCHIVED' });
                     }
                 }
