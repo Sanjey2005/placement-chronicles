@@ -43,23 +43,37 @@ export default function FeedGrid({ experiences, companies, batches, companyLinks
     const [helpful, setHelpful] = useState<Record<string, Helpful>>(() =>
         Object.fromEntries(experiences.map((e) => [String(e._id), { count: e.helpfulCount ?? 0, mine: !!e.helpfulByMe }]))
     );
-    const toggleHelpful = async (id: string) => {
+    // Per experience: the latest tap, what the server last confirmed, and the request queue
+    const lastTap = useRef<Record<string, number>>({});
+    const saved = useRef<Record<string, Helpful>>({});
+    const queue = useRef<Record<string, Promise<void>>>({});
+    const toggleHelpful = (id: string) => {
         const before = helpful[id] ?? { count: 0, mine: false };
+        saved.current[id] ??= before; // on the first tap nothing is optimistic yet, so this is the server's state
         const wanted = !before.mine;
+        const tap = (lastTap.current[id] = (lastTap.current[id] ?? 0) + 1);
         setHelpful((h) => ({ ...h, [id]: { count: Math.max(0, before.count + (wanted ? 1 : -1)), mine: wanted } })); // optimistic
-        try {
-            const res = await fetch(`/api/experiences/${id}/helpful`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ helpful: wanted }),
-            });
-            const data = await res.json();
-            if (!res.ok || !data.success) throw new Error(data.error || 'Could not save your vote');
-            setHelpful((h) => ({ ...h, [id]: { count: data.count, mine: data.helpful } }));
-        } catch (error) {
-            setHelpful((h) => ({ ...h, [id]: before }));
-            toast.error(error instanceof Error ? error.message : 'Could not save your vote');
-        }
+        // One request at a time per experience, so the server sees votes in order.
+        // A tap superseded while it waits is never sent: the PUT sets a state, so only the latest matters.
+        queue.current[id] = (queue.current[id] ?? Promise.resolve()).then(async () => {
+            if (tap !== lastTap.current[id]) return;
+            let failed = '';
+            try {
+                const res = await fetch(`/api/experiences/${id}/helpful`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ helpful: wanted }),
+                });
+                const data = await res.json().catch(() => null);
+                if (res.ok && data?.success) saved.current[id] = { count: data.count, mine: data.helpful };
+                else failed = data?.error || 'Could not save your vote';
+            } catch {
+                failed = 'Could not save your vote';
+            }
+            if (tap !== lastTap.current[id]) return; // a newer tap is queued behind this one
+            setHelpful((h) => ({ ...h, [id]: saved.current[id] })); // the reply, or a rollback to the last saved state
+            if (failed) toast.error(failed);
+        });
     };
     const [currentPage, setCurrentPage] = useState(1);
     const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);

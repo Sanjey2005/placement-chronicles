@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { ChevronDown, ChevronUp, Link2, Github, Youtube, HardDrive, Link as LinkIcon, ThumbsUp } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { ChevronDown, ChevronUp, Share2, Github, Youtube, HardDrive, Link as LinkIcon, ThumbsUp } from 'lucide-react';
 import { useSession } from '@/components/Providers';
 import { getRound } from '@/lib/rounds';
 import { formatMinutes, parseMinutes, payLabel, questionsOf, roundKind, isInternship, type GuideRound } from '@/lib/guide';
@@ -90,10 +91,19 @@ export default function ExperienceDetail({
             return next;
         });
 
-    const copyLink = async () => {
+    const share = async () => {
+        const url = window.location.href;
+        if (navigator.share) {
+            try {
+                await navigator.share({ title: `${exp.company} – ${exp.studentName?.trim() || 'Anonymous'}'s experience`, url });
+                return;
+            } catch (error) {
+                if (error instanceof DOMException && error.name === 'AbortError') return; // closed the share sheet
+            }
+        }
         try {
-            await navigator.clipboard.writeText(window.location.href);
-            toast.success('Link to this experience copied');
+            await navigator.clipboard.writeText(url);
+            toast.success('Link copied');
         } catch {
             toast.error('Could not copy the link');
         }
@@ -125,8 +135,8 @@ export default function ExperienceDetail({
                         <ChevronDown className="h-[18px] w-[18px]" />
                     </button>
                     <HelpfulButton helpful={helpful} onHelpful={onHelpful} canVote={canVote} />
-                    <button type="button" onClick={copyLink} aria-label="Copy link to this experience" className={navButton}>
-                        <Link2 className="h-[18px] w-[18px]" />
+                    <button type="button" onClick={share} aria-label="Share this experience" className={navButton}>
+                        <Share2 className="h-[18px] w-[18px]" />
                     </button>
                 </div>
             </header>
@@ -271,32 +281,95 @@ export default function ExperienceDetail({
     );
 }
 
-/** Marks an experience as helpful (one vote per student); shows the total. */
+const pill = 'inline-flex h-10 items-center gap-2 rounded-xl px-3.5 text-sm font-bold';
+const BURST = [0, 60, 120, 180, 240, 300]; // particle angles, degrees
+
+/** YouTube-style like: thumb + count, one vote per student. A like pops the thumb and rolls the number. */
 function HelpfulButton({ helpful, onHelpful, canVote }: { helpful?: Helpful; onHelpful?: () => void; canVote: boolean }) {
+    const reduce = useReducedMotion();
+    const [likes, setLikes] = useState(0); // bumps on each like; keys the pop so it replays
     const count = helpful?.count ?? 0;
-    if (!canVote) {
-        return count > 0 ? (
-            <span className="inline-flex h-10 items-center gap-1.5 px-1 text-sm text-muted-foreground">
-                <ThumbsUp className="h-4 w-4" aria-hidden />
-                {count} found this helpful
-            </span>
-        ) : null;
-    }
     const on = !!helpful?.mine;
+    const label = `${count} ${count === 1 ? 'student' : 'students'} found this helpful`;
+
+    if (!canVote) {
+        return (
+            <span className={cn(pill, 'px-1 text-muted-foreground')}>
+                <ThumbsUp className="h-4 w-4" aria-hidden />
+                <span className="tabular-nums" aria-hidden>
+                    {count}
+                </span>
+                <span className="sr-only">{label}</span>
+            </span>
+        );
+    }
+
+    const animate = !reduce;
     return (
         <button
             type="button"
-            onClick={onHelpful}
+            onClick={() => {
+                if (!on) setLikes((n) => n + 1);
+                onHelpful?.();
+            }}
             aria-pressed={on}
+            aria-label={`Mark as helpful, ${label}`}
             className={cn(
-                'inline-flex h-10 items-center gap-2 rounded-xl border px-3.5 text-sm font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+                pill,
+                'border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
                 on ? 'border-transparent bg-primary-fixed text-primary' : 'border-hairline text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground'
             )}
         >
-            <ThumbsUp className={cn('h-4 w-4', on && 'fill-current')} aria-hidden />
-            Helpful
-            {count > 0 && <span className="tabular-nums">{count}</span>}
-            {count > 0 && <span className="sr-only">{count === 1 ? 'student' : 'students'} found this helpful</span>}
+            <span className="relative inline-flex">
+                {animate && likes > 0 && on && (
+                    <span key={likes} className="pointer-events-none absolute inset-0" aria-hidden>
+                        <motion.span
+                            className="absolute inset-0 rounded-full border-2 border-primary"
+                            initial={{ scale: 0.5, opacity: 0.5 }}
+                            animate={{ scale: 2, opacity: 0 }}
+                            transition={{ duration: 0.45, ease: 'easeOut' }}
+                        />
+                        {BURST.map((deg) => (
+                            <motion.span
+                                key={deg}
+                                className="absolute left-1/2 top-1/2 -ml-[2px] -mt-[2px] h-1 w-1 rounded-full bg-primary"
+                                initial={{ x: 0, y: 0, opacity: 1 }}
+                                animate={{ x: Math.cos((deg * Math.PI) / 180) * 15, y: Math.sin((deg * Math.PI) / 180) * 15, opacity: 0 }}
+                                transition={{ duration: 0.5, ease: 'easeOut' }}
+                            />
+                        ))}
+                    </span>
+                )}
+                <motion.span
+                    key={animate ? likes : 0}
+                    className="inline-flex"
+                    animate={animate && likes > 0 && on ? { scale: [1, 1.35, 0.92, 1], rotate: [0, -16, -4, 0], y: [0, -2, 0, 0] } : undefined}
+                    transition={{ duration: 0.5, times: [0, 0.35, 0.7, 1], ease: 'easeOut' }}
+                >
+                    <ThumbsUp className={cn('h-4 w-4', on && 'fill-current')} aria-hidden />
+                </motion.span>
+            </span>
+            {/* Old number slides out, new one in: up on like, down on unlike. Both share one grid cell. */}
+            <span className="inline-grid min-w-[2ch] overflow-hidden tabular-nums" aria-hidden>
+                {animate ? (
+                    <AnimatePresence initial={false} custom={on ? 1 : -1}>
+                        <motion.span
+                            key={count}
+                            className="[grid-area:1/1]"
+                            custom={on ? 1 : -1}
+                            variants={{ enter: (d: number) => ({ y: `${d * 100}%` }), show: { y: 0 }, leave: (d: number) => ({ y: `${d * -100}%` }) }}
+                            initial="enter"
+                            animate="show"
+                            exit="leave"
+                            transition={{ duration: 0.3, ease: 'easeOut' }}
+                        >
+                            {count}
+                        </motion.span>
+                    </AnimatePresence>
+                ) : (
+                    count
+                )}
+            </span>
         </button>
     );
 }
