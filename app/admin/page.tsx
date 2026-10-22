@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import {
     BarChart3,
@@ -526,6 +527,13 @@ export default function AdminDashboard() {
                             <MessageSquare className="h-4 w-4" />
                             Feedbacks
                         </button>
+                        <Link
+                            href="/admin/analytics"
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all bg-surface-container border border-outline-variant text-muted-foreground hover:text-foreground hover:bg-surface-container-high"
+                        >
+                            <BarChart3 className="h-4 w-4" />
+                            Analytics
+                        </Link>
                     </div>
 
                     {/* ── Experiences Table Tab ──────────────────────────────── */}
