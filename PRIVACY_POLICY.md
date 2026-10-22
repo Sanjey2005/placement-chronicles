@@ -40,7 +40,7 @@ When you upload a PDF, the document text is:
 
 ### Chat / RAG
 When you ask a question in the chatbot:
-1. Your message is converted to a vector embedding via **Hugging Face** (sentence-transformers)
+1. Your message is converted to a vector embedding on our own server (the open all-MiniLM-L6-v2 model); the text is not sent to any embedding provider
 2. Relevant interview experiences are retrieved from our database
 3. Your question and the retrieved context are sent to **Groq (GPT-OSS)** for answer generation
 4. **We do not store chat messages** on our servers. To let you pick up where you left off, your current conversation is kept in your own browser (local storage) for 5 hours after your last message, or until you start a new chat or log out, whichever comes first. It is tied to your account, so someone else signing in on the same computer does not see it.
@@ -48,7 +48,6 @@ When you ask a question in the chatbot:
 ### Third-Party AI Providers
 We use the following external AI services to process data:
 - **Groq** (groq.com) — LLM inference for data extraction and chat
-- **Hugging Face** (huggingface.co) — Vector embeddings for semantic search
 
 Data sent to these providers is governed by their respective privacy policies. We send only the minimum data necessary (interview text excerpts, not personal identifiers) and do not opt into any training programs.
 

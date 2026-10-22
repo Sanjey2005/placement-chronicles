@@ -1,64 +1,51 @@
 /**
- * Vector utilities using Hugging Face Inference API.
- * Model: sentence-transformers/all-MiniLM-L6-v2 (384 dimensions)
- * Uses HUGGINGFACE_API_KEY from .env.local
+ * Vector utilities. Embeddings run in-process with transformers.js (ONNX), no API call:
+ * Xenova/all-MiniLM-L6-v2 is the ONNX export of sentence-transformers/all-MiniLM-L6-v2,
+ * and with the same 256-token truncation, mean pooling and L2 normalisation its
+ * vectors match the 384-d ones already stored (cosine 0.993 to 1.000 on 24 sampled chunks).
  */
 
-import { HfInference, InferenceClientProviderApiError } from '@huggingface/inference';
 import { formatCompensation } from './utils';
 
-const HF_API_KEY = process.env.HUGGINGFACE_API_KEY || '';
+const MODEL = 'Xenova/all-MiniLM-L6-v2';
+const MAX_TOKENS = 256; // sentence-transformers' max_seq_length for this model; the tokenizer would allow 512
 
-/**
- * Generate vector embedding using Hugging Face Inference SDK
- */
+type Embed = (text: string) => Promise<number[]>;
+let loading: Promise<Embed> | null = null;
+
+/** Loads the tokenizer and fp32 weights once per process; a failed load is retried next call. */
+function loadModel(): Promise<Embed> {
+    loading ??= (async (): Promise<Embed> => {
+        const { AutoModel, AutoTokenizer, env, mean_pooling } = await import('@huggingface/transformers');
+        // Vercel's filesystem is read-only except /tmp: the weights (~90 MB) download there once per cold start
+        if (process.env.VERCEL) env.cacheDir = '/tmp/transformers-cache';
+        const started = Date.now();
+        const [tokenizer, model] = await Promise.all([
+            AutoTokenizer.from_pretrained(MODEL),
+            AutoModel.from_pretrained(MODEL, { dtype: 'fp32' }),
+        ]);
+        console.log(`✅ Embedding model loaded in ${Date.now() - started}ms`);
+        return async (text) => {
+            const inputs = tokenizer(text, { truncation: true, max_length: MAX_TOKENS });
+            const { last_hidden_state } = await model(inputs);
+            return Array.from(mean_pooling(last_hidden_state, inputs.attention_mask).normalize(2, -1).data as Float32Array);
+        };
+    })();
+    loading.catch(() => {
+        loading = null;
+    });
+    return loading;
+}
+
+/** 384-d sentence embedding. Throws if the model can't load, so chat falls back to keyword search. */
 export async function getEmbedding(text: string): Promise<number[]> {
-    if (!HF_API_KEY) {
-        console.warn('⚠️ HUGGINGFACE_API_KEY not set, skipping embedding');
-        return [];
+    try {
+        const embed = await loadModel();
+        return await embed(text.substring(0, 2000));
+    } catch (error) {
+        console.error('❌ Embedding failed:', error instanceof Error ? error.message : String(error));
+        throw error;
     }
-
-    const hf = new HfInference(HF_API_KEY);
-
-    // The model tokenizer handles truncation internally.
-    // Pass up to 2000 chars to preserve detail from longer round descriptions.
-    const truncatedText = text.substring(0, 2000);
-
-    const maxRetries = 3;
-    let delay = 3000;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-            const result = await hf.featureExtraction({
-                model: 'sentence-transformers/all-MiniLM-L6-v2',
-                inputs: truncatedText,
-            });
-
-            // HF returns the embedding directly as an array of numbers or nested depending on input shape
-            const vector = Array.isArray(result) && Array.isArray(result[0]) ? result[0] : result;
-
-            if (!Array.isArray(vector) || vector.length === 0) {
-                throw new Error('Invalid embedding response format');
-            }
-
-            console.log(`✅ Embedding generated (${vector.length}d)`);
-            return vector as number[];
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            // A bad key or exhausted credits won't recover in seconds: fail now, so chat
-            // drops to keyword search instead of waiting ~9s on retries first
-            const hopeless = error instanceof InferenceClientProviderApiError && [401, 402].includes(error.httpResponse.status);
-            if (attempt === maxRetries || hopeless) {
-                console.error(`❌ Embedding failed${hopeless ? '' : ' after retries'}:`, message);
-                throw error;
-            }
-            console.log(`⚠️ Attempt ${attempt} failed: ${message}, retrying...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            delay *= 2;
-        }
-    }
-
-    throw new Error('Failed to generate embedding after retries');
 }
 
 /**

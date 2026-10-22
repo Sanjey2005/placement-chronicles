@@ -1,6 +1,7 @@
 // Rebuild all RAG chunks with real embeddings.
 // Run: node scripts/backfill-chunks.ts   (Node 22.6+/24 native type stripping)
-// Requires .env.local with MONGODB_URI and HUGGINGFACE_API_KEY.
+// Requires .env.local with MONGODB_URI. Embeddings run locally (lib/vector.ts); the first run
+// downloads the model weights (~90 MB) into the transformers.js cache.
 
 process.loadEnvFile('.env.local');
 
@@ -11,16 +12,11 @@ async function run() {
     const { rebuildChunksForExperience } = await import('../lib/chunks');
     const { default: mongoose } = await import('mongoose');
 
-    if (!process.env.HUGGINGFACE_API_KEY) {
-        throw new Error('HUGGINGFACE_API_KEY missing — backfill would store zero chunks');
-    }
-
     await dbConnect();
 
     // ponytail: full rebuild every run, one experience at a time. Each swap keeps
-    // the old chunks until the new ones have embedded, so a run with Hugging Face
-    // down changes nothing instead of emptying the chatbot. Make incremental if the
-    // corpus ever outgrows HF rate limits.
+    // the old chunks until the new ones have embedded, so a run where the model
+    // can't load changes nothing instead of emptying the chatbot.
     const experiences = await Experience.find({ status: 'APPROVED' }).lean();
 
     // Chunks of experiences that are no longer approved (or are gone) are orphans
@@ -35,7 +31,6 @@ async function run() {
         if (result.status === 'replaced') totalChunks += result.chunks;
         else skipped++;
         console.log(`[${i + 1}/${experiences.length}] ${exp.company}: ${result.status === 'replaced' ? `${result.chunks} chunks` : `skipped, old chunks kept (${result.reason})`}`);
-        await new Promise(r => setTimeout(r, 300)); // HF rate-limit spacing
     }
 
     console.log(`Done: ${totalChunks} chunks across ${experiences.length - skipped} experiences, ${skipped} skipped`);

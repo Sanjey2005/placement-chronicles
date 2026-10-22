@@ -247,8 +247,11 @@ For keywords: the words a student's write-up would use for what is asked, with a
 
             console.log(`📦 Vector candidates found: ${candidateChunks.length} (filter: ${JSON.stringify(vectorFilter)})`);
 
-            // MiniLM cosine scores cluster narrowly; 0.30 admits noise
-            const SIMILARITY_THRESHOLD = 0.45;
+            // MiniLM cosine scores cluster narrowly; 0.30 admits noise. A broad question
+            // matches each company's write-ups loosely (a DSA question puts ~8 chunks over
+            // 0.45 but ~28 companies over 0.35), and the spread below still takes each
+            // company's best, so it gets the wider bar.
+            const SIMILARITY_THRESHOLD = broad ? 0.35 : 0.45;
 
             ranked = candidateChunks
                 .map((chunk): ScoredChunk => {

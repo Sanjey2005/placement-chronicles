@@ -1,8 +1,26 @@
 import type { NextConfig } from "next";
 
+const ONNX_RUNTIME_FILES = [
+  'node_modules/onnxruntime-node/package.json',
+  'node_modules/onnxruntime-node/dist/**',
+  'node_modules/onnxruntime-node/bin/napi-v6/linux/x64/libonnxruntime.so.1',
+  'node_modules/onnxruntime-node/bin/napi-v6/linux/x64/libonnxruntime_providers_shared.so',
+  'node_modules/onnxruntime-node/bin/napi-v6/linux/x64/onnxruntime_binding.node',
+  'node_modules/onnxruntime-common/**',
+];
+
 const nextConfig: NextConfig = {
   /* config options here */
-  serverExternalPackages: ['pdf-parse'],
+  // transformers.js runs the embedding model in-process through onnxruntime-node's native binary
+  serverExternalPackages: ['pdf-parse', '@huggingface/transformers', 'onnxruntime-node'],
+  // transformers.js requires onnxruntime-node in a way the tracer can't follow, so the routes that
+  // embed list it explicitly: its JS plus only the linux-x64 CPU runtime (~46 MB), not the other
+  // platforms or the 272 MB CUDA provider (Hobby caps a function at 250 MB).
+  outputFileTracingIncludes: Object.fromEntries(
+    ['/api/chat', '/api/experiences', '/api/admin/experiences'].map((route) => [route, ONNX_RUNTIME_FILES])
+  ),
+  // A local model cache inside node_modules must not ride along; Vercel downloads to /tmp
+  outputFileTracingExcludes: { '*': ['node_modules/@huggingface/transformers/.cache/**'] },
   reactStrictMode: true,
   async headers() {
     return [
