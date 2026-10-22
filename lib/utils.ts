@@ -80,3 +80,16 @@ export function relativeTime(date: string | Date | undefined): string | null {
   }
   return rtf.format(0, 'minute');
 }
+
+/**
+ * Update query params in place, without a navigation or a server round trip
+ * (Next's router picks up history.replaceState). Client-only.
+ */
+export function replaceSearchParams(updates: Record<string, string | null | undefined>) {
+    const url = new URL(window.location.href);
+    for (const [key, value] of Object.entries(updates)) {
+        if (value) url.searchParams.set(key, value);
+        else url.searchParams.delete(key);
+    }
+    if (url.href !== window.location.href) window.history.replaceState(window.history.state, '', url);
+}

@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import CompanyCard from './CompanyCard';
-import CompanyDetailPanel, { type ExperienceItem } from './CompanyDetailPanel';
+import CompanyView, { type ExperienceItem } from './company/CompanyView';
+import { replaceSearchParams } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Combobox } from '@/components/ui/combobox';
@@ -18,7 +20,23 @@ interface FeedGridProps {
 }
 
 export default function FeedGrid({ experiences, companies, batches, companyLinks }: FeedGridProps) {
-    const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+    const searchParams = useSearchParams();
+    const rootRef = useRef<HTMLDivElement>(null);
+    // A shared link (?company=…) opens straight onto that company
+    const [selectedCompany, setSelectedCompany] = useState<string | null>(() => {
+        const name = searchParams.get('company');
+        return name && experiences.some((e) => e.company === name) ? name : null;
+    });
+
+    // Mirror the open company into the address bar (an external system), so refresh and sharing keep it
+    useEffect(() => {
+        replaceSearchParams(selectedCompany ? { company: selectedCompany } : { company: null, view: null, exp: null });
+    }, [selectedCompany]);
+
+    const openCompany = (name: string) => {
+        setSelectedCompany(name);
+        rootRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    };
     const [currentPage, setCurrentPage] = useState(1);
     const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
     const ITEMS_PER_PAGE = 12;
@@ -121,7 +139,7 @@ export default function FeedGrid({ experiences, companies, batches, companyLinks
     const paginatedGroups = companyGroups.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
     return (
-        <div className="space-y-6">
+        <div ref={rootRef} className="space-y-6 scroll-mt-24">
             {/* Filter Bars - Hidden when a company is selected */}
             {!selectedCompany && (
                 <>
@@ -287,10 +305,12 @@ export default function FeedGrid({ experiences, companies, batches, companyLinks
 
             {/* Main Content */}
             {selectedCompany ? (
-                /* Expanded Company Detail View */
-                <CompanyDetailPanel
+                /* Company view: prep guide + reader. It gets every experience for the
+                   company, not just those the home filters left, so the guide counts all of them. */
+                <CompanyView
+                    key={selectedCompany}
                     companyName={selectedCompany}
-                    experiences={filteredExperiences.filter(e => e.company === selectedCompany)}
+                    experiences={experiences.filter(e => e.company === selectedCompany)}
                     logoUrl={companyLinks[selectedCompany] || ''}
                     onBack={() => setSelectedCompany(null)}
                 />
@@ -313,7 +333,7 @@ export default function FeedGrid({ experiences, companies, batches, companyLinks
                                         companyName={companyName}
                                         experiences={exps}
                                         logoUrl={companyLinks[companyName] || ''}
-                                        onClick={() => setSelectedCompany(companyName)}
+                                        onClick={() => openCompany(companyName)}
                                         index={index}
                                     />
                                 ))}
