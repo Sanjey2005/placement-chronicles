@@ -2,8 +2,13 @@ import { timingSafeEqual } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { loginIpRateLimit, loginRateLimit, retryAfterSeconds } from '@/lib/ratelimit';
 
-const ECAMPUS_LOGIN_URL = 'https://ecampus.psgtech.ac.in/studzone/Login/StudLogin';
-const ECAMPUS_POST_URL = 'https://ecampus.psgtech.ac.in/studzone';
+const ECAMPUS_ORIGIN = 'https://ecampus.psgtech.ac.in';
+const ECAMPUS_LOGIN_URL = `${ECAMPUS_ORIGIN}/studzone/Login/StudLogin`;
+const ECAMPUS_POST_URL = `${ECAMPUS_ORIGIN}/studzone`;
+const BROWSER_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+};
 
 /** Constant-time string compare; a length mismatch is simply false. */
 function safeEqual(a: string, b: string): boolean {
@@ -31,7 +36,9 @@ function invalidCredentials() {
  *  0. Rate limit per roll number and per client IP (fails open without Redis)
  *  1. GET login page → extract __RequestVerificationToken + cookies
  *  2. POST credentials with the token
- *  3. Success = 302 redirect to /studzone/Home/Menu
+ *  3. 302 redirect into /studzone/Home or /studzone/Default means eCampus accepted them
+ *  4. GET that target with the session cookies; only a 200 that doesn't bounce to the
+ *     login form counts as a real student (the 302 alone was easy to mistake)
  *
  * Manual check: six rapid wrong-password POSTs to
  * http://localhost:3000/api/auth/login with the same rollno — the sixth is 429.
@@ -85,10 +92,7 @@ export async function POST(request: NextRequest) {
         // ── Step 1: GET the login page ──────────────────────────────
         const loginPageRes = await fetch(ECAMPUS_LOGIN_URL, {
             method: 'GET',
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            },
+            headers: BROWSER_HEADERS,
             cache: 'no-store',
             redirect: 'follow',
             signal: AbortSignal.timeout(20000), // Increased to 20s
@@ -119,11 +123,17 @@ export async function POST(request: NextRequest) {
 
         const verificationToken = tokenMatch[1];
 
-        // Collect cookies from the GET response
-        const setCookieHeaders = loginPageRes.headers.getSetCookie?.() ?? [];
-        const cookieString = setCookieHeaders
-            .map((c: string) => c.split(';')[0])
-            .join('; ');
+        // Cookie jar across the three eCampus requests; a later Set-Cookie wins by name.
+        const cookieJar = new Map<string, string>();
+        const storeCookies = (headers: Headers) => {
+            for (const c of headers.getSetCookie?.() ?? []) {
+                const pair = c.split(';')[0];
+                const eq = pair.indexOf('=');
+                cookieJar.set(eq === -1 ? pair : pair.slice(0, eq), pair);
+            }
+        };
+        const cookieHeader = () => [...cookieJar.values()].join('; ');
+        storeCookies(loginPageRes.headers);
 
         // ── Step 2: POST credentials ────────────────────────────────
         const formBody = new URLSearchParams({
@@ -136,38 +146,57 @@ export async function POST(request: NextRequest) {
         const loginRes = await fetch(ECAMPUS_POST_URL, {
             method: 'POST',
             headers: {
+                ...BROWSER_HEADERS,
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
                 'Referer': ECAMPUS_LOGIN_URL,
-                'Origin': 'https://ecampus.psgtech.ac.in',
-                'Cookie': cookieString,
+                'Origin': ECAMPUS_ORIGIN,
+                'Cookie': cookieHeader(),
             },
             body: formBody.toString(),
             redirect: 'manual',
             signal: AbortSignal.timeout(20000), // Increased to 20s
         });
 
-        // ── Step 3: Detect success ──────────────────────────────────
+        // ── Step 3: Did eCampus accept the credentials? ─────────────
         const status = loginRes.status;
         const location = loginRes.headers.get('location') || '';
 
         // Successful login usually redirects to /studzone/Home/Menu
         // But we allow anything starting with /studzone/ as a success if it's a 302
-        if (status === 302 && (location.includes('/studzone/Home') || location.includes('/studzone/Default'))) {
-            await clearAttempts();
-            return NextResponse.json({
-                success: true,
-                message: 'Login successful',
-                role: 'USER',
-            });
+        if (status !== 302 || !(location.includes('/studzone/Home') || location.includes('/studzone/Default'))) {
+            // Redirect back to the login form, a 200 re-render with eCampus's own
+            // validation text, a forced password change — all reported identically.
+            // Never echo eCampus's error text: it told callers whether the roll
+            // number existed.
+            return invalidCredentials();
         }
 
-        // Anything else — redirect back to the login form, a 200 re-render with
-        // eCampus's own validation text, a forced password change — is reported
-        // identically. Never echo eCampus's error text: it told callers whether
-        // the roll number existed.
-        return invalidCredentials();
+        // ── Step 4: Confirm the session actually opens the student zone ──
+        storeCookies(loginRes.headers);
+        const target = new URL(location, ECAMPUS_ORIGIN);
+        if (target.origin !== ECAMPUS_ORIGIN) {
+            return invalidCredentials(); // never send the session cookies elsewhere
+        }
+
+        const homeRes = await fetch(target, {
+            method: 'GET',
+            headers: { ...BROWSER_HEADERS, 'Cookie': cookieHeader() },
+            cache: 'no-store',
+            redirect: 'manual',
+            signal: AbortSignal.timeout(20000),
+        });
+        const homeLocation = homeRes.headers.get('location') || '';
+
+        if (homeRes.status !== 200 || homeLocation.includes('Login/StudLogin')) {
+            return invalidCredentials();
+        }
+
+        await clearAttempts();
+        return NextResponse.json({
+            success: true,
+            message: 'Login successful',
+            role: 'USER',
+        });
 
     } catch (error) {
         const name = error instanceof Error ? error.name : '';
