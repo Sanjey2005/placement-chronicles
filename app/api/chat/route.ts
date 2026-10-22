@@ -8,6 +8,7 @@ import Company from '@/models/Company';
 import { getEmbedding, cosineSimilarity } from '@/lib/vector';
 import { chatRateLimiter } from '@/lib/redis';
 import { stripHtmlTags } from '@/lib/sanitize';
+import { formatCompensation } from '@/lib/utils';
 
 // Initialize Groq client
 const groq = new Groq({
@@ -330,7 +331,8 @@ For roleType/verdict/topic: only set a value if it is explicit in the question o
                     `Role: ${(m.roleType || '').replace('_', ' ')}`,
                 ];
                 if (m.verdict) headerParts.push(`Outcome: ${m.verdict}`);
-                if (m.ctc) headerParts.push(`CTC: ${m.ctc} LPA`);
+                // Internships store a monthly stipend, full-time roles LPA
+                if (m.ctc) headerParts.push(`CTC: ₹${formatCompensation(m.ctc, m.roleType)}`);
                 if (m.batch) headerParts.push(`Batch: ${m.batch}`);
                 if (m.workModel) headerParts.push(`Work Model: ${(m.workModel || '').replace('_', ' ')}`);
                 if (m.placementType) headerParts.push(`Type: ${(m.placementType || '').replace('_', ' ')}`);
