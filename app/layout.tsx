@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/next";
 import DisclaimerModal from "@/components/DisclaimerModal";
 import Providers from "@/components/Providers";
+import PageViewTracker from "@/components/PageViewTracker";
 import { cookies } from "next/headers";
 import { verifySession, SESSION_COOKIE } from "@/lib/session";
 
@@ -137,6 +138,7 @@ export default async function RootLayout({
             <DisclaimerModal />
           </Suspense>
           <Toaster />
+          <PageViewTracker />
         </Providers>
         <Analytics />
       </body>

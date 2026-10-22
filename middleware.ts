@@ -15,7 +15,10 @@ export async function middleware(request: NextRequest) {
 
     // --- GENERIC API RATE LIMITING (Upstash Redis) ---
     console.log('Middleware Path:', pathname, 'HasRateLimit:', !!globalApiRateLimit);
-    if (pathname.startsWith('/api') && globalApiRateLimit) {
+    // /api/pv is exempt: every open tab sends a heartbeat a minute, and a classroom
+    // on one campus IP would otherwise use up the budget the real API calls share.
+    // It needs a valid session and caps views per student per day itself.
+    if (pathname.startsWith('/api') && pathname !== '/api/pv' && globalApiRateLimit) {
         const ip = request.headers.get('x-real-ip') || request.headers.get('x-forwarded-for') || '127.0.0.1';
         try {
             const { success } = await globalApiRateLimit.limit(ip);

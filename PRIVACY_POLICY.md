@@ -18,6 +18,14 @@ When you use Placement Chronicles, we collect the following types of information
 - Passwords (institutional credentials are verified against PSG eCampus servers and never stored)
 - Biometric or location data
 
+### Visit statistics
+
+When you're signed in, the site records which page you opened, roughly how long you stayed, the kind of device and browser you used, an approximate location (from your internet connection), and the site that sent you, if any. This powers an admin-only page that shows how many students use the site.
+
+- Your roll number and IP address are **not stored** with these records.
+- Each record carries a code that is derived one-way from your roll number and changes every day. It lets us count each student once per day without keeping a list of who visited, and visits can't be linked from one day to the next.
+- Records are deleted automatically after 13 months.
+
 ## How We Process Your Data with AI
 
 ### PDF Extraction
