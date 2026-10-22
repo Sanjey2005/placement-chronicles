@@ -86,6 +86,6 @@ assert.equal(thin.duration, null);
 assert.deepEqual(thin.timeline, []);
 assert.equal(thin.headline, null);
 assert.equal(thin.quote, null);
-assert.equal(g.GUIDE_MIN, 5);
+assert.equal(g.GUIDE_MIN, 3);
 
 console.log('guide.test.mjs: all assertions passed');

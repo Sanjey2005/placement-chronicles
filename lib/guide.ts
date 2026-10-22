@@ -7,8 +7,12 @@
 // The share form pre-fills those, so an untouched default is indistinguishable
 // from a real answer.
 
-/** Below this many experiences the patterns are anecdotes, so the company page opens on the Reader. */
-export const GUIDE_MIN = 5;
+/**
+ * Below this many experiences the company page opens on the Reader. At the low
+ * end the guide stays honest through MIN_EVIDENCE: a section with too little
+ * behind it is hidden rather than shown as a pattern.
+ */
+export const GUIDE_MIN = 3;
 
 /** No figure, topic, theme or trend is shown unless at least this many students back it. */
 export const MIN_EVIDENCE = 2;
@@ -247,6 +251,12 @@ const TOPIC_NAMES: Record<string, string> = {
     oop: 'OOP',
     mcq: 'MCQs',
     mcqs: 'MCQs',
+    ml: 'Machine Learning',
+    dl: 'Deep Learning',
+    nlp: 'NLP',
+    ai: 'AI',
+    pyspark: 'PySpark',
+    javascript: 'JavaScript',
 };
 
 const SKIP_TOPICS = new Set(['etc', 'and', 'others', 'other', 'essay', 'essay writing', 'aptitude', 'mcq', 'mcqs']);
