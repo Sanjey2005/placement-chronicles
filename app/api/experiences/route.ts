@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import dbConnect from '@/lib/db';
 import Experience, { type IExperience } from '@/models/Experience';
 import type { FilterQuery } from 'mongoose';
@@ -250,15 +250,8 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // Generate searchable text and try embedding (non-blocking)
+        // Searchable text; its embedding is computed after the response (below)
         const searchText = generateSearchText(validatedData);
-        let embedding: number[] | null = null;
-        try {
-            embedding = await getEmbedding(searchText);
-            if (embedding.length === 0) embedding = null;
-        } catch (embeddingError) {
-            // Silently fail, embedding isn't required to save initially
-        }
 
         // Derive legacy verdict field from finalVerdict
         // Default to ACCEPTED if selected, otherwise REJECTED if rejected.
@@ -288,7 +281,6 @@ export async function POST(request: NextRequest) {
             finalVerdict: validatedData.finalVerdict,
             tipsForJuniors: validatedData.tipsForJuniors,
             overallExperience: validatedData.overallExperience,
-            ...(embedding && { embedding }),
             tags: validatedData.tags || [],
             year: validatedData.year || new Date().getFullYear(),
             status, // Enforced locally, cannot be overridden by user
@@ -297,16 +289,24 @@ export async function POST(request: NextRequest) {
 
         const savedExperience = await experience.save();
 
-        // ── RAG chunks: auto-approved submissions enter the corpus now ──
-        // Non-blocking: an HF outage must never fail the submission; a
-        // backfill rerun recovers any missed chunks.
-        if (status === 'APPROVED') {
+        // ── Embeddings after the response: the student never waits on the model ──
+        // after() runs once the response is sent (waitUntil on Vercel). A failed or
+        // slow rebuild keeps any old chunks; a backfill rerun recovers missed ones.
+        after(async () => {
             try {
-                await rebuildChunksForExperience(savedExperience);
-            } catch (chunkError) {
-                console.error('Chunk creation failed (recover via backfill):', chunkError);
+                const embedding = await getEmbedding(searchText);
+                if (embedding.length) await Experience.updateOne({ _id: savedExperience._id }, { embedding });
+            } catch (embeddingError) {
+                console.error('Experience embedding failed (saved without it):', embeddingError);
             }
-        }
+            if (status === 'APPROVED') {
+                try {
+                    await rebuildChunksForExperience(savedExperience);
+                } catch (chunkError) {
+                    console.error('Chunk creation failed (recover via backfill):', chunkError);
+                }
+            }
+        });
 
         // ── Activity Log: Record submission + moderation outcome ──
         try {

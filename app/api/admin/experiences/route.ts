@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import type { FilterQuery } from 'mongoose';
 import dbConnect from '@/lib/db';
 import Experience, { type IExperience } from '@/models/Experience';
@@ -168,17 +168,20 @@ export async function PATCH(request: NextRequest) {
 
         // ── RAG chunks: approved experiences enter the corpus, others leave ──
         // Re-fetch after the normalization block so chunks carry the canonical
-        // company name. Non-blocking so moderation never fails on an HF outage.
-        try {
-            if (newStatus === 'APPROVED') {
-                const fresh = await Experience.findById(id).lean();
-                if (fresh) await rebuildChunksForExperience(fresh);
-            } else {
-                await deleteChunksForExperience(id);
+        // company name. Runs after the response (waitUntil on Vercel), so approving
+        // never waits on the embedding model; a failed rebuild keeps the old chunks.
+        after(async () => {
+            try {
+                if (newStatus === 'APPROVED') {
+                    const fresh = await Experience.findById(id).lean();
+                    if (fresh) await rebuildChunksForExperience(fresh);
+                } else {
+                    await deleteChunksForExperience(id);
+                }
+            } catch (chunkError) {
+                console.error('Chunk sync failed (recover via backfill):', chunkError);
             }
-        } catch (chunkError) {
-            console.error('Chunk sync failed (recover via backfill):', chunkError);
-        }
+        });
 
         // Create admin log entry
         await AdminLog.create({

@@ -5,6 +5,8 @@
  * vectors match the 384-d ones already stored (cosine 0.993 to 1.000 on 24 sampled chunks).
  */
 
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { formatCompensation } from './utils';
 
 const MODEL = 'Xenova/all-MiniLM-L6-v2';
@@ -13,12 +15,23 @@ const MAX_TOKENS = 256; // sentence-transformers' max_seq_length for this model;
 type Embed = (text: string) => Promise<number[]>;
 let loading: Promise<Embed> | null = null;
 
-/** Loads the tokenizer and fp32 weights once per process; a failed load is retried next call. */
-function loadModel(): Promise<Embed> {
+// scripts/fetch-model.mjs puts the files here at build time, and next.config.ts ships them with the routes
+const LOCAL_MODELS = join(process.cwd(), '.model-cache');
+
+/**
+ * Loads the tokenizer and fp32 weights once per process; a failed load is retried next call.
+ * Call it early (chat does) so the load overlaps other work.
+ */
+export function loadModel(): Promise<Embed> {
     loading ??= (async (): Promise<Embed> => {
         const { AutoModel, AutoTokenizer, env, mean_pooling } = await import('@huggingface/transformers');
-        // Vercel's filesystem is read-only except /tmp: the weights (~90 MB) download there once per cold start
-        if (process.env.VERCEL) env.cacheDir = '/tmp/transformers-cache';
+        env.localModelPath = LOCAL_MODELS;
+        // Bundled files are the normal path; without them, download (to /tmp on Vercel's read-only disk)
+        env.allowRemoteModels = !existsSync(join(LOCAL_MODELS, MODEL, 'onnx', 'model.onnx'));
+        if (env.allowRemoteModels) {
+            console.warn(`⚠️ ${MODEL} is not bundled (run scripts/fetch-model.mjs); downloading it at runtime`);
+            if (process.env.VERCEL) env.cacheDir = '/tmp/transformers-cache';
+        }
         const started = Date.now();
         const [tokenizer, model] = await Promise.all([
             AutoTokenizer.from_pretrained(MODEL),

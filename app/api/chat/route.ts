@@ -5,7 +5,7 @@ import dbConnect from '@/lib/db';
 import type { FilterQuery, Types } from 'mongoose';
 import ExperienceChunk, { type IExperienceChunk } from '@/models/ExperienceChunk';
 import Company from '@/models/Company';
-import { getEmbedding, cosineSimilarity } from '@/lib/vector';
+import { getEmbedding, cosineSimilarity, loadModel } from '@/lib/vector';
 import { chatRateLimiter } from '@/lib/redis';
 import { stripHtmlTags } from '@/lib/sanitize';
 import { formatCompensation } from '@/lib/utils';
@@ -118,6 +118,11 @@ export async function POST(request: NextRequest) {
                 );
             }
         }
+
+        // Start loading the embedding model now (a no-op once warm), so after an idle spell it
+        // loads while the DB connects and the extractor runs; getEmbedding awaits the same load.
+        // A failure surfaces there and drops chat to keyword search.
+        loadModel().catch(() => {});
 
         // Connect to database
         await dbConnect();
