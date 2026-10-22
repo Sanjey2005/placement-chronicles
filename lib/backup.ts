@@ -5,7 +5,7 @@ import nodemailer from 'nodemailer';
  * @param experiences Array of soft-deleted experience documents
  * @returns boolean indicating success or failure of the email dispatch
  */
-export async function batchBackupAndDelete(experiences: any[]): Promise<boolean> {
+export async function batchBackupAndDelete(experiences: unknown[]): Promise<boolean> {
     const user = process.env.EMAIL_USER;
     const pass = process.env.EMAIL_APP_PASSWORD;
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ExperienceFormData, experienceFormSchema } from '@/lib/schemas/experience-schema';
@@ -27,6 +27,20 @@ interface ExperienceWizardProps {
     initialData?: Partial<ExperienceFormData>;
 }
 
+// A round as /api/ingest returns it: untyped JSON, every field may be missing.
+interface RawRound {
+    type?: string;
+    roundNumber?: number;
+    topics?: string;
+    questions?: Array<string | { question?: string; answerTip?: string }>;
+    studySources?: string;
+    problemStatement?: string;
+    strategy?: string;
+    interviewType?: string;
+    notes?: string;
+    duration?: string;
+}
+
 export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWizardProps) {
     const [currentStep, setCurrentStep] = useState(1);
     const [isUploading, setIsUploading] = useState(false);
@@ -35,7 +49,8 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
     const [isFinalSubmitting, setIsFinalSubmitting] = useState(false);
 
     const form = useForm<ExperienceFormData>({
-        resolver: zodResolver(experienceFormSchema) as any,
+        // Zod defaults make the schema's input type looser than its output; the form is typed on the output.
+        resolver: zodResolver(experienceFormSchema) as Resolver<ExperienceFormData>,
         defaultValues: initialData || {
             studentName: '',
             company: '',
@@ -139,13 +154,13 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
 
                 // Normalize rounds based on discriminated union type
                 const normalizedRounds = Array.isArray(apiData.rounds)
-                    ? apiData.rounds.map((round: any) => {
+                    ? apiData.rounds.map((round: RawRound) => {
                         if (round.type === 'test') {
                             return {
                                 type: 'test' as const,
                                 roundNumber: round.roundNumber || 1,
                                 topics: round.topics || '',
-                                questions: Array.isArray(round.questions) ? round.questions.map((q: any) => ({
+                                questions: Array.isArray(round.questions) ? round.questions.map((q) => ({
                                     question: typeof q === 'string' ? q : q.question || '',
                                     answerTip: typeof q === 'string' ? '' : q.answerTip || '',
                                 })) : [],
@@ -271,9 +286,9 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
             setPendingData(null);
             setIsDisclaimerOpen(false);
             localStorage.removeItem('experience-form-draft'); // Clear cache on success
-        } catch (error: any) {
+        } catch (error) {
             console.error('Submit error:', error);
-            const errorMsg = error.message || '';
+            const errorMsg = error instanceof Error ? error.message : String(error);
             if (errorMsg.includes('429') || errorMsg.toLowerCase().includes('capacity')) {
                 toast.error('High traffic: Please try again in a minute.', { duration: 5000 });
                 toast.info("Don't worry, your data is safely saved on your device for 1 hour!", { duration: 7000 });
@@ -466,12 +481,13 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                             <ul className="mt-2 text-sm text-on-error-container/80 list-disc list-inside space-y-1">
                                 {Object.entries(errors).flatMap(([key, error]) => {
                                     // Helper function to safely extract messages from any nested error structure
-                                    const extractMessages = (errObj: any, prefix = ''): React.ReactNode[] => {
+                                    const extractMessages = (errObj: unknown, prefix = ''): React.ReactNode[] => {
                                         if (!errObj) return [];
 
                                         // Base case: we found a concrete string message
                                         if (typeof errObj === 'string') return [errObj];
-                                        if (errObj.message && typeof errObj.message === 'string') {
+                                        if (typeof errObj !== 'object') return [];
+                                        if ('message' in errObj && typeof errObj.message === 'string' && errObj.message) {
                                             return [`${prefix ? prefix + ': ' : ''}${errObj.message}`];
                                         }
 
@@ -483,13 +499,9 @@ export default function ExperienceWizard({ onSubmit, initialData }: ExperienceWi
                                         }
 
                                         // Recursive case: Nested object (like a specific round object)
-                                        if (typeof errObj === 'object') {
-                                            return Object.entries(errObj).flatMap(([childKey, childErr]) =>
-                                                extractMessages(childErr, `${prefix} (${childKey})`.trim())
-                                            );
-                                        }
-
-                                        return [];
+                                        return Object.entries(errObj).flatMap(([childKey, childErr]) =>
+                                            extractMessages(childErr, `${prefix} (${childKey})`.trim())
+                                        );
                                     };
 
                                     // For 'rounds', let's make the prefix cleaner

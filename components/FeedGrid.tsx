@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import CompanyCard from './CompanyCard';
-import CompanyDetailPanel from './CompanyDetailPanel';
+import CompanyDetailPanel, { type ExperienceItem } from './CompanyDetailPanel';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Combobox } from '@/components/ui/combobox';
@@ -11,7 +11,7 @@ import { Filter, X } from 'lucide-react';
 const emptyDraft = { companies: [] as string[], batches: [] as string[], verdicts: [] as string[], types: [] as string[], cgpa: '' };
 
 interface FeedGridProps {
-    experiences: any[];
+    experiences: ExperienceItem[];
     companies: string[];
     batches: string[];
     companyLinks: Record<string, string>;
@@ -68,7 +68,7 @@ export default function FeedGrid({ experiences, companies, batches, companyLinks
 
     // Group by company
     const companyGroups = useMemo(() => {
-        const groups: Record<string, any[]> = {};
+        const groups: Record<string, ExperienceItem[]> = {};
         for (const exp of filteredExperiences) {
             const company = exp.company;
             if (!groups[company]) groups[company] = [];
@@ -78,18 +78,19 @@ export default function FeedGrid({ experiences, companies, batches, companyLinks
         return Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
     }, [filteredExperiences]);
 
-    // Auto-expand if only one company matches after global filter
-    useEffect(() => {
-        const hasActiveFilter = filters.companies.length > 0 || filters.batches.length > 0 ||
-            filters.verdicts.length > 0 || filters.types.length > 0 ||
-            filters.cgpa || filters.search;
+    const hasActiveFilters = filters.companies.length > 0 || filters.batches.length > 0 ||
+        filters.verdicts.length > 0 || filters.types.length > 0 ||
+        filters.cgpa || filters.search;
 
-        if (hasActiveFilter && companyGroups.length === 1) {
-            setSelectedCompany(companyGroups[0][0]);
-        } else if (!hasActiveFilter && selectedCompany) {
-            // Keep selection, don't auto-close
-        }
-    }, [companyGroups, filters]);
+    // Auto-expand if only one company matches after global filter. Evaluated
+    // during render when the groups change (React's "adjust state on change"
+    // form) rather than in an effect, so there is no post-paint second render.
+    // The selection is only ever set, never auto-cleared.
+    const [seenGroups, setSeenGroups] = useState(companyGroups);
+    if (seenGroups !== companyGroups) {
+        setSeenGroups(companyGroups);
+        if (hasActiveFilters && companyGroups.length === 1) setSelectedCompany(companyGroups[0][0]);
+    }
 
     // Update filters (used for the live search box — applies immediately)
     const updateFilters = (newFilters: Partial<typeof filters>) => {
@@ -114,10 +115,6 @@ export default function FeedGrid({ experiences, companies, batches, companyLinks
         setSelectedCompany(null);
         setCurrentPage(1);
     };
-
-    const hasActiveFilters = filters.companies.length > 0 || filters.batches.length > 0 ||
-        filters.verdicts.length > 0 || filters.types.length > 0 ||
-        filters.cgpa || filters.search;
 
     // Pagination calculations
     const totalPages = Math.ceil(companyGroups.length / ITEMS_PER_PAGE);

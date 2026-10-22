@@ -63,7 +63,7 @@ interface ModerationResult {
  * @param data - The experience data object to moderate
  * @returns { isSafe: boolean, reason: string, canonicalCompanyName: string }
  */
-export async function moderateExperience(data: any, existingCompanies: string[] = []): Promise<ModerationResult> {
+export async function moderateExperience(data: { company: string; [key: string]: unknown }, existingCompanies: string[] = []): Promise<ModerationResult> {
     try {
         // Build a text summary from the experience data for moderation
         const textToModerate = JSON.stringify(data, null, 2);
@@ -147,8 +147,8 @@ If unsafe: { "isSafe": false, "reason": "Contains hate speech", "canonicalCompan
             };
         }
 
-    } catch (error: any) {
-        console.error('⚠️ Moderation error:', error?.message || error);
+    } catch (error) {
+        console.error('⚠️ Moderation error:', error instanceof Error ? error.message : String(error));
 
         // Fallback: if Groq times out or fails, flag for manual review
         return {

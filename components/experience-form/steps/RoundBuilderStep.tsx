@@ -1,6 +1,6 @@
 'use client';
 
-import { UseFormReturn, useFieldArray } from 'react-hook-form';
+import { UseFormReturn, useFieldArray, FieldArrayWithId } from 'react-hook-form';
 import { ExperienceFormData, getDefaultRound } from '@/lib/schemas/experience-schema';
 import { Plus } from 'lucide-react';
 import { Reorder } from 'framer-motion';
@@ -20,7 +20,7 @@ function ReorderRoundItem({
     onRemove,
     onReorderEnd,
 }: {
-    field: any;
+    field: FieldArrayWithId<ExperienceFormData, 'rounds'>;
     index: number;
     form: UseFormReturn<ExperienceFormData>;
     isExpanded: boolean;

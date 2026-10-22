@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, CheckCircle2, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import ExperienceModal from '@/components/ExperienceModal';
+import type { IRound } from '@/models/Experience';
 
 interface Experience {
     _id: string;
@@ -16,7 +17,7 @@ interface Experience {
     status: string;
     moderationReason?: string;
     createdAt: string;
-    rounds?: any[];
+    rounds?: IRound[];
     tipsForJuniors?: string;
     overallExperience?: string;
     placementType?: string;

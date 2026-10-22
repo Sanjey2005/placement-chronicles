@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useId } from 'react';
+import { useState, useEffect, useRef, useId, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import {
     X,
@@ -25,6 +25,9 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCompensation } from '@/lib/utils';
 import { getRound } from '@/lib/rounds';
+import type { IRound } from '@/models/Experience';
+
+const emptySubscribe = () => () => {};
 
 interface ExperienceModalProps {
     isOpen: boolean;
@@ -43,7 +46,7 @@ interface ExperienceModalProps {
     historyOfBacklogs?: string;
     standingBacklogs?: string;
     resumeShortlisting?: boolean;
-    rounds?: any[];
+    rounds?: IRound[];
     tags?: string[];
     overallExperience?: string;
     tipsForJuniors?: string;
@@ -147,7 +150,25 @@ const toList = (v: unknown, sep: RegExp): string[] =>
               .map((s) => s.trim())
               .filter(Boolean);
 
-function RoundNode({ round, idx, isLast }: { round: any; idx: number; isLast: boolean }) {
+// Every field the timeline reads, across all round shapes. Rounds are stored
+// as Schema.Types.Mixed, so a row may carry any subset of these.
+type RoundFields = Partial<{
+    roundNumber: number;
+    duration: string;
+    description: string;
+    experience: string;
+    problemStatement: string;
+    strategy: string;
+    links: Array<{ type: string; url: string }>;
+    topics: string;
+    studySources: string;
+    questions: Array<string | { question: string; answerTip?: string }>;
+    tips: string;
+    notes: string;
+}>;
+
+function RoundNode({ round: raw, idx, isLast }: { round: IRound; idx: number; isLast: boolean }) {
+    const round: RoundFields = raw;
     // All rounds expand by default — nested accordion-inside-modal scrolling
     // was confusing on mobile. The toggle still lets people collapse ones
     // they've read.
@@ -155,10 +176,10 @@ function RoundNode({ round, idx, isLast }: { round: any; idx: number; isLast: bo
     const { Icon, label } = getRound(round);
     const panelId = `round-panel-${idx}`;
 
-    const questions: any[] = Array.isArray(round.questions) ? round.questions : [];
+    const questions = Array.isArray(round.questions) ? round.questions : [];
     const topics = round.topics ? toList(round.topics, /[,;\n]+/) : [];
     const sources = round.studySources ? toList(round.studySources, /[,;\n]+/) : [];
-    const links: { type: string, url: string }[] = Array.isArray(round.links) ? round.links.filter((l: any) => l.url) : [];
+    const links = Array.isArray(round.links) ? round.links.filter((l) => l.url) : [];
 
     const getLinkIcon = (type: string) => {
         switch (type) {
@@ -356,11 +377,9 @@ export default function ExperienceModal({
     adminBanner,
     adminFooter,
 }: ExperienceModalProps) {
-    const [mounted, setMounted] = useState(false);
+    const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
     const panelRef = useRef<HTMLDivElement>(null);
     const titleId = useId();
-
-    useEffect(() => setMounted(true), []);
 
     // Scroll lock
     useEffect(() => {

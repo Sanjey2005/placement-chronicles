@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ShieldAlert, CheckCircle2, AlertTriangle } from 'lucide-react';
@@ -12,13 +12,15 @@ export default function DisclaimerModal() {
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
 
-    useEffect(() => {
-        // Show disclaimer whenever the URL contains ?disclaimer=1
-        // The login page sets this param after a successful login
-        if (searchParams.get('disclaimer') === '1') {
-            setIsOpen(true);
-        }
-    }, [searchParams]);
+    // Show disclaimer whenever the URL arrives at ?disclaimer=1 (the login page
+    // sets this param after a successful login). Evaluated during render on each
+    // searchParams change instead of in an effect; once open it stays open until
+    // acknowledged, even if the URL changes underneath.
+    const [seenParams, setSeenParams] = useState<typeof searchParams | null>(null);
+    if (seenParams !== searchParams) {
+        setSeenParams(searchParams);
+        if (searchParams.get('disclaimer') === '1') setIsOpen(true);
+    }
 
     const handleAcknowledge = () => {
         setIsOpen(false);

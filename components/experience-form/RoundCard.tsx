@@ -1,13 +1,19 @@
 'use client';
 
-import { UseFormReturn, useFieldArray } from 'react-hook-form';
-import { ExperienceFormData } from '@/lib/schemas/experience-schema';
+import { UseFormReturn, useFieldArray, FieldErrors } from 'react-hook-form';
+import { ExperienceFormData, OnlineTestRound, HackathonRound, InterviewRound, GroupDiscussionRound } from '@/lib/schemas/experience-schema';
 import { Trash2, Plus, X, Beaker, Code, Users, Link as LinkIcon, MessageSquare, GripVertical, Youtube, Github, HardDrive } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { DragControls } from 'framer-motion';
 
 const errorRing = 'border-destructive ring-2 ring-destructive/20';
+
+// `errors.rounds[i]` is typed on the keys shared by every round variant, so
+// variant-specific field errors are read through this view.
+type RoundErrors = FieldErrors<
+    Omit<OnlineTestRound, 'type'> & Omit<HackathonRound, 'type'> & Omit<InterviewRound, 'type'> & Omit<GroupDiscussionRound, 'type'>
+>;
 
 interface RoundCardProps {
     form: UseFormReturn<ExperienceFormData>;
@@ -51,24 +57,24 @@ export default function RoundCard({
     // For interview questions
     const { fields: questionFields, append: appendQuestion, remove: removeQuestion } = useFieldArray({
         control,
-        name: `rounds.${index}.questions` as any,
+        name: `rounds.${index}.questions` as const,
     });
 
     // For hackathon links
     const { fields: linkFields, append: appendLink, remove: removeLink } = useFieldArray({
         control,
-        name: `rounds.${index}.links` as any,
+        name: `rounds.${index}.links` as const,
     });
 
     // Get round-specific icon and color
     const getRoundStyle = () => {
-        switch (roundType) {
+        switch (round?.type) {
             case 'test':
                 return { icon: Beaker, color: 'blue', label: 'Online Test' };
             case 'hackathon':
                 return { icon: Code, color: 'purple', label: 'Hackathon' };
             case 'interview': {
-                const interviewType = (round as any)?.interviewType;
+                const interviewType = round.interviewType;
                 let typeLabel = 'Interview';
                 if (interviewType === 'technical') typeLabel = 'Technical Interview';
                 else if (interviewType === 'hr') typeLabel = 'HR Interview';
@@ -85,7 +91,7 @@ export default function RoundCard({
 
     const { icon: Icon, color, label } = getRoundStyle();
 
-    const roundError = errors.rounds?.[index];
+    const roundError = errors.rounds?.[index] as RoundErrors | undefined;
 
     return (
         <div className="border-2 border-outline-variant bg-surface-container-low rounded-2xl overflow-hidden shadow-sm">
@@ -156,7 +162,7 @@ export default function RoundCard({
                                     )}
                                 />
                                 {roundError && 'topics' in roundError && (
-                                    <p className="mt-1 text-sm text-on-error-container">{(roundError as any).topics?.message || "Topics are required"}</p>
+                                    <p className="mt-1 text-sm text-on-error-container">{roundError.topics?.message || "Topics are required"}</p>
                                 )}
                                 <p className="mt-1 text-xs text-outline">List the topics covered in this test</p>
                             </div>
@@ -215,7 +221,7 @@ export default function RoundCard({
                                     </div>
                                 )}
                                 {roundError && 'questions' in roundError && (
-                                    <p className="mt-2 text-sm text-on-error-container">{(roundError as any).questions?.message}</p>
+                                    <p className="mt-2 text-sm text-on-error-container">{roundError.questions?.message}</p>
                                 )}
                             </div>
 
@@ -254,7 +260,7 @@ export default function RoundCard({
                                     )}
                                 />
                                 {roundError && 'problemStatement' in roundError && (
-                                    <p className="mt-1 text-sm text-on-error-container">{(roundError as any).problemStatement?.message}</p>
+                                    <p className="mt-1 text-sm text-on-error-container">{roundError.problemStatement?.message}</p>
                                 )}
                             </div>
 
@@ -274,7 +280,7 @@ export default function RoundCard({
                                     )}
                                 />
                                 {roundError && 'strategy' in roundError && (
-                                    <p className="mt-1 text-sm text-on-error-container">{(roundError as any).strategy?.message}</p>
+                                    <p className="mt-1 text-sm text-on-error-container">{roundError.strategy?.message}</p>
                                 )}
                             </div>
 
@@ -288,7 +294,7 @@ export default function RoundCard({
                                 <div className="space-y-3 mb-3">
                                     {linkFields.map((field, linkIdx) => {
                                         // Retrieve the type explicitly since react-hook-form's field array doesn't automatically sync value changes back to the 'field' object on render if watched, but 'type' is set at append time.
-                                        const type = (field as any).type;
+                                        const type = field.type;
                                         let LinkIconComponent = LinkIcon;
                                         let iconClass = "h-5 w-5 text-primary";
                                         let placeholder = "https://...";
@@ -323,9 +329,9 @@ export default function RoundCard({
                                                         placeholder={placeholder}
                                                         className="w-full bg-transparent !border-none !shadow-none !outline-none !ring-0 focus:!border-none focus:!shadow-none focus:!outline-none focus:!ring-0 focus-visible:!ring-0 focus-visible:!outline-none focus-visible:!border-none text-foreground text-sm placeholder:text-outline px-1 py-1"
                                                     />
-                                                    {roundError && (roundError as any).links?.[linkIdx]?.url && (
+                                                    {roundError && roundError.links?.[linkIdx]?.url && (
                                                         <p className="mt-1 text-xs text-on-error-container">
-                                                            {(roundError as any).links[linkIdx].url?.message}
+                                                            {roundError.links[linkIdx].url?.message}
                                                         </p>
                                                     )}
                                                 </div>
@@ -462,7 +468,7 @@ export default function RoundCard({
                                     </div>
                                 )}
                                 {roundError && 'questions' in roundError && (
-                                    <p className="mt-2 text-sm text-on-error-container">{(roundError as any).questions?.message}</p>
+                                    <p className="mt-2 text-sm text-on-error-container">{roundError.questions?.message}</p>
                                 )}
                             </div>
 
@@ -500,7 +506,7 @@ export default function RoundCard({
                                     )}
                                 />
                                 {roundError && 'topics' in roundError && (
-                                    <p className="mt-1 text-sm text-on-error-container">{(roundError as any).topics?.message || "Topics are required"}</p>
+                                    <p className="mt-1 text-sm text-on-error-container">{roundError.topics?.message || "Topics are required"}</p>
                                 )}
                             </div>
 

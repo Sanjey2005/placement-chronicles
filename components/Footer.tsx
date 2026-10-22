@@ -2,6 +2,7 @@
 
 import { Mail, Linkedin, Github, Send, MessageSquare } from 'lucide-react';
 import { useState } from 'react';
+import Link from 'next/link';
 import { toast } from 'sonner';
 
 export default function Footer() {
@@ -74,7 +75,7 @@ export default function Footer() {
                         <h4 className="font-semibold text-foreground">Quick Links</h4>
                         <ul className="space-y-2 text-sm text-muted-foreground">
                             <li>
-                                <a href="/" className="hover:text-primary transition-colors">Home</a>
+                                <Link href="/" className="hover:text-primary transition-colors">Home</Link>
                             </li>
                             <li>
                                 <a href="/about" className="hover:text-primary transition-colors">About</a>

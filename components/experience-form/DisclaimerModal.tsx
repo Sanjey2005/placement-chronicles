@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useId } from 'react';
+import { useState, useEffect, useRef, useId, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import {
     X,
@@ -26,7 +26,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCompensation } from '@/lib/utils';
 import { getRound } from '@/lib/rounds';
-import { ExperienceFormData } from '@/lib/schemas/experience-schema';
+import { ExperienceFormData, Round } from '@/lib/schemas/experience-schema';
 
 interface DisclaimerModalProps {
     isOpen: boolean;
@@ -37,6 +37,9 @@ interface DisclaimerModalProps {
 }
 
 const pretty = (s?: string) => (s ? s.replaceAll('_', ' ').toLowerCase() : '');
+
+// Hydration guard: `false` on the server/first hydration pass, `true` on the client.
+const subscribeNoop = () => () => {};
 
 function ExpandableText({ text }: { text: string }) {
     const [expanded, setExpanded] = useState(false);
@@ -125,15 +128,16 @@ const toList = (v: unknown, sep: RegExp): string[] =>
               .map((s) => s.trim())
               .filter(Boolean);
 
-function RoundNode({ round, idx, isLast }: { round: any; idx: number; isLast: boolean }) {
+function RoundNode({ round, idx, isLast }: { round: Round; idx: number; isLast: boolean }) {
     const [open, setOpen] = useState(true);
     const { Icon, label } = getRound(round);
     const panelId = `review-round-panel-${idx}`;
 
-    const questions: any[] = Array.isArray(round.questions) ? round.questions : [];
-    const topics = round.topics ? toList(round.topics, /[,;\n]+/) : [];
-    const sources = round.studySources ? toList(round.studySources, /[,;\n]+/) : [];
-    const links: { type: string, url: string }[] = Array.isArray(round.links) ? round.links.filter((l: any) => l.url) : [];
+    const questions = 'questions' in round ? round.questions : [];
+    const topics = 'topics' in round ? toList(round.topics, /[,;\n]+/) : [];
+    const sources = round.type === 'test' ? toList(round.studySources, /[,;\n]+/) : [];
+    const links = round.type === 'hackathon' ? round.links.filter((l) => l.url) : [];
+    const duration = round.type === 'interview' ? round.duration : '';
 
     const getLinkIcon = (type: string) => {
         switch (type) {
@@ -166,14 +170,14 @@ function RoundNode({ round, idx, isLast }: { round: any; idx: number; isLast: bo
                     </span>
                     <span className="text-foreground font-semibold text-sm">{label}</span>
                 </span>
-                {round.duration && (
+                {duration && (
                     <span className="ml-auto shrink-0 text-[11px] text-outline flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        {round.duration}
+                        {duration}
                     </span>
                 )}
                 <ChevronDown
-                    className={`h-4 w-4 text-outline shrink-0 transition-transform ${round.duration ? '' : 'ml-auto'} ${open ? 'rotate-180' : ''}`}
+                    className={`h-4 w-4 text-outline shrink-0 transition-transform ${duration ? '' : 'ml-auto'} ${open ? 'rotate-180' : ''}`}
                 />
             </button>
 
@@ -188,22 +192,12 @@ function RoundNode({ round, idx, isLast }: { round: any; idx: number; isLast: bo
                         className="overflow-hidden"
                     >
                         <div className="space-y-3 pt-1 pb-5">
-                            {round.description && (
-                                <Block title="Description">
-                                    <ExpandableText text={round.description} />
-                                </Block>
-                            )}
-                            {round.experience && (
-                                <Block title="Experience">
-                                    <ExpandableText text={round.experience} />
-                                </Block>
-                            )}
-                            {round.problemStatement && (
+                            {round.type === 'hackathon' && round.problemStatement && (
                                 <Block title="Problem Statement" tone="brand">
                                     {round.problemStatement}
                                 </Block>
                             )}
-                            {round.strategy && (
+                            {round.type === 'hackathon' && round.strategy && (
                                 <Block title="Strategy Used" icon={Lightbulb} tone="success">
                                     {round.strategy}
                                 </Block>
@@ -289,12 +283,12 @@ function RoundNode({ round, idx, isLast }: { round: any; idx: number; isLast: bo
                                     </ul>
                                 </div>
                             )}
-                            {round.tips && (
+                            {round.type === 'gd' && round.tips && (
                                 <Block title="Tips" icon={Lightbulb} tone="warning">
                                     {round.tips}
                                 </Block>
                             )}
-                            {round.notes && (
+                            {round.type === 'interview' && round.notes && (
                                 <Block title="Notes" icon={Lightbulb} tone="warning">
                                     {round.notes}
                                 </Block>
@@ -315,11 +309,16 @@ export default function DisclaimerModal({
     isSubmitting = false,
 }: DisclaimerModalProps) {
     const [isConfirmed, setIsConfirmed] = useState(false);
-    const [mounted, setMounted] = useState(false);
+    const mounted = useSyncExternalStore(subscribeNoop, () => true, () => false);
     const panelRef = useRef<HTMLDivElement>(null);
     const titleId = useId();
 
-    useEffect(() => setMounted(true), []);
+    // Reset confirmation checkbox on modal open (state adjusted during render, not in an effect)
+    const [wasOpen, setWasOpen] = useState(isOpen);
+    if (isOpen !== wasOpen) {
+        setWasOpen(isOpen);
+        if (isOpen) setIsConfirmed(false);
+    }
 
     // Scroll lock
     useEffect(() => {
@@ -329,11 +328,6 @@ export default function DisclaimerModal({
         return () => {
             document.body.style.overflow = prev;
         };
-    }, [isOpen]);
-
-    // Reset confirmation checkbox on modal open
-    useEffect(() => {
-        if (isOpen) setIsConfirmed(false);
     }, [isOpen]);
 
     // ESC key press and focus trap

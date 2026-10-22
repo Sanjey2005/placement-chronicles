@@ -42,12 +42,13 @@ export async function getEmbedding(text: string): Promise<number[]> {
 
             console.log(`✅ Embedding generated (${vector.length}d)`);
             return vector as number[];
-        } catch (error: any) {
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
             if (attempt === maxRetries) {
-                console.error('❌ Embedding failed after retries:', error.message);
+                console.error('❌ Embedding failed after retries:', message);
                 throw error;
             }
-            console.log(`⚠️ Attempt ${attempt} failed: ${error.message}, retrying...`);
+            console.log(`⚠️ Attempt ${attempt} failed: ${message}, retrying...`);
             await new Promise(resolve => setTimeout(resolve, delay));
             delay *= 2;
         }
@@ -78,6 +79,26 @@ export function cosineSimilarity(vecA: number[], vecB: number[]): number {
 }
 
 /**
+ * A round as chunking reads it. Rounds are stored as Mixed and may be legacy
+ * shapes, so every field is optional and `questions` may hold bare strings.
+ */
+export interface ChunkRound {
+    type?: string;
+    roundType?: string;
+    interviewType?: string;
+    duration?: string;
+    description?: string;
+    experience?: string;
+    problemStatement?: string;
+    strategy?: string;
+    topics?: string | string[];
+    tips?: string;
+    studySources?: string;
+    questions?: Array<string | { question: string; answerTip?: string }>;
+    notes?: string;
+}
+
+/**
  * Break an experience down into logical semantic chunks for vector storage.
  * 
  * Strategy:
@@ -99,7 +120,7 @@ export function chunkExperience(data: {
     courseBranch?: string;
     verdict?: string;
     finalVerdict?: string;
-    rounds?: Array<any>;
+    rounds?: ChunkRound[];
     tags?: string[];
     tipsForJuniors?: string;
     overallExperience?: string;
@@ -175,7 +196,7 @@ export function chunkExperience(data: {
             // Interview logic
             if (round.questions && round.questions.length > 0) {
                 roundText += ` \nQuestions Asked:`;
-                round.questions.forEach((q: any) => {
+                round.questions.forEach(q => {
                     if (typeof q === 'string') {
                         roundText += `\n- ${q}`;
                     } else {

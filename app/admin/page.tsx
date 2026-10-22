@@ -70,6 +70,7 @@ interface Company {
 }
 
 type StatusFilter = 'ALL' | 'PENDING' | 'FLAGGED' | 'APPROVED' | 'REJECTED';
+type CompaniesFilter = 'ALL' | 'HAS_LINK' | 'MISSING_LINK';
 
 // ─── Status Badge Component ─────────────────────────────────────────────────
 function StatusBadge({ status }: { status: string }) {
@@ -217,7 +218,7 @@ export default function AdminDashboard() {
     const [logsFilter, setLogsFilter] = useState('ALL');
     const [companiesPage, setCompaniesPage] = useState(1);
     const [companiesSearch, setCompaniesSearch] = useState('');
-    const [companiesFilter, setCompaniesFilter] = useState<'ALL' | 'HAS_LINK' | 'MISSING_LINK'>('ALL');
+    const [companiesFilter, setCompaniesFilter] = useState<CompaniesFilter>('ALL');
     const [feedbacksPage, setFeedbacksPage] = useState(1);
     const ITEMS_PER_PAGE = 20;
 
@@ -382,7 +383,7 @@ export default function AdminDashboard() {
                 const msg = data.message || 'Cleanup complete';
                 toast.success(msg, { duration: 5000 });
                 if (data.data?.merges?.length > 0) {
-                    const mergeList = data.data.merges.map((m: any) => `${m.from} → ${m.to} [${m.source === 'local' ? 'Local' : 'AI'}]`).join(', ');
+                    const mergeList = data.data.merges.map((m: { from: string; to: string; source: 'local' | 'ai' }) => `${m.from} → ${m.to} [${m.source === 'local' ? 'Local' : 'AI'}]`).join(', ');
                     toast.info(`Merged: ${mergeList}`, { duration: 7000 });
                 }
                 await refreshAll();
@@ -754,7 +755,7 @@ export default function AdminDashboard() {
                                         className="bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary w-full sm:w-64 placeholder:text-outline"
                                     />
                                     <div className="w-[160px]">
-                                        <Select value={companiesFilter} onValueChange={(val: any) => setCompaniesFilter(val)}>
+                                        <Select value={companiesFilter} onValueChange={(val: CompaniesFilter) => setCompaniesFilter(val)}>
                                             <SelectTrigger className="w-full h-10 px-3 py-2 bg-surface-container border border-outline-variant rounded-lg text-sm text-foreground outline-none focus:ring-0">
                                                 <SelectValue placeholder="All Links" />
                                             </SelectTrigger>

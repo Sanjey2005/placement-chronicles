@@ -73,7 +73,7 @@ export default async function Home() {
             Real Interview Experiences
           </h2>
           <p className="text-lg font-medium text-muted-foreground mb-6">
-            Learn from students who've been there, done that
+            Learn from students who&apos;ve been there, done that
           </p>
           <Link href="/share-experience">
             <button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 font-semibold shadow-m3 transition-all">

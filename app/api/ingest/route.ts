@@ -74,6 +74,28 @@ Follow these rules for categorizing rounds:
 
 Return ONLY valid JSON, no markdown code blocks, no explanation.`;
 
+// Round / question shapes as Groq emits them: best-effort, so every field is optional.
+interface RawQuestion {
+    question?: string;
+    answerTip?: string;
+    answer?: string;
+}
+
+interface RawRound {
+    roundNumber?: number;
+    type?: string;
+    topics?: string;
+    questions?: Array<string | RawQuestion>;
+    studySources?: string;
+    problemStatement?: string;
+    strategy?: string;
+    experience?: string;
+    interviewType?: string;
+    notes?: string;
+    description?: string;
+    duration?: string;
+}
+
 export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData();
@@ -97,8 +119,8 @@ export async function POST(request: NextRequest) {
             const pdfParse = require('pdf-parse');
             const pdfData = await pdfParse(buffer);
             pdfText = pdfData.text;
-        } catch (parseError: any) {
-            console.error('PDF PARSE ERROR:', parseError?.message || parseError);
+        } catch (parseError) {
+            console.error('PDF PARSE ERROR:', parseError instanceof Error ? parseError.message : String(parseError));
             return NextResponse.json({
                 error: 'Failed to read PDF text. Please try a different PDF or enter manually.',
             }, { status: 400 });
@@ -176,7 +198,7 @@ export async function POST(request: NextRequest) {
             historyOfBacklogs: (parsedData.historyOfBacklogs === 'Not Allowed' || parsedData.historyOfBacklogs === false) ? 'Not Allowed' : 'Allowed',
             standingBacklogs: (parsedData.standingBacklogs === 'Allowed' || parsedData.standingBacklogs === true) ? 'Allowed' : 'Not Allowed',
             resumeShortlisting: !!parsedData.resumeShortlisting,
-            rounds: Array.isArray(parsedData.rounds) ? parsedData.rounds.map((round: any, index: number) => {
+            rounds: Array.isArray(parsedData.rounds) ? parsedData.rounds.map((round: RawRound, index: number) => {
                 const roundNumber = round.roundNumber || index + 1;
 
                 // Determine type from Groq output
@@ -187,7 +209,7 @@ export async function POST(request: NextRequest) {
                         type: 'test' as const,
                         roundNumber,
                         topics: round.topics || '',
-                        questions: Array.isArray(round.questions) ? round.questions.map((q: any) => ({
+                        questions: Array.isArray(round.questions) ? round.questions.map(q => ({
                             question: typeof q === 'string' ? q : q.question || '',
                             answerTip: typeof q === 'string' ? '' : q.answerTip || '',
                         })) : [],
@@ -211,11 +233,11 @@ export async function POST(request: NextRequest) {
                     interviewType: (round.interviewType || 'technical') as 'technical' | 'hr' | 'managerial' | 'mixed',
                     questions: Array.isArray(round.questions)
                         ? round.questions
-                            .filter((q: any) => {
+                            .filter(q => {
                                 const text = typeof q === 'string' ? q : q?.question;
                                 return text && text.trim().length > 0;
                             })
-                            .map((q: any) => ({
+                            .map(q => ({
                                 question: typeof q === 'string' ? q : q.question || '',
                                 answerTip: (typeof q === 'object' ? q.answerTip || q.answer || '' : ''),
                             }))
@@ -240,12 +262,14 @@ export async function POST(request: NextRequest) {
             message: `Extracted using Groq ${GROQ_MODELS.FAST}`,
         });
 
-    } catch (error: any) {
-        console.error('INGEST API ERROR:', error?.message || error);
-        console.error('INGEST API STACK:', error?.stack);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error('INGEST API ERROR:', message);
+        console.error('INGEST API STACK:', error instanceof Error ? error.stack : undefined);
 
-        // Check if it's a rate limit error from Groq
-        const isRateLimit = error?.status === 429 || error?.message?.includes('429') || error?.message?.toLowerCase()?.includes('rate');
+        // Check if it's a rate limit error from Groq (its APIError carries an HTTP status)
+        const status = typeof error === 'object' && error !== null && 'status' in error ? error.status : undefined;
+        const isRateLimit = status === 429 || message.includes('429') || message.toLowerCase().includes('rate');
 
         return NextResponse.json({
             success: false,
