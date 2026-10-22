@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import { GROQ_MODELS } from '@/lib/ai-models';
 import Company from '@/models/Company';
 import Experience from '@/models/Experience';
+import ExperienceChunk from '@/models/ExperienceChunk';
 import { requireAdmin } from '@/lib/auth-check';
 import { moderateExperience, enforceCanonicalName } from '@/lib/moderation';
 
@@ -14,9 +15,9 @@ import { moderateExperience, enforceCanonicalName } from '@/lib/moderation';
  * for fuzzy matching against the existing canonical names.
  * 
  * For each alias found:
- * 1. Updates all experiences referencing the alias → canonical name
- * 2. Deletes the stale alias Company entry
- * 3. Ensures the canonical Company entry exists
+ * 1. Updates all experiences (and their RAG chunks) referencing the alias → canonical name
+ * 2. Ensures the canonical Company entry exists and records the alias on it
+ * 3. Deletes the stale alias Company entry
  */
 export async function POST(request: NextRequest) {
     if (!requireAdmin(request)) {
@@ -110,6 +111,13 @@ Rules:
                 { company: from },
                 { $set: { company: to } }
             );
+            // Keep RAG chunk metadata in sync — the chatbot hard-filters on
+            // metadata.companyName, so without this a merged company vanishes
+            // from chat answers.
+            await ExperienceChunk.updateMany(
+                { 'metadata.companyName': from },
+                { $set: { 'metadata.companyName': to } }
+            );
 
             // 2. Ensure canonical Company entry exists
             const canonicalExists = await Company.findOne({ canonicalName: to });
@@ -125,6 +133,9 @@ Rules:
                     await Company.updateOne({ canonicalName: to }, { $set: { link: (sourceCompany as any).link } });
                 }
             }
+
+            // Record the merge so the old name still resolves (chat alias lookup)
+            await Company.updateOne({ canonicalName: to }, { $addToSet: { aliases: from } });
 
             // 3. Delete the stale alias Company entry
             if (from !== to) {

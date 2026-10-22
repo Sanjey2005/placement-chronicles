@@ -360,9 +360,11 @@ export async function GET(request: NextRequest) {
         const batch = searchParams.get('batch');
         const search = searchParams.get('search');
 
-        // Only show APPROVED experiences to public users
-        const query: any = { status: 'APPROVED' };
-        if (company) query.company = company;
+        // Only show APPROVED experiences to public users, and never from a
+        // hidden company (same rule the home feed applies in actions/experience.ts)
+        const hidden = await Company.distinct('canonicalName', { isHidden: true });
+        const query: any = { status: 'APPROVED', company: { $nin: hidden } };
+        if (company) query.company.$eq = company;
         if (batch) query.batch = batch;
         if (search) {
             // SECURITY: Escape regex special chars to prevent ReDoS

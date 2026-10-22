@@ -5,6 +5,7 @@ async function run() {
     const { default: dbConnect } = await import('../lib/db');
     const { default: Experience } = await import('../models/Experience');
     const { default: Company } = await import('../models/Company');
+    const { default: ExperienceChunk } = await import('../models/ExperienceChunk');
     const { default: mongoose } = await import('mongoose');
 
     await dbConnect();
@@ -27,6 +28,8 @@ async function run() {
 
         if (newName !== exp.company) {
             await Experience.updateOne({ _id: exp._id }, { $set: { company: newName } });
+            // Keep RAG chunk metadata in sync with the rename
+            await ExperienceChunk.updateMany({ experienceId: exp._id }, { $set: { 'metadata.companyName': newName } });
 
             // ensure the new company is also tracked in the Company collection
             const existingCompany = await Company.findOne({ canonicalName: newName });

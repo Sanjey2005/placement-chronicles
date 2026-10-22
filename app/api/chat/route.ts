@@ -33,6 +33,16 @@ function sseText(text: string): Response {
     return new Response(body, { headers: SSE_HEADERS });
 }
 
+// Honest no-data reply. A hidden company gets the same one, so hidden is
+// indistinguishable from absent.
+function noDataReply(companyName: string | null): Response {
+    return sseText(
+        companyName
+            ? `I don't have any experiences for **${companyName}** in my database yet. Try asking about another company, or check back later as more experiences are added.`
+            : `I don't have specific experiences about that in my database yet. Try asking about a specific company or topic covered on the site.`
+    );
+}
+
 export async function POST(request: NextRequest) {
     try {
         // Parse request body
@@ -171,7 +181,9 @@ For roleType/verdict/topic: only set a value if it is explicit in the question o
         // because existing chunks may not have these metadata fields.
         // Resolve the extracted name against the Company collection (canonical
         // name or alias) and match exactly — no partial-prefix false positives.
-        const companyFilter: any = {};
+        // Hidden companies never reach the chatbot, in either retrieval path.
+        const hidden = await Company.distinct('canonicalName', { isHidden: true });
+        const companyFilter: any = { 'metadata.companyName': { $nin: hidden } };
         let companyName: string | null = null;
         if (extractedCompany) {
             // Extraction already resolved the name against the live company
@@ -182,7 +194,11 @@ For roleType/verdict/topic: only set a value if it is explicit in the question o
                 $or: [{ canonicalName: rx }, { aliases: rx }],
             }).lean();
             companyName = known?.canonicalName ?? extractedCompany;
-            companyFilter['metadata.companyName'] = exactMatch(companyName);
+            if (known?.isHidden) {
+                console.log(`🙈 ${companyName} is hidden — returning no-data reply`);
+                return noDataReply(companyName);
+            }
+            companyFilter['metadata.companyName'] = { $regex: exactMatch(companyName), $nin: hidden };
         }
 
         console.log(`🔍 RAG Query: "${userMessage}" → search: "${searchQuery}"`);
@@ -286,11 +302,7 @@ For roleType/verdict/topic: only set a value if it is explicit in the question o
         // arbitrary chunks to a context-only prompt.
         if (scoredChunks.length === 0) {
             console.log('🚫 No relevant chunks — returning honest no-data reply');
-            return sseText(
-                companyName
-                    ? `I don't have any experiences for **${companyName}** in my database yet. Try asking about another company, or check back later as more experiences are added.`
-                    : `I don't have specific experiences about that in my database yet. Try asking about a specific company or topic covered on the site.`
-            );
+            return noDataReply(companyName);
         }
 
         console.log(`📊 Final chunk count for LLM: ${scoredChunks.length}`);
