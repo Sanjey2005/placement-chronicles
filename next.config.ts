@@ -5,12 +5,29 @@ const ONNX_RUNTIME_FILES = [
   'node_modules/onnxruntime-node/package.json',
   'node_modules/onnxruntime-node/dist/**',
   'node_modules/onnxruntime-node/bin/napi-v6/linux/x64/libonnxruntime.so.1',
-  'node_modules/onnxruntime-node/bin/napi-v6/linux/x64/libonnxruntime_providers_shared.so',
   'node_modules/onnxruntime-node/bin/napi-v6/linux/x64/onnxruntime_binding.node',
   'node_modules/onnxruntime-common/**',
   // the model itself, fetched by scripts/fetch-model.mjs during `npm run build` (~91 MB)
   '.model-cache/**',
 ];
+
+// Everything is same-origin except company logos (Google's favicon service, which redirects to
+// gstatic). ponytail: scripts keep 'unsafe-inline' because Next's inline bootstrap scripts need it
+// without per-request nonces; a nonce-based CSP in middleware is the stronger upgrade.
+// Dev adds 'unsafe-eval' (React Refresh) and Vercel Analytics' debug script.
+const dev = process.env.NODE_ENV !== 'production';
+const CSP = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline'${dev ? " 'unsafe-eval' https://va.vercel-scripts.com" : ''}`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https://www.google.com https://*.gstatic.com",
+  "font-src 'self' data:",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join('; ');
 
 const nextConfig: NextConfig = {
   // Baked in at build: did scripts/fetch-model.mjs leave the weights here before `next build`?
@@ -33,8 +50,20 @@ const nextConfig: NextConfig = {
   // keep it (excludes don't filter includes). A stray transformers.js download cache never ships.
   outputFileTracingExcludes: { '*': ['.model-cache/**', 'node_modules/@huggingface/transformers/.cache/**'] },
   reactStrictMode: true,
+  poweredByHeader: false,
   async headers() {
     return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "Content-Security-Policy", value: CSP },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+        ],
+      },
       {
         // Apply strict CORS to all API routes
         source: "/api/:path*",
