@@ -108,6 +108,10 @@ export async function POST(request: NextRequest) {
         if (file.type !== 'application/pdf') {
             return NextResponse.json({ error: 'Only PDF files are supported' }, { status: 400 });
         }
+        // Vercel already caps request bodies at 4.5 MB; this keeps the same limit everywhere else
+        if (file.size > 4.5 * 1024 * 1024) {
+            return NextResponse.json({ error: 'PDF is too large (4.5 MB max)' }, { status: 413 });
+        }
 
         // ── Step 1: Extract text from PDF ───────────────────────────
         let arrayBuffer: ArrayBuffer | null = await file.arrayBuffer();
@@ -115,6 +119,11 @@ export async function POST(request: NextRequest) {
 
         let pdfText = '';
         try {
+            // pdf-parse bundles pdf.js 1.10 (2018). Its eval paths (CVE-2024-4367 class) are for
+            // rendering, which text extraction doesn't do; turning eval off makes sure of it.
+            // pdf.js 1.x reads settings off its global PDFJS object (exported as .PDFJS), not the module.
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            require('pdf-parse/lib/pdf.js/v1.10.100/build/pdf.js').PDFJS.isEvalSupported = false;
             // eslint-disable-next-line @typescript-eslint/no-require-imports
             const pdfParse = require('pdf-parse');
             const pdfData = await pdfParse(buffer);

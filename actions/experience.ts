@@ -1,10 +1,9 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 import dbConnect from '@/lib/db';
 import Experience, { IExperience } from '@/models/Experience';
 import Company from '@/models/Company';
-import { deleteChunksForExperience } from '@/lib/chunks';
 import { verifySession, SESSION_COOKIE } from '@/lib/session';
 import { helpfulVoterId } from '@/lib/helpful';
 import HelpfulVote from '@/models/HelpfulVote';
@@ -89,91 +88,5 @@ export async function getAllExperiences(): Promise<{
             success: false,
             error: 'An internal server error occurred while fetching experiences'
         };
-    }
-}
-
-/**
- * Server action to get experiences by company
- * @param company - Company name
- * @returns List of experiences for the company
- */
-export async function getExperiencesByCompany(company: string): Promise<{
-    success: boolean;
-    data?: IExperience[];
-    error?: string;
-}> {
-    try {
-        await dbConnect();
-
-        const experiences = await Experience.find({ company, status: 'APPROVED' })
-            .sort({ createdAt: -1 })
-            .lean();
-
-        // Serialize data
-        const serializedExperiences = experiences.map(exp => ({
-            ...exp,
-            _id: String(exp._id),
-            studentId: undefined, // Fix Data Leakage (remove PII)
-            studentName: undefined, // Fix Data Leakage (remove PII)
-        }));
-
-        return {
-            success: true,
-            data: serializedExperiences as unknown as IExperience[],
-        };
-    } catch (error) {
-        return {
-            success: false,
-            error: 'An internal server error occurred while fetching company experiences'
-        };
-    }
-}
-
-import { cookies } from 'next/headers';
-
-/**
- * Server action to delete an experience
- * @param id - Experience ID
- * @returns Success status
- */
-export async function deleteExperience(id: string): Promise<{
-    success: boolean;
-    error?: string;
-}> {
-    try {
-        // Only a validly signed admin session may delete
-        const cookieStore = await cookies();
-        const session = await verifySession(cookieStore.get(SESSION_COOKIE)?.value);
-
-        if (session?.role !== 'admin') {
-            return {
-                success: false,
-                error: 'Forbidden: Admin access required to delete experiences',
-            };
-        }
-
-        await dbConnect();
-
-        // NoSQL Injection Fix: Ensure ID is a valid string/ObjectId length before query
-        if (typeof id !== 'string' || id.trim() === '') {
-            return { success: false, error: 'Invalid ID format' };
-        }
-
-        const experience = await Experience.findById(id);
-        if (!experience) {
-            return { success: false, error: 'Experience not found' };
-        }
-
-        await Experience.findByIdAndDelete(id);
-        await deleteChunksForExperience(id);
-        await HelpfulVote.deleteMany({ experienceId: id });
-
-        revalidatePath('/');
-
-        return {
-            success: true,
-        };
-    } catch (error) {
-        return { success: false, error: 'An internal server error occurred while deleting experience' };
     }
 }

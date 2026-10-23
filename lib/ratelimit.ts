@@ -51,6 +51,17 @@ export const loginIpRateLimit = redis
     })
     : null;
 
+// 5. Submissions: 5 per student per hour. Each one is stored and spends the shared Groq
+//    budget above, so one account can't fill the database or starve everyone else's posts.
+export const submitRateLimit = redis
+    ? new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(5, '1 h'),
+        analytics: true,
+        prefix: '@upstash/ratelimit/submit',
+    })
+    : null;
+
 type Limiter = Pick<Ratelimit, 'limit'> | null;
 
 /**

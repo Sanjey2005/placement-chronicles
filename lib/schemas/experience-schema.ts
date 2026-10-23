@@ -52,7 +52,8 @@ export const hackathonRoundSchema = z.object({
     strategy: z.string().min(5, 'Please describe your approach/strategy'),
     links: z.array(z.object({
         type: z.enum(['youtube', 'github', 'drive', 'other']),
-        url: z.string().url('Please enter a valid URL')
+        // http(s) only: z.url() alone also accepts javascript: and data: links
+        url: z.string().url({ protocol: /^https?$/, message: 'Please enter a valid URL' })
     })).optional().default([]),
 });
 

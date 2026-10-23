@@ -97,7 +97,8 @@ export async function POST(request: NextRequest) {
         }
 
         // SECURITY: Sanitize user message to prevent XSS/injection
-        userMessage = stripHtmlTags(userMessage);
+        // ponytail: 2,000 characters, the same cap getEmbedding applies; bounds what one request costs in Groq tokens
+        userMessage = stripHtmlTags(userMessage).slice(0, 2000);
 
         // Rate limiting
         if (chatRateLimiter) {

@@ -9,12 +9,14 @@ import { experienceFormSchema } from '@/lib/schemas/experience-schema';
 import AdminLog from '@/models/AdminLog';
 import { escapeRegex, sanitizeObject } from '@/lib/sanitize';
 import { moderateExperience } from '@/lib/moderation';
-import { groqApiRateLimit } from '@/lib/ratelimit';
+import { groqApiRateLimit, retryAfterSeconds, submitRateLimit } from '@/lib/ratelimit';
 import { batchBackupAndDelete } from '@/lib/backup';
 import HelpfulVote from '@/models/HelpfulVote';
 import { getSession } from '@/lib/auth-check';
 
 const MAX_DOCUMENTS = 5000;
+// ponytail: a long write-up is ~30 KB of JSON; this only stops multi-megabyte posts filling the free-tier database
+const MAX_BODY_CHARS = 200_000;
 
 import sanitizeHtml from 'sanitize-html';
 
@@ -53,10 +55,23 @@ function deepSanitize<T>(obj: T): T {
 // POST: Create new experience
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json();
+        const raw = await request.text();
+        if (raw.length > MAX_BODY_CHARS) {
+            return NextResponse.json({ success: false, error: 'This experience is too long to submit' }, { status: 413 });
+        }
 
         // Validate with Zod
-        const rawValidated = experienceFormSchema.parse(body);
+        const rawValidated = experienceFormSchema.parse(JSON.parse(raw));
+
+        // Roll number comes from the signed session, never from a client-writable cookie
+        const session = await getSession(request);
+        const wait = await retryAfterSeconds([submitRateLimit, session?.sub ?? 'anonymous']);
+        if (wait > 0) {
+            return NextResponse.json(
+                { success: false, error: "You've shared several experiences in the last hour. Please try again later." },
+                { status: 429, headers: { 'Retry-After': String(wait) } }
+            );
+        }
 
         // SECURITY: Sanitize all string fields heavily to prevent stored XSS
         const validatedData = deepSanitize(rawValidated);
@@ -228,8 +243,7 @@ export async function POST(request: NextRequest) {
         // Default to ACCEPTED if selected, otherwise REJECTED if rejected.
         const derivedVerdict = validatedData.finalVerdict === 'rejected' ? 'REJECTED' : 'ACCEPTED';
 
-        // Roll number comes from the signed session, never from a client-writable cookie
-        const studentId = (await getSession(request))?.sub || 'anonymous';
+        const studentId = session?.sub || 'anonymous';
 
         // Create experience document
         const experience = new Experience({
@@ -293,9 +307,10 @@ export async function POST(request: NextRequest) {
             console.error('Failed to create activity log:', logError);
         }
 
+        // Only what the client needs: the moderation outcome and roll number stay server-side
         return NextResponse.json({
             success: true,
-            data: savedExperience,
+            data: { _id: savedExperience._id },
         });
     } catch (error) {
         console.error("EXPERIENCE API ERROR:", error);
@@ -313,7 +328,6 @@ export async function POST(request: NextRequest) {
             {
                 success: false,
                 error: 'An internal server error occurred while creating experience',
-                details: error instanceof Error ? error.message : String(error)
             },
             { status: 500 }
         );

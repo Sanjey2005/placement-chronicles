@@ -16,9 +16,10 @@ export async function POST(request: NextRequest) {
 
         const { message } = await request.json();
 
-        if (typeof message !== 'string' || message.trim().length === 0) {
+        // ponytail: 5,000 characters is a long note; the cap keeps one account from filling the database
+        if (typeof message !== 'string' || message.trim().length === 0 || message.length > 5000) {
             return NextResponse.json(
-                { success: false, error: 'Feedback message cannot be empty' },
+                { success: false, error: 'Feedback must be between 1 and 5,000 characters' },
                 { status: 400 }
             );
         }

@@ -179,7 +179,8 @@ function RoundNode({ round: raw, idx, isLast }: { round: IRound; idx: number; is
     const questions = Array.isArray(round.questions) ? round.questions : [];
     const topics = round.topics ? toList(round.topics, /[,;\n]+/) : [];
     const sources = round.studySources ? toList(round.studySources, /[,;\n]+/) : [];
-    const links = Array.isArray(round.links) ? round.links.filter((l) => l.url) : [];
+    // http(s) only, as in ExperienceDetail: older submissions were not checked for javascript: links
+    const links = Array.isArray(round.links) ? round.links.filter((l) => typeof l.url === 'string' && /^https?:\/\//i.test(l.url)) : [];
 
     const getLinkIcon = (type: string) => {
         switch (type) {

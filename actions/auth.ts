@@ -79,20 +79,6 @@ export async function login(formData: FormData): Promise<LoginResponse> {
 }
 
 /**
- * Alternative login function that accepts credentials directly
- */
-export async function loginWithCredentials(
-    username: string,
-    password: string
-): Promise<LoginResponse> {
-    const formData = new FormData();
-    formData.append('username', username);
-    formData.append('password', password);
-
-    return login(formData);
-}
-
-/**
  * Clears the session. A server action because the cookie is httpOnly and
  * cannot be cleared from the browser.
  */
