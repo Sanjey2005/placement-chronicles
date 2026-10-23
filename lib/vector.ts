@@ -10,6 +10,8 @@ import { join } from 'node:path';
 import { formatCompensation } from './utils';
 
 const MODEL = 'Xenova/all-MiniLM-L6-v2';
+// Same pin as scripts/fetch-model.mjs, so a runtime download gets the reviewed files, never whatever `main` holds today
+const REVISION = '751bff37182d3f1213fa05d7196b954e230abad9';
 const MAX_TOKENS = 256; // sentence-transformers' max_seq_length for this model; the tokenizer would allow 512
 
 type Embed = (text: string) => Promise<number[]>;
@@ -49,8 +51,8 @@ export function loadModel(): Promise<Embed> {
         }
         const started = Date.now();
         const [tokenizer, model] = await Promise.all([
-            AutoTokenizer.from_pretrained(MODEL),
-            AutoModel.from_pretrained(MODEL, { dtype: 'fp32' }),
+            AutoTokenizer.from_pretrained(MODEL, { revision: REVISION }),
+            AutoModel.from_pretrained(MODEL, { dtype: 'fp32', revision: REVISION }),
         ]);
         console.log(`✅ Embedding model loaded in ${Date.now() - started}ms`);
         return async (text) => {
